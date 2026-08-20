@@ -1,0 +1,283 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT_FREELANCER
+  CLIENT
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EducationType {
+  COLLEGE
+  SCHOOL_OR_DIPLOMA
+}
+
+enum OrderStatus {
+  FUNDED_IN_ESCROW
+  REQUIREMENTS_SUBMITTED
+  IN_PROGRESS
+  DELIVERED
+  REVISION_REQUESTED
+  COMPLETED
+  DISPUTED
+  CANCELLED_REFUNDED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED_PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model User {
+  id                String               @id @default(uuid())
+  username          String?              @unique
+  email             String               @unique
+  passwordHash      String
+  firstName         String?
+  middleName        String?
+  lastName          String?
+  fullName          String
+  phone             String?
+  role              Role                 @default(STUDENT_FREELANCER)
+  isMinor           Boolean              @default(false)
+  age               Int                  @default(20)
+  dob               DateTime?
+  points            Int                  @default(0)
+  strikesCount      Int                  @default(0)
+  isSuspended       Boolean              @default(false)
+  suspendedUntil    DateTime?
+  freeBidsRemaining Int                  @default(15)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  profile           Profile?
+  verification      VerificationRequest?
+  wallet            Wallet?
+  gigs              Gig[]
+  jobsPosted        Job[]                @relation("ClientJobs")
+  bidsPlaced        Bid[]                @relation("StudentBids")
+  ordersAsClient    Order[]              @relation("ClientOrders")
+  ordersAsSeller    Order[]              @relation("SellerOrders")
+  reviewsWritten    Review[]             @relation("ReviewsWritten")
+  reviewsReceived   Review[]             @relation("ReviewsReceived")
+  messagesSent      Message[]            @relation("Sender")
+  payoutRequests    PayoutRequest[]
+  moderationLogs    ModerationLog[]
+}
+
+model Profile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagline          String?  @default("Student Creator • Ready to Work")
+  bio              String?  @default("Student Fresher ready to deliver high quality work and build a verified portfolio.")
+  avatarUrl        String?
+  coverUrl         String?
+  college          String?  @default("College / University")
+  category         String?  @default("Graphic Design")
+  hourlyRate       Float?   @default(499)
+  githubUrl        String?
+  youtubeUrl       String?
+  drivePortfolio   String?
+  sampleFiles      String[]
+  skills           String[] @default(["Student Talent", "Fast Learner"])
+  badges           String[] @default(["Verified Student"])
+  canUseTieredGigs Boolean  @default(false)
+  portfolioItems   Json?    @default("[]")
+  experienceList   Json?    @default("[]")
+  educationList    Json?    @default("[]")
+  qualificationList Json?   @default("[]")
+  certificationList Json?   @default("[]")
+  publicationList  Json?    @default("[]")
+}
+
+model VerificationRequest {
+  id                     String             @id @default(uuid())
+  userId                 String             @unique
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  educationType          EducationType
+  collegeName            String?
+  collegeEmail           String?
+  isCollegeEmailVerified Boolean            @default(false)
+  idCardUrl              String?
+  certificateUrl         String?
+  nationalIdUrl          String?
+  parentConsentUrl       String?
+  parentName             String?
+  parentPhone            String?
+  status                 VerificationStatus @default(PENDING)
+  rejectionReason        String?
+  reviewedAt             DateTime?
+  createdAt              DateTime           @default(now())
+}
+
+model Gig {
+  id          String       @id @default(uuid())
+  sellerId    String
+  seller      User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  title       String
+  category    String
+  description String
+  coverImage  String
+  isTiered    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  packages    GigPackage[]
+  orders      Order[]
+}
+
+model GigPackage {
+  id           String   @id @default(uuid())
+  gigId        String
+  gig          Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  tierName     String
+  price        Float
+  deliveryDays Int
+  revisions    Int
+  description  String
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  clientId       String
+  client         User      @relation("ClientJobs", fields: [clientId], references: [id], onDelete: Cascade)
+  title          String
+  category       String
+  description    String
+  budget         Float
+  reviewWindow   Int       @default(5)
+  attachmentUrls String[]
+  isOpen         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  bids           Bid[]
+  orders         Order[]
+}
+
+model Bid {
+  id             String   @id @default(uuid())
+  jobId          String
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User     @relation("StudentBids", fields: [studentId], references: [id], onDelete: Cascade)
+  proposedAmount Float
+  deliveryDays   Int
+  coverLetter    String
+  createdAt      DateTime @default(now())
+
+  @@unique([jobId, studentId])
+}
+
+model Order {
+  id                 String       @id @default(uuid())
+  clientId           String
+  client             User         @relation("ClientOrders", fields: [clientId], references: [id])
+  sellerId           String
+  seller             User         @relation("SellerOrders", fields: [sellerId], references: [id])
+  gigId              String?
+  gig                Gig?         @relation(fields: [gigId], references: [id])
+  jobId              String?
+  job                Job?         @relation(fields: [jobId], references: [id])
+  totalAmount        Float
+  platformFee        Float
+  sellerEarnings     Float
+  status             OrderStatus  @default(FUNDED_IN_ESCROW)
+  deadline           DateTime
+  requirements       String?
+  autoApproveAt      DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  deliverables       Deliverable[]
+  messages           Message[]
+  review             Review?
+}
+
+model Deliverable {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileUrls    String[]
+  driveLinks  String[]
+  message     String
+  submittedAt DateTime @default(now())
+}
+
+model Wallet {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingBalance    Float    @default(0.0)
+  availableBalance  Float    @default(0.0)
+  upiId             String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  isParentAccount   Boolean  @default(false)
+}
+
+model PayoutRequest {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  method      String
+  destination String
+  status      PayoutStatus @default(REQUESTED)
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id])
+  senderId    String
+  sender      User     @relation("Sender", fields: [senderId], references: [id])
+  recipientId String
+  content     String
+  fileUrl     String?
+  isBlocked   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model ModerationLog {
+  id            String   @id @default(uuid())
+  senderId      String
+  sender        User     @relation(fields: [senderId], references: [id])
+  flaggedText   String
+  violationType String
+  confidence    Float
+  createdAt     DateTime @default(now())
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  authorId      String
+  author        User     @relation("ReviewsWritten", fields: [authorId], references: [id])
+  receiverId    String
+  receiver      User     @relation("ReviewsReceived", fields: [receiverId], references: [id])
+  rating        Int
+  communication Int?
+  qualityOfWork Int?
+  timeliness    Int?
+  comment       String
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
