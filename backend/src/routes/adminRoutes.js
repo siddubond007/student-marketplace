@@ -14,4 +14,7 @@ router.delete('/users/:userId', adminController.deleteUser);
 router.put('/users/:userId/suspend', adminController.toggleSuspend);
 router.put('/users/:userId/role', adminController.changeUserRole);
 
+router.get('/verifications', adminController.getVerifications);
+router.put('/verifications/:id/status', adminController.updateVerificationStatus);
+
 module.exports = router;

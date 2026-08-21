@@ -10,16 +10,16 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Please provide first name, last name, email, and password.' });
     }
 
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    const cleanEmail = email.trim().toLowerCase();
+    const existingEmail = await prisma.user.findFirst({
+      where: { email: { equals: cleanEmail, mode: 'insensitive' } }
+    });
     if (existingEmail) {
       return res.status(400).json({ error: 'This email is already registered. Please sign in.' });
     }
 
-    // Clean username fallback
+    const isOwnerAdmin = cleanEmail === 'siddusiddharth80193@gmail.com';
     const userCleanName = (username || `${firstName.toLowerCase()}${Math.floor(100 + Math.random() * 900)}`).replace(/\s+/g, '');
-    const existingUser = await prisma.user.findUnique({ where: { username: userCleanName } });
-    const finalUsername = existingUser ? `${userCleanName}${Math.floor(100 + Math.random() * 900)}` : userCleanName;
-
     const passwordHash = await bcrypt.hash(password, 10);
     const parsedAge = parseInt(age, 10) || 18;
     const isMinor = parsedAge < 18;
@@ -27,28 +27,28 @@ exports.register = async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        username: finalUsername,
-        email,
+        username: userCleanName,
+        email: cleanEmail,
         passwordHash,
         firstName,
         middleName: middleName || null,
         lastName,
         fullName,
-        role: isMinor ? 'STUDENT_FREELANCER' : (role || 'STUDENT_FREELANCER'),
+        role: isOwnerAdmin ? 'ADMIN' : (isMinor ? 'STUDENT_FREELANCER' : (role || 'STUDENT_FREELANCER')),
         isMinor,
         age: parsedAge,
         dob: dob ? new Date(dob) : null,
         profile: {
           create: {
-            tagline: isMinor ? 'Young Student Creator (Minor Verified)' : 'Student Creator & Freelancer',
-            bio: 'Student Fresher ready to deliver quality work and build a verified portfolio.',
-            college: 'College / University',
-            category: 'Graphic Design',
-            hourlyRate: 499,
+            tagline: isOwnerAdmin ? 'Super Administrator & Founder' : (isMinor ? 'Young Student Creator (Minor Verified)' : 'Student Creator & Freelancer'),
+            bio: isOwnerAdmin ? 'Platform Administrator for SkillLaunch.' : 'Student Fresher ready to deliver quality work and build a verified portfolio.',
+            college: isOwnerAdmin ? 'Mohan Babu University (MBU) - Tirupati' : '',
+            category: isOwnerAdmin ? 'Platform Operations' : 'General Freelancing',
+            hourlyRate: isOwnerAdmin ? 999 : 350,
             skills: ['Student Talent', 'Fast Learner']
           }
         },
-        wallet: { create: { isParentAccount: isMinor } }
+        wallet: { create: { isParentAccount: isMinor, availableBalance: isOwnerAdmin ? 5000 : 0 } }
       },
       include: { profile: true, wallet: true }
     });
@@ -69,11 +69,13 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Please enter both email and password.' });
     }
 
-    const user = await prisma.user.findFirst({
+    const cleanInput = email.trim();
+
+    let user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
-          { username: email }
+          { email: { equals: cleanInput, mode: 'insensitive' } },
+          { username: { equals: cleanInput, mode: 'insensitive' } }
         ]
       },
       include: { profile: true, wallet: true, verification: true }
@@ -88,9 +90,20 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Incorrect password. Please try again.' });
     }
 
+    // Auto-promote Owner Email to ADMIN on Login
+    if (user.email.toLowerCase() === 'siddusiddharth80193@gmail.com' && user.role !== 'ADMIN') {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'ADMIN', isSuspended: false },
+        include: { profile: true, wallet: true, verification: true }
+      });
+    }
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+    console.log(`✅ Login successful: ${user.email} -> Role: ${user.role}`);
     res.json({ message: 'Login successful', token, user });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ error: 'Database Error: ' + err.message });
   }
 };

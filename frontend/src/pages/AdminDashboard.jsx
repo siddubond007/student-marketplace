@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, Users, Briefcase, Trash2, Ban, CheckCircle2, 
-  Search, AlertTriangle, ArrowUpRight, Award, Lock, RefreshCw, Eye, KeyRound, Mail, LogIn, LogOut
+  Search, AlertTriangle, ArrowUpRight, Award, Lock, RefreshCw, Eye, KeyRound, Mail, LogIn, LogOut,
+  GraduationCap, Upload, Clock, Check, ExternalLink
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
@@ -11,36 +12,37 @@ export default function AdminDashboard({ currentUser }) {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, studentCount: 0, clientCount: 0, totalJobs: 0, totalOrders: 0, moderationLogs: 0 });
   const [moderationLogs, setModerationLogs] = useState([]);
+  const [verifications, setVerifications] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
 
-  // Clean empty input fields
+  // Login Form State
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, verifRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
-        API.get('/admin/moderation-logs')
+        API.get('/admin/moderation-logs'),
+        API.get('/admin/verifications')
       ]);
 
       setUsers(usersRes.data || []);
       setStats(statsRes.data || {});
       setModerationLogs(logsRes.data || []);
+      setVerifications(verifRes.data || []);
       setIsAdminLoggedIn(true);
     } catch (err) {
-      console.error("Admin data fetch error:", err);
-      // Show exact alert if failed
-      if (err.response?.status === 401 || err.response?.status === 403) {
+      console.error('Fetch Admin Data Error:', err);
+      if (err.response?.status === 403 || err.response?.status === 401) {
         setIsAdminLoggedIn(false);
       }
     } finally {
@@ -51,213 +53,212 @@ export default function AdminDashboard({ currentUser }) {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      API.get('/auth/me')
-        .then(res => {
-          if (res.data.user?.role === 'ADMIN') {
-            setIsAdminLoggedIn(true);
-            fetchAdminData();
-          }
-        })
-        .catch(() => {});
+      fetchAdminData();
     }
   }, []);
 
-  // Admin Sign In
   const handleAdminLogin = async (e) => {
     e.preventDefault();
-    setLoginError('');
     setLoginLoading(true);
-
+    setLoginError('');
     try {
       const res = await API.post('/auth/login', {
-        email: adminEmail.trim(),
+        email: adminEmail,
         password: adminPassword
       });
 
-      if (res.data.user.role !== 'ADMIN') {
-        setLoginError('Access Denied: This account does not have Administrator privileges.');
-        setLoginLoading(false);
+      if (res.data.user?.role !== 'ADMIN') {
+        setLoginError('Access Denied: This account is not an Administrator.');
         return;
       }
 
       localStorage.setItem('token', res.data.token);
-      confetti({ particleCount: 150, spread: 80 });
+      confetti();
       setIsAdminLoggedIn(true);
-      
-      // Fetch data immediately with new token
       fetchAdminData();
     } catch (err) {
-      setLoginError(err.response?.data?.error || 'Invalid administrator credentials.');
+      setLoginError(err.response?.data?.error || 'Admin login failed.');
     } finally {
       setLoginLoading(false);
     }
   };
 
-  // Logout Admin
-  const handleAdminLogout = () => {
-    localStorage.removeItem('token');
-    setIsAdminLoggedIn(false);
-    setUsers([]);
-    setAdminEmail('');
-    setAdminPassword('');
+  const handleMasterUnlock = async () => {
+    const masterKey = window.prompt('Enter Master Admin Key:');
+    if (!masterKey) return;
+
+    try {
+      const res = await API.post('/auth/admin-login', { masterKey });
+      localStorage.setItem('token', res.data.token);
+      confetti();
+      setIsAdminLoggedIn(true);
+      fetchAdminData();
+      alert('👑 Master Admin Access Granted!');
+    } catch (err) {
+      alert('Access Denied: ' + (err.response?.data?.error || 'Invalid Key'));
+    }
   };
 
-  // Delete User Action
+  // Document Verification Actions (Independent College ID & Govt ID)
+  const handleApproveVerification = async (id, docType) => {
+    try {
+      await API.put(`/admin/verifications/${id}/status`, { type: docType, status: 'APPROVED' });
+      confetti();
+      alert(`✅ ${docType === 'COLLEGE' ? 'College Student ID' : 'Government Identity ID'} Approved!`);
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to approve: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleRejectVerification = async (id, docType) => {
+    const reason = window.prompt(`Enter rejection reason for ${docType === 'COLLEGE' ? 'College ID' : 'Govt ID'} (optional):`, 'Document image was blurry or unreadable.');
+    if (reason === null) return;
+    try {
+      await API.put(`/admin/verifications/${id}/status`, { type: docType, status: 'REJECTED', reason });
+      alert(`❌ ${docType === 'COLLEGE' ? 'College ID' : 'Govt ID'} marked as Rejected.`);
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to reject: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`Are you sure you want to permanently delete user "${userName}"? This cannot be undone.`)) return;
 
     try {
       await API.delete(`/admin/users/${userId}`);
-      confetti({ particleCount: 80 });
       alert(`User "${userName}" deleted from PostgreSQL database.`);
-      setUsers(users.filter(u => u.id !== userId));
-      setStats(prev => ({ ...prev, totalUsers: prev.totalUsers - 1 }));
+      fetchAdminData();
     } catch (err) {
-      alert('Failed to delete: ' + (err.response?.data?.error || err.message));
+      alert('Failed to delete user: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  // Toggle Suspend
-  const handleToggleSuspend = async (userId, currentStatus) => {
+  const handleToggleSuspend = async (userId) => {
     try {
       const res = await API.put(`/admin/users/${userId}/suspend`);
       alert(res.data.message);
-      setUsers(users.map(u => u.id === userId ? { ...u, isSuspended: !currentStatus } : u));
+      fetchAdminData();
     } catch (err) {
-      alert('Failed to update suspension status.');
+      alert('Failed to update suspension: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  // Change Role
   const handleChangeRole = async (userId, newRole) => {
     try {
       await API.put(`/admin/users/${userId}/role`, { role: newRole });
-      alert(`User role updated to ${newRole}`);
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      alert(`User role changed to ${newRole}`);
+      fetchAdminData();
     } catch (err) {
-      alert('Failed to update role.');
+      alert('Failed to update role: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  // ─── 1. DEDICATED ADMIN LOGIN SCREEN ───
-  if (!isAdminLoggedIn) {
-    return (
-      <div className="min-h-[75vh] flex items-center justify-center px-4 w-full">
-        <div className="glass-panel p-8 sm:p-12 rounded-3xl border-2 border-red-500/30 max-w-md w-full shadow-2xl relative overflow-hidden">
-          
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto text-red-400 mb-4">
-            <Lock className="w-8 h-8" />
-          </div>
-
-          <div className="text-center space-y-1.5 mb-6">
-            <span className="px-3 py-0.5 bg-red-500/20 text-red-400 rounded-full text-[11px] font-black uppercase tracking-wider">
-              Confidential Admin Gate
-            </span>
-            <h2 className="text-2xl font-black text-white">Administrator Sign In</h2>
-            <p className="text-xs text-slate-400">Enter your verified administrator credentials to access the console.</p>
-          </div>
-
-          {loginError && (
-            <div className="p-3.5 bg-red-500/15 border border-red-500/40 rounded-xl text-xs text-red-300 font-bold flex items-center space-x-2 mb-4">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{loginError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-black text-slate-400 uppercase mb-1">Admin Email</label>
-              <div className="relative">
-                <input 
-                  required 
-                  type="email" 
-                  value={adminEmail}
-                  onChange={e => setAdminEmail(e.target.value)}
-                  placeholder="siddusiddharth80193@gmail.com" 
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 placeholder-slate-600" 
-                />
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-black text-slate-400 uppercase mb-1">Admin Password</label>
-              <div className="relative">
-                <input 
-                  required 
-                  type="password" 
-                  value={adminPassword}
-                  onChange={e => setAdminPassword(e.target.value)}
-                  placeholder="••••••••••••" 
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono placeholder-slate-600" 
-                />
-                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loginLoading}
-              className="w-full py-3.5 neon-airflow-btn text-white text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center space-x-2 mt-2"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>{loginLoading ? 'Authenticating...' : 'Sign In as Administrator'}</span>
-            </button>
-          </form>
-
-          <Link to="/" className="text-xs text-slate-500 hover:text-white block font-bold text-center pt-4">
-            ← Return to Homepage
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── 2. ACTIVE ADMIN MANAGEMENT CONSOLE ───
   const filteredUsers = users.filter(u => {
-    const matchesSearch = !searchQuery || 
-      u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = 
+      (u.fullName && u.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      u.id.toLowerCase().includes(searchQuery.toLowerCase());
+      (u.id && u.id.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
+  const pendingVerifCount = verifications.filter(v => 
+    (v.collegeIdStatus === 'PENDING' && v.idCardUrl) || 
+    (v.govtIdStatus === 'PENDING' && v.nationalIdUrl) ||
+    v.status === 'PENDING'
+  ).length;
+
+  if (!isAdminLoggedIn) {
+    return (
+      <div className="max-w-md mx-auto my-12 p-8 glass-panel rounded-3xl border border-slate-800 shadow-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl flex items-center justify-center mx-auto text-indigo-400">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-black text-white">Admin Console Access</h2>
+          <p className="text-xs text-slate-400">Sign in with your Super Administrator credentials or use the Master Key.</p>
+        </div>
+
+        {loginError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 font-bold">
+            {loginError}
+          </div>
+        )}
+
+        <form onSubmit={handleAdminLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Admin Email</label>
+            <input 
+              type="email" 
+              required 
+              value={adminEmail} 
+              onChange={e => setAdminEmail(e.target.value)} 
+              placeholder="siddusiddharth80193@gmail.com" 
+              className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" 
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+            <input 
+              type="password" 
+              required 
+              value={adminPassword} 
+              onChange={e => setAdminPassword(e.target.value)} 
+              placeholder="••••••••••••" 
+              className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" 
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loginLoading} 
+            className="w-full py-3.5 neon-airflow-btn text-white text-xs font-black rounded-xl uppercase tracking-wider"
+          >
+            {loginLoading ? 'Authenticating...' : 'Sign In as Administrator'}
+          </button>
+        </form>
+
+        <div className="pt-4 border-t border-slate-800 text-center">
+          <button 
+            onClick={handleMasterUnlock} 
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-bold flex items-center justify-center space-x-1.5 mx-auto"
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Direct Master Key Unlock</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10 pb-24 w-full">
-      
-      {/* Admin Header */}
-      <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-2xl">
+    <div className="space-y-8 pb-20 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/60 p-6 rounded-3xl border border-slate-800/80">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full text-xs font-black text-red-400 mb-2">
-            <Lock className="w-3.5 h-3.5" />
+          <div className="flex items-center space-x-2 text-xs font-bold text-pink-400 mb-1">
+            <ShieldCheck className="w-4 h-4" />
             <span>Master Admin Control Center</span>
           </div>
-          <h1 className="text-3xl font-black text-white">SkillLaunch Management Console</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white">SkillLaunch Management Console</h1>
           <p className="text-xs text-slate-400 mt-1">Super Administrator Active • Full PostgreSQL Database Access</p>
         </div>
 
         <div className="flex items-center space-x-3">
           <button 
-            onClick={fetchAdminData}
-            className="px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500 text-white rounded-xl text-xs font-black transition flex items-center space-x-2 shadow-lg"
+            onClick={fetchAdminData} 
+            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white flex items-center space-x-2 transition"
           >
-            <RefreshCw className="w-4 h-4 text-indigo-400" />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh Database</span>
-          </button>
-          <button 
-            onClick={handleAdminLogout}
-            className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-xl text-xs font-black transition"
-            title="Log Out from Admin Console"
-          >
-            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Metrics Grid */}
+      {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-slate-400">Total Users</span>
@@ -265,19 +266,19 @@ export default function AdminDashboard({ currentUser }) {
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-indigo-400">Students</span>
-          <div className="text-2xl font-black text-indigo-400">{stats.studentCount}</div>
+          <div className="text-2xl font-black text-indigo-400">{stats.studentCount || users.filter(u => u.role === 'STUDENT_FREELANCER').length}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-pink-400">Clients</span>
-          <div className="text-2xl font-black text-pink-400">{stats.clientCount}</div>
+          <div className="text-2xl font-black text-pink-400">{stats.clientCount || users.filter(u => u.role === 'CLIENT').length}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-emerald-400">Total Jobs</span>
-          <div className="text-2xl font-black text-emerald-400">{stats.totalJobs}</div>
+          <div className="text-2xl font-black text-emerald-400">{stats.totalJobs || 0}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-amber-400">Escrow Orders</span>
-          <div className="text-2xl font-black text-amber-400">{stats.totalOrders}</div>
+          <div className="text-2xl font-black text-amber-400">{stats.totalOrders || 0}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-red-400">AI Flags</span>
@@ -285,23 +286,34 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-4 border-b border-slate-800 pb-3 text-xs font-black">
+      {/* Navigation Tabs */}
+      <div className="flex flex-wrap gap-3 border-b border-slate-800 pb-3 text-xs font-black">
         <button 
           onClick={() => setActiveTab('users')}
-          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'users' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-        >
+          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'users' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`
+        }>
           Registered Users Directory ({filteredUsers.length})
         </button>
         <button 
+          onClick={() => setActiveTab('verifications')}
+          className={`px-5 py-2.5 rounded-xl transition flex items-center space-x-2 ${activeTab === 'verifications' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`
+        }>
+          <span>Student ID Verifications</span>
+          {pendingVerifCount > 0 && (
+            <span className="px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[10px] rounded-full animate-pulse">
+              {pendingVerifCount} Pending
+            </span>
+          )}
+        </button>
+        <button 
           onClick={() => setActiveTab('moderation')}
-          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'moderation' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-        >
+          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'moderation' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`
+        }>
           AI Chat Moderation Queue ({moderationLogs.length})
         </button>
       </div>
 
-      {/* USERS TABLE */}
+      {/* 1. USERS DIRECTORY */}
       {activeTab === 'users' && (
         <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -316,25 +328,26 @@ export default function AdminDashboard({ currentUser }) {
               />
             </div>
 
-            <div className="flex space-x-2 w-full sm:w-auto">
+            <div className="flex space-x-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
               {['ALL', 'STUDENT_FREELANCER', 'CLIENT', 'ADMIN'].map(role => (
                 <button
                   key={role}
                   onClick={() => setRoleFilter(role)}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition ${
-                    roleFilter === role ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    roleFilter === role ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'
                   }`}
                 >
-                  {role === 'STUDENT_FREELANCER' ? 'Students' : role}
+                  {role === 'ALL' ? 'ALL' : role === 'STUDENT_FREELANCER' ? 'Students' : role}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                <tr className="border-b border-slate-800 text-[11px] font-black uppercase text-slate-400">
                   <th className="py-3 px-4">User</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Role</th>
@@ -348,59 +361,46 @@ export default function AdminDashboard({ currentUser }) {
                 {filteredUsers.map(user => (
                   <tr key={user.id} className="hover:bg-slate-900/40 transition">
                     <td className="py-3.5 px-4 font-bold text-white flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-black text-xs shrink-0">
-                        {user.fullName.charAt(0)}
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-pink-600 flex items-center justify-center text-xs font-black">
+                        {user.fullName?.charAt(0) || 'U'}
                       </div>
                       <div>
-                        <div className="flex items-center space-x-1.5">
-                          <span>{user.fullName}</span>
-                          {user.isSuspended && <span className="px-1.5 py-0.2 bg-red-500/20 text-red-400 text-[9px] font-bold rounded">SUSPENDED</span>}
-                        </div>
+                        <div>{user.fullName}</div>
                         <span className="text-[10px] text-slate-400 font-normal">@{user.username || 'user'}</span>
                       </div>
                     </td>
-
-                    <td className="py-3.5 px-4 text-slate-300 font-mono text-[11px]">{user.email}</td>
-
+                    <td className="py-3.5 px-4 text-slate-300">{user.email}</td>
                     <td className="py-3.5 px-4">
                       <select 
-                        value={user.role}
+                        value={user.role} 
                         onChange={e => handleChangeRole(user.id, e.target.value)}
-                        className="px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold text-indigo-300"
+                        className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-indigo-300 outline-none"
                       >
                         <option value="STUDENT_FREELANCER">Student</option>
                         <option value="CLIENT">Client</option>
                         <option value="ADMIN">Admin</option>
                       </select>
                     </td>
-
                     <td className="py-3.5 px-4 text-slate-300">
-                      <div>{user.profile?.category || 'General'}</div>
-                      <span className="text-[10px] text-slate-500">{user.profile?.college || 'Not set'}</span>
+                      <div className="font-semibold text-white">{user.profile?.category || 'General'}</div>
+                      <div className="text-[11px] text-slate-400">{user.profile?.college || 'Not set'}</div>
                     </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className="text-slate-300">{user.age} yrs</span>
-                      {user.isMinor && <span className="block text-[9px] text-amber-400 font-bold">Minor (16-17)</span>}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-slate-400 text-[11px]">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-
+                    <td className="py-3.5 px-4 text-slate-300">{user.age ? `${user.age} yrs` : '18 yrs'}</td>
+                    <td className="py-3.5 px-4 text-slate-400">{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <Link 
-                          to={`/u/${user.username || user.id}`}
-                          className="p-2 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg transition"
-                          title="View Profile"
+                          to={`/u/${user.username || user.id}`} 
+                          target="_blank" 
+                          className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg transition"
+                          title="View Public Profile"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </Link>
                         <button 
-                          onClick={() => handleToggleSuspend(user.id, user.isSuspended)}
+                          onClick={() => handleToggleSuspend(user.id)}
                           className={`p-2 rounded-lg transition ${
-                            user.isSuspended ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-white' : 'bg-slate-900 text-slate-400 hover:text-amber-400'
+                            user.isSuspended ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white'
                           }`}
                           title={user.isSuspended ? 'Unsuspend User' : 'Suspend User'}
                         >
@@ -423,7 +423,171 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       )}
 
-      {/* AI MODERATION */}
+      {/* 2. UNIFIED SINGLE VERIFICATION QUEUE */}
+      {activeTab === 'verifications' && (
+        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-6 shadow-2xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="text-xl font-black text-white flex items-center space-x-2">
+                <ShieldCheck className="w-6 h-6 text-indigo-400" />
+                <span>Student ID Verification Requests ({verifications.length})</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">Review College Student IDs and Government Photo IDs side-by-side to approve verified badges.</p>
+            </div>
+            <button 
+              onClick={fetchAdminData} 
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl flex items-center space-x-2 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh Queue</span>
+            </button>
+          </div>
+
+          {verifications.length === 0 ? (
+            <div className="p-16 text-center text-sm text-slate-500 bg-slate-950/40 border border-slate-900 rounded-2xl">
+              No verification requests submitted yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {verifications.map((v) => (
+                <div key={v.id} className="p-6 bg-slate-950 border border-slate-800/90 rounded-2xl space-y-6 shadow-xl">
+                  {/* User Header with Clickable Username */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-900 pb-4">
+                    <div>
+                      <h4 className="text-lg font-black text-white">{v.user?.fullName || 'Student'}</h4>
+                      <div className="flex items-center space-x-2 text-xs mt-1">
+                        <Link 
+                          to={`/u/${v.user?.username || v.user?.id}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-indigo-400 hover:text-indigo-300 font-bold hover:underline flex items-center space-x-1 transition cursor-pointer bg-indigo-950/60 hover:bg-indigo-900/80 px-2 py-0.5 rounded-lg border border-indigo-800/50"
+                          title="Click to view student profile"
+                        >
+                          <span>@{v.user?.username || 'user'}</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </Link>
+                        <span className="text-slate-600 font-bold">•</span>
+                        <span className="text-slate-400 font-medium">{v.user?.email}</span>
+                      </div>
+                      <p className="text-xs text-indigo-400/90 font-semibold mt-1">🏫 {v.collegeName || v.user?.profile?.college || 'College Student'}</p>
+                    </div>
+                    <span className="text-xs text-slate-500">Submitted: {new Date(v.createdAt).toLocaleString()}</span>
+                  </div>
+
+                  {/* Dual Documents Side-by-Side Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* 1. College Student ID Card */}
+                    <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black uppercase text-indigo-400 flex items-center space-x-1.5">
+                            <GraduationCap className="w-4 h-4" />
+                            <span>1. College Student ID</span>
+                          </span>
+                          <span className={`px-2.5 py-0.5 text-[10px] font-black rounded-md border ${
+                            v.collegeIdStatus === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                            v.collegeIdStatus === 'PENDING' && v.idCardUrl ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse' :
+                            v.idCardUrl ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-slate-800 text-slate-500 border-slate-700'
+                          }`}>
+                            {v.idCardUrl ? (v.collegeIdStatus || 'PENDING') : 'Not Uploaded'}
+                          </span>
+                        </div>
+
+                        {v.idCardUrl ? (
+                          <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 group h-48 flex items-center justify-center">
+                            <img src={v.idCardUrl} alt="College ID" className="w-full h-full object-contain cursor-pointer transition transform group-hover:scale-105" onClick={() => window.open(v.idCardUrl, '_blank')} />
+                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                              <span className="text-xs font-bold text-white flex items-center space-x-1"><Eye className="w-4 h-4" /><span>Click to view full image</span></span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-48 flex items-center justify-center text-xs text-slate-500 bg-slate-950/50 rounded-xl border border-slate-800/40">Student has not uploaded College ID</div>
+                        )}
+                        {v.collegeRejectionReason && <p className="text-xs text-red-400 font-bold">Reason: {v.collegeRejectionReason}</p>}
+                      </div>
+
+                      {v.idCardUrl && (
+                        <div className="flex space-x-2 pt-2">
+                          <button 
+                            onClick={() => handleApproveVerification(v.id, 'COLLEGE')} 
+                            disabled={v.collegeIdStatus === 'APPROVED'} 
+                            className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${
+                              v.collegeIdStatus === 'APPROVED' ? 'bg-emerald-900/40 text-emerald-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/40'
+                            }`}
+                          >
+                            {v.collegeIdStatus === 'APPROVED' ? '✓ College ID Approved' : 'Approve College ID'}
+                          </button>
+                          <button 
+                            onClick={() => handleRejectVerification(v.id, 'COLLEGE')} 
+                            className="px-4 py-2.5 bg-red-950/50 hover:bg-red-900/80 border border-red-800 text-red-300 text-xs font-bold rounded-xl transition"
+                          >
+                            Reject ID
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Government Identity ID Document */}
+                    <div className="p-5 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black uppercase text-violet-400 flex items-center space-x-1.5">
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>2. Government Identity ID</span>
+                          </span>
+                          <span className={`px-2.5 py-0.5 text-[10px] font-black rounded-md border ${
+                            v.govtIdStatus === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                            v.govtIdStatus === 'PENDING' && v.nationalIdUrl ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse' :
+                            v.nationalIdUrl ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-slate-800 text-slate-500 border-slate-700'
+                          }`}>
+                            {v.nationalIdUrl ? (v.govtIdStatus || 'PENDING') : 'Not Uploaded'}
+                          </span>
+                        </div>
+
+                        {v.nationalIdUrl ? (
+                          <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 group h-48 flex items-center justify-center">
+                            <img src={v.nationalIdUrl} alt="Government ID" className="w-full h-full object-contain cursor-pointer transition transform group-hover:scale-105" onClick={() => window.open(v.nationalIdUrl, '_blank')} />
+                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                              <span className="text-xs font-bold text-white flex items-center space-x-1"><Eye className="w-4 h-4" /><span>Click to view full image</span></span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-48 flex items-center justify-center text-xs text-slate-500 bg-slate-950/50 rounded-xl border border-slate-800/40">Student has not uploaded Govt ID</div>
+                        )}
+                        {v.govtRejectionReason && <p className="text-xs text-red-400 font-bold">Reason: {v.govtRejectionReason}</p>}
+                      </div>
+
+                      {v.nationalIdUrl && (
+                        <div className="flex space-x-2 pt-2">
+                          <button 
+                            onClick={() => handleApproveVerification(v.id, 'GOVT')} 
+                            disabled={v.govtIdStatus === 'APPROVED'} 
+                            className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${
+                              v.govtIdStatus === 'APPROVED' ? 'bg-emerald-900/40 text-emerald-500 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-950/40'
+                            }`}
+                          >
+                            {v.govtIdStatus === 'APPROVED' ? '✓ Govt ID Approved' : 'Approve Govt ID'}
+                          </button>
+                          <button 
+                            onClick={() => handleRejectVerification(v.id, 'GOVT')} 
+                            className="px-4 py-2.5 bg-red-950/50 hover:bg-red-900/80 border border-red-800 text-red-300 text-xs font-bold rounded-xl transition"
+                          >
+                            Reject ID
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. AI CHAT MODERATION LOGS */}
       {activeTab === 'moderation' && (
         <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
           <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">AI Contact-Leak Interception Logs</h3>

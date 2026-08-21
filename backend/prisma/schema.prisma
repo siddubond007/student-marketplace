@@ -80,29 +80,31 @@ model User {
 }
 
 model Profile {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tagline          String?  @default("Student Creator • Ready to Work")
-  bio              String?  @default("Student Fresher ready to deliver high quality work and build a verified portfolio.")
-  avatarUrl        String?
-  coverUrl         String?
-  college          String?  @default("College / University")
-  category         String?  @default("Graphic Design")
-  hourlyRate       Float?   @default(499)
-  githubUrl        String?
-  youtubeUrl       String?
-  drivePortfolio   String?
-  sampleFiles      String[]
-  skills           String[] @default(["Student Talent", "Fast Learner"])
-  badges           String[] @default(["Verified Student"])
-  canUseTieredGigs Boolean  @default(false)
-  portfolioItems   Json?    @default("[]")
-  experienceList   Json?    @default("[]")
-  educationList    Json?    @default("[]")
-  qualificationList Json?   @default("[]")
-  certificationList Json?   @default("[]")
-  publicationList  Json?    @default("[]")
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagline           String?  @default("Student Creator • Ready to Work")
+  bio               String?  @default("Student Fresher ready to deliver quality work and build a verified portfolio.")
+  avatarUrl         String?
+  coverUrl          String?
+  college           String?  @default("College / University")
+  category          String?  @default("Graphic Design")
+  hourlyRate        Float?   @default(499)
+  githubUrl         String?
+  youtubeUrl        String?
+  drivePortfolio    String?
+  sampleFiles       String[]
+  skills            String[] @default(["Student Talent", "Fast Learner"])
+  badges            String[] @default(["Verified Student"])
+  canUseTieredGigs  Boolean  @default(false)
+  
+  // 5 Student Profile Sections
+  portfolioItems    Json?    @default("[]")
+  experienceList    Json?    @default("[]")
+  educationList     Json?    @default("[]")
+  qualificationList Json?    @default("[]")
+  certificationList Json?    @default("[]")
+  socialLinks       Json?    @default("{}")
 }
 
 model VerificationRequest {
@@ -114,8 +116,12 @@ model VerificationRequest {
   collegeEmail           String?
   isCollegeEmailVerified Boolean            @default(false)
   idCardUrl              String?
+  collegeIdStatus        VerificationStatus @default(PENDING)
+  collegeRejectionReason String?
   certificateUrl         String?
   nationalIdUrl          String?
+  govtIdStatus           VerificationStatus @default(PENDING)
+  govtRejectionReason    String?
   parentConsentUrl       String?
   parentName             String?
   parentPhone            String?

@@ -93,3 +93,62 @@ exports.getModerationLogs = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.getVerifications = async (req, res) => {
+  try {
+    const verifications = await prisma.verificationRequest.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            username: true,
+            age: true,
+            role: true,
+            profile: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(verifications);
+  } catch (err) {
+    console.error('getVerifications error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateVerificationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, status, reason } = req.body;
+    
+    const dataToUpdate = {
+      reviewedAt: new Date()
+    };
+
+    if (type === 'COLLEGE') {
+      dataToUpdate.collegeIdStatus = status;
+      dataToUpdate.collegeRejectionReason = status === 'REJECTED' ? (reason || 'College ID document was unreadable or rejected.') : null;
+    } else if (type === 'GOVT') {
+      dataToUpdate.govtIdStatus = status;
+      dataToUpdate.govtRejectionReason = status === 'REJECTED' ? (reason || 'Government ID document was unreadable or rejected.') : null;
+    } else {
+      dataToUpdate.status = status;
+      dataToUpdate.collegeIdStatus = status;
+      dataToUpdate.govtIdStatus = status;
+    }
+
+    const verification = await prisma.verificationRequest.update({
+      where: { id },
+      data: dataToUpdate
+    });
+    
+    res.json({ message: `Verification for ${type || 'All'} updated to ${status}`, verification });
+  } catch (err) {
+    console.error('updateVerificationStatus error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

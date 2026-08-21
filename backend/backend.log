@@ -1,9 +1,2 @@
-◇ injected env (4) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (6) from .env // tip: ⌘ enable debugging { debug: true }
 🚀 API Server running on http://localhost:5000
-✅ Admin retrieved 7 users successfully.
-✅ Admin retrieved 7 users successfully.
-✅ Admin retrieved 7 users successfully.
-✅ Admin retrieved 2 users successfully.
-✅ Admin retrieved 2 users successfully.
-✅ Admin retrieved 2 users successfully.
-✅ Admin retrieved 2 users successfully.

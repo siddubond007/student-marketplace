@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const isLocalhost = Boolean(
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+);
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://student-marketplace-kg2f.onrender.com/api',
+  baseURL: isLocalhost ? 'http://localhost:5000/api' : (import.meta.env.VITE_API_URL || 'https://student-marketplace-kg2f.onrender.com/api'),
 });
 
 API.interceptors.request.use((config) => {

@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const prisma = require('./config/db');
@@ -11,6 +12,7 @@ const jobRoutes = require('./routes/jobRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const { moderateMessage } = require('./services/moderationService');
 
 const app = express();
@@ -20,7 +22,11 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // REST Routes
 app.use('/api/auth', authRoutes);
@@ -29,12 +35,13 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Marketplace API running smoothly.' });
 });
 
-// Socket.io Realtime Chat & AI Filtering
+// Socket.io Realtime Chat
 io.on('connection', (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) socket.join(`user_${userId}`);
