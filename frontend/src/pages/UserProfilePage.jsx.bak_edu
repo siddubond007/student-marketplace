@@ -412,45 +412,350 @@ export default function UserProfilePage({ currentUser }) {
   };
 
   if (loading) {
-    return ((() => {
-  const isVerified = profileUser?.isCollegeVerified || 
-                     profileUser?.collegeVerified || 
-                     profileUser?.studentVerified || 
-                     profileUser?.verifications?.collegeStudentId === 'verified' ||
-                     profileUser?.verifications?.collegeId === 'verified' ||
-                     profileUser?.collegeVerificationStatus === 'verified' ||
-                     profileUser?.collegeIdStatus === 'verified';
-                     
-  const isUnderReview = profileUser?.collegeIdStatus === 'under_review' || 
-                        profileUser?.collegeIdStatus === 'pending' || 
-                        profileUser?.verifications?.collegeStudentId === 'under_review' || 
-                        profileUser?.verifications?.collegeId === 'under_review' || 
-                        profileUser?.collegeVerificationStatus === 'under_review' ||
-                        profileUser?.collegeIdUnderReview ||
-                        Boolean(profileUser?.collegeIdImage) ||
-                        Boolean(profileUser?.collegeIdDoc) ||
-                        Boolean(profileUser?.collegeIdFile);
+    return <div className="p-16 text-center text-sm text-slate-400 glass-panel rounded-3xl">Loading profile...</div>;
+  }
 
-  if (isVerified) {
+  if (!profileUser) {
     return (
-      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-medium mt-1">
-        <span>✓</span> Student Status Verified
-      </div>
-    );
-  } else if (isUnderReview) {
-    return (
-      <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mt-1">
-        <span>⏳</span> Student ID Under Review
-      </div>
-    );
-  } else {
-    return (
-      <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium mt-1">
-        <span>⚠️</span> Student Status Not Verified
+      <div className="p-16 text-center space-y-4 glass-panel rounded-3xl">
+        <User className="w-12 h-12 text-slate-600 mx-auto" />
+        <h3 className="text-xl font-black text-white">Student Profile Not Found</h3>
+        <Link to="/jobs" className="px-6 py-2.5 neon-airflow-btn text-white text-xs font-black rounded-xl inline-block">Return to Marketplace</Link>
       </div>
     );
   }
-})()
+
+  const isOwner = currentUser && (currentUser.id === profileUser.id || currentUser.username === profileUser.username);
+  const portfolioList = Array.isArray(profileUser.profile?.portfolioItems) ? profileUser.profile.portfolioItems : [];
+  
+  const experienceList = Array.isArray(profileUser.profile?.experienceList) ? profileUser.profile.experienceList : [];
+  const educationList = Array.isArray(profileUser.profile?.educationList) ? profileUser.profile.educationList : [];
+  const qualificationList = Array.isArray(profileUser.profile?.qualificationList) ? profileUser.profile.qualificationList : [];
+  const certificationList = Array.isArray(profileUser.profile?.certificationList) ? profileUser.profile.certificationList : [];
+  const socialLinks = profileUser.profile?.socialLinks || {};
+
+  // Dynamic Performance & Work Analytics
+  const sellerOrders = Array.isArray(profileUser.ordersAsSeller) ? profileUser.ordersAsSeller : [];
+  const totalProjectsWorked = sellerOrders.length;
+  const successfulProjects = sellerOrders.filter(o => o.status === 'COMPLETED').length;
+  const inProgressProjects = sellerOrders.filter(o => ['IN_PROGRESS', 'DELIVERED', 'FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'REVISION_REQUESTED'].includes(o.status)).length;
+  const rejectedOrDisputedProjects = sellerOrders.filter(o => ['CANCELLED_REFUNDED', 'DISPUTED'].includes(o.status)).length;
+
+  const projectSuccessRate = totalProjectsWorked > 0 
+    ? Math.round((successfulProjects / (successfulProjects + rejectedOrDisputedProjects || 1)) * 100) 
+    : 100;
+
+  const totalEarnedAmount = sellerOrders
+    .filter(o => o.status === 'COMPLETED')
+    .reduce((sum, o) => sum + (o.sellerEarnings || (o.totalAmount * 0.94) || 0), 0);
+
+  const reviewsList = Array.isArray(profileUser.reviewsReceived) ? profileUser.reviewsReceived : [];
+  const reviewsCount = reviewsList.length;
+  const avgRating = reviewsCount > 0
+    ? (reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / reviewsCount).toFixed(1)
+    : null;
+
+  const isMinorStudent = Boolean(profileUser?.isMinor || (profileUser?.age && profileUser.age < 18));
+  const activeInstitutionsList = isMinorStudent ? (typeof ALL_SCHOOLS_DATA !== 'undefined' ? ALL_SCHOOLS_DATA : []) : (typeof INDIAN_COLLEGES !== 'undefined' ? INDIAN_COLLEGES : []);
+  const activeProgramsList = isMinorStudent ? (typeof ALL_SCHOOL_PROGRAMS !== 'undefined' ? ALL_SCHOOL_PROGRAMS : []) : (typeof ALL_DEGREES_PROGRAMS !== 'undefined' ? ALL_DEGREES_PROGRAMS : []);
+
+  const filteredColleges = (typeof INDIAN_COLLEGES !== 'undefined' ? INDIAN_COLLEGES : []).filter(c => c.toLowerCase().includes((collegeQuery || '').toLowerCase()));
+  const filteredDegrees = activeProgramsList.filter(d => !(sectionForm.title || '').trim() || d.toLowerCase().includes((sectionForm.title || '').toLowerCase()));
+  const filteredEduColleges = activeInstitutionsList.filter(c => !(sectionForm.institution || '').trim() || c.toLowerCase().includes((sectionForm.institution || '').toLowerCase()));
+  const filteredCategories = COMPREHENSIVE_CATEGORIES.filter(cat => cat.toLowerCase().includes(categorySearchQuery.toLowerCase()));
+  const filteredSkills = ALL_SKILLS_DATABASE.filter(s => s.toLowerCase().includes(skillInput.toLowerCase()) && !editForm.skills.includes(s));
+
+  return (
+    <div className="space-y-10 pb-24 w-full">
+      
+      {/* ─── CROPPER STUDIO MODAL ─── */}
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          aspect={cropType === 'avatar' ? 1 : 16 / 6}
+          cropShape={cropType === 'avatar' ? 'round' : 'rect'}
+          title={cropType === 'avatar' ? 'Crop Profile Picture (1:1)' : 'Crop Cover Banner (16:6)'}
+          onCropComplete={handleCroppedUploadSave}
+          onClose={() => { setCropImageSrc(null); setCropType(null); }}
+        />
+      )}
+
+      {/* ─── 1. FULL-WIDTH COVER BANNER & HEADER ─── */}
+      <div className="rounded-3xl overflow-hidden glass-panel border border-slate-800 shadow-2xl w-full">
+        <div className="h-60 sm:h-72 md:h-80 bg-gradient-to-r from-indigo-950 via-purple-950 to-pink-950 relative overflow-hidden flex items-end justify-end p-6 group">
+          {profileUser.profile?.coverUrl && (
+            <img src={profileUser.profile.coverUrl} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          
+          {isOwner && (
+            <div className="flex space-x-2 relative z-10">
+              <button 
+                onClick={() => setShowCoverModal(true)}
+                className="px-4 py-2.5 bg-slate-950/85 hover:bg-slate-900 text-white text-xs font-black rounded-xl backdrop-blur-md border border-slate-700 shadow-xl flex items-center space-x-2 transition"
+              >
+                <Camera className="w-4 h-4 text-pink-400" />
+                <span>{profileUser.profile?.coverUrl ? 'Change Cover Photo' : 'Upload Cover Photo'}</span>
+              </button>
+              {profileUser.profile?.coverUrl && (
+                <button 
+                  onClick={handleRemoveCover}
+                  className="p-2.5 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white rounded-xl backdrop-blur-md border border-red-500/40 shadow-xl transition"
+                  title="Remove Cover Photo"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Profile Info Header */}
+        <div className="p-8 sm:p-12 relative">
+          <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
+            <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-8">
+              
+              {/* Profile Avatar with Camera Icon */}
+              <div className="relative group shrink-0 -mt-20 sm:-mt-24">
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl overflow-hidden border-4 border-slate-900 bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-black text-5xl shadow-2xl relative">
+                  {profileUser.profile?.avatarUrl ? (
+                    <img src={profileUser.profile.avatarUrl} alt={profileUser.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    profileUser.fullName.charAt(0)
+                  )}
+                  <span className="absolute bottom-2 right-2 w-4 h-4 bg-emerald-500 rounded-full ring-2 ring-slate-950" title="Online" />
+                </div>
+
+                {isOwner && (
+                  <button 
+                    onClick={() => setShowAvatarModal(true)}
+                    className="absolute -bottom-1 -right-1 p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-white shadow-2xl border-2 border-slate-900 transition transform hover:scale-110 flex items-center justify-center"
+                    title="Upload & Crop Profile Picture"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <h1 className="text-3xl sm:text-4xl font-black text-white flex items-center space-x-3">
+                  <span>{profileUser.fullName}</span>
+                  <span className="text-slate-400 text-base font-normal">@{profileUser.username}</span>
+                  {profileUser.verification?.status === "APPROVED" && <CheckCircle2 className="w-6 h-6 text-sky-400 shrink-0" title="Verified Student" />}
+                </h1>
+
+                <div className="flex items-center space-x-3 text-sm font-bold">
+                  <Star className={`w-4 h-4 ${avgRating ? 'fill-amber-400 text-amber-400' : 'text-slate-500'}`} />
+                  {avgRating ? (
+                    <span className="text-amber-400">{avgRating} ({reviewsCount} {reviewsCount === 1 ? 'review' : 'reviews'})</span>
+                  ) : (
+                    <span className="text-slate-400 font-semibold">New • No ratings yet (0 reviews)</span>
+                  )}
+                  <span className="text-slate-500 font-normal">• Age: {profileUser.age} yrs • India</span>
+                </div>
+
+                <div className="text-sm font-black uppercase text-indigo-400 tracking-wide pt-1">
+                  {profileUser.profile?.tagline || 'Student Creator • Ready to Work'}
+                </div>
+
+                <div className="text-sm text-slate-300 pt-1">
+                  <span className="text-emerald-400 font-black text-lg">₹{profileUser.profile?.hourlyRate || 499}</span> per hour • Joined {new Date(profileUser.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 w-full lg:w-auto">
+              {isOwner ? (
+                <>
+                  <button 
+                    onClick={() => setShowEditModal(true)}
+                    className="px-6 py-3.5 bg-slate-900 border border-slate-700 hover:border-indigo-500 text-white text-xs font-black rounded-2xl transition flex items-center space-x-2 shadow-lg"
+                  >
+                    <Edit3 className="w-4 h-4 text-indigo-400" />
+                    <span>Edit Profile</span>
+                  </button>
+                  <button 
+                    onClick={() => setShowPortfolioModal(true)}
+                    className="px-6 py-3.5 neon-airflow-btn text-white text-xs font-black rounded-2xl shadow-xl flex items-center space-x-1.5"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    <span>Manage Portfolio</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setShowInviteModal(true)}
+                    className="px-6 py-3.5 bg-slate-900 border border-slate-700 hover:border-white text-white text-xs font-black rounded-2xl transition shadow-lg"
+                  >
+                    Invite to Bid
+                  </button>
+                  <button 
+                    onClick={() => setShowInviteModal(true)}
+                    className="px-8 py-3.5 bg-gradient-to-r from-pink-600 to-rose-500 text-white text-xs font-black rounded-2xl shadow-xl shadow-pink-600/30 uppercase tracking-wider"
+                  >
+                    Hire Directly
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex space-x-8 border-b border-slate-800 pt-10 text-sm font-black overflow-x-auto">
+            {[
+              { id: 'about', label: 'About Me' },
+              { id: 'portfolio', label: `Portfolio Items (${portfolioList.length})` },
+              { id: 'experience', label: 'Education, Credentials & Social' },
+              { id: 'analytics', label: 'Performance & Analytics 📊' },
+              { id: 'reviews', label: `Client Reviews (${reviewsCount})` }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-4 transition whitespace-nowrap ${activeTab === tab.id ? 'text-pink-400 border-b-2 border-pink-500' : 'text-slate-400 hover:text-white'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2. CONTENT BODY & SIDEBAR ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
+        
+        {/* Left Column */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* TAB 1: ABOUT ME */}
+          {activeTab === 'about' && (
+            <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-8">
+              <div className="space-y-3">
+                <h3 className="text-xl font-black text-white">About Me</h3>
+                <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                  {profileUser.profile?.bio || 'Verified student freelancer ready to deliver quality work and build a strong portfolio.'}
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-6 border-t border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Primary Specialization</h4>
+                <span className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-xl text-sm font-bold inline-block">
+                  {profileUser.profile?.category || 'Graphic Design'}
+                </span>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">College / Institute</h4>
+                <span className="text-base font-bold text-white block">{profileUser.profile?.college || <span className="text-sm font-normal text-slate-500 italic">No college specified yet (Click 'Edit Profile' to choose your college)</span>}</span>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-slate-800">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Verified Skills & Tools</h4>
+                <div className="flex flex-wrap gap-2">
+                  {(profileUser.profile?.skills || ['Student Talent']).map((s, i) => (
+                    <span key={i} className="px-3.5 py-1.5 bg-slate-900 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: PORTFOLIO */}
+          {activeTab === 'portfolio' && (
+            <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-white">Portfolio Items</h3>
+                {isOwner && (
+                  <button onClick={() => setShowPortfolioModal(true)} className="px-5 py-2.5 neon-airflow-btn text-white text-xs font-bold rounded-xl flex items-center space-x-1.5">
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Add Project</span>
+                  </button>
+                )}
+              </div>
+
+              {portfolioList.length === 0 ? (
+                <div className="p-16 text-center bg-slate-950/40 border border-slate-800 rounded-3xl space-y-3">
+                  <p className="text-sm text-slate-400">No portfolio items have been added yet.</p>
+                  {isOwner && (
+                    <button onClick={() => setShowPortfolioModal(true)} className="text-indigo-400 font-bold text-sm hover:underline block mx-auto">
+                      + Click here to add projects and upload work proofs to Cloudinary
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {portfolioList.map(item => (
+                    <div key={item.id} className="relative h-64 rounded-3xl overflow-hidden border border-slate-800 group shadow-xl">
+                      <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <span className="text-sm font-black text-white block">{item.title}</span>
+                        <span className="text-xs text-pink-400 font-bold">{item.category}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── TAB 3: 5 SECTIONS (EXACT FREELANCER EXPERIENCE MODAL) ─── */}
+          {activeTab === 'experience' && (
+            <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-10">
+              
+              {/* 1. Experience Section (Opens Exact Modal) */}
+              <div className="space-y-3 pb-8 border-b border-slate-800">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-black text-white">Experience</h3>
+                  {isOwner && (
+                    <button 
+                      onClick={() => setShowExperienceModal(true)} 
+                      className="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center space-x-1.5 transition"
+                    >
+                      <Plus className="w-4 h-4" /><span>Add experience</span>
+                    </button>
+                  )}
+                </div>
+                {experienceList.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No experiences have been added.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {experienceList.map(item => (
+                      <div key={item.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex justify-between items-start">
+                        <div>
+                          <div className="text-base font-bold text-white">{item.title}</div>
+                          <div className="text-xs text-indigo-400 font-semibold mt-0.5">{item.company || item.institution} • {item.period}</div>
+                          {item.desc && <p className="text-xs text-slate-300 mt-2 leading-relaxed whitespace-pre-line">{item.desc}</p>}
+                        </div>
+                        {isOwner && (
+                          <button onClick={() => handleDeleteSectionItem('experienceList', item.id)} className="text-slate-500 hover:text-red-400 p-1">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Education Section */}
+              <div className="space-y-3 pb-8 border-b border-slate-800">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-black text-white">Education & Degrees</h3>
+                  {isOwner && (
+                    <button onClick={() => setModalType('education')} className="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center space-x-1.5 transition">
+                      <Plus className="w-4 h-4" /><span>Add education</span>
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl">
+                    <div className="text-base font-bold text-white">{profileUser.profile?.college || 'College Student'}</div>
+                    <span className="text-xs text-emerald-400 font-bold block mt-1">✓ Student Status Verified</span>
+                  </div>
                   {educationList.map(item => (
                     <div key={item.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex justify-between items-start">
                       <div>
