@@ -412,7 +412,7 @@ export default function UserProfilePage({ currentUser }) {
   };
 
   if (loading) {
-    return ((() => {
+    {(() => {
   const isVerified = profileUser?.isCollegeVerified || 
                      profileUser?.collegeVerified || 
                      profileUser?.studentVerified || 
@@ -450,7 +450,7 @@ export default function UserProfilePage({ currentUser }) {
       </div>
     );
   }
-})()
+})()}
                   {educationList.map(item => (
                     <div key={item.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex justify-between items-start">
                       <div>
