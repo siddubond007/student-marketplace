@@ -16,6 +16,21 @@ import { ALL_DEGREES_PROGRAMS } from '../data/degreesData';
 import { ALL_SCHOOLS_DATA, ALL_SCHOOL_PROGRAMS } from '../data/schoolsData';
 import { COMPREHENSIVE_CATEGORIES } from '../data/categoriesData';
 
+
+// Skills Database as plain strings for .toLowerCase() compatibility
+export const ALL_SKILLS_DATABASE = [
+  'React', 'Node.js', 'Python', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'Tailwind CSS',
+  'Java', 'C++', 'C#', 'SQL', 'PostgreSQL', 'MongoDB', 'MySQL', 'Firebase', 'Supabase', 'Redis',
+  'Git', 'GitHub', 'Docker', 'Kubernetes', 'AWS', 'Google Cloud', 'Azure', 'Linux',
+  'UI/UX Design', 'Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'Graphic Design', 'Video Editing',
+  'Machine Learning', 'Deep Learning', 'Data Analysis', 'Data Science', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch',
+  'Content Writing', 'Copywriting', 'SEO', 'Digital Marketing', 'Social Media Marketing',
+  'Mobile App Development', 'Flutter', 'React Native', 'Android Development', 'iOS Development',
+  'Cybersecurity', 'Ethical Hacking', 'Penetration Testing', 'Network Security',
+  'Communication', 'Project Management', 'Problem Solving', 'Leadership', 'Public Speaking'
+];
+
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June', 
   'July', 'August', 'September', 'October', 'November', 'December'
