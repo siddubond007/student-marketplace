@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Briefcase, FileText, Layers, DollarSign, Paperclip, 
   Sliders, CheckCircle2, ArrowLeft, ArrowRight, Save, 
   Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
   Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle,
-  Calendar, IndianRupee, Info, TrendingUp
+  Calendar, IndianRupee, Info, TrendingUp, UploadCloud,
+  File, Globe, Shield, CheckCircle
 } from 'lucide-react';
 
 const STEPS = [
@@ -73,8 +74,12 @@ const DEADLINE_TYPES = [
   { id: 'FLEXIBLE', label: 'Flexible' }
 ];
 
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+
 export default function PostJobPage({ currentUser }) {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
   const token = localStorage.getItem('token');
   const isAuthenticated = Boolean(currentUser || token);
 
@@ -84,6 +89,10 @@ export default function PostJobPage({ currentUser }) {
 
   const [skillSearchInput, setSkillSearchInput] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [cloudLinkInput, setCloudLinkInput] = useState('');
+  const [fileError, setFileError] = useState('');
 
   const todayDateString = new Date().toISOString().split('T')[0];
 
@@ -106,8 +115,9 @@ export default function PostJobPage({ currentUser }) {
     startDate: '',
     deadlineType: '1_MONTH',
     deadlineDate: '',
-    attachments: [],
-    referenceLinks: '',
+    uploadedFiles: [],
+    cloudDriveLinks: [],
+    referenceWebsites: [''],
     visibility: 'PUBLIC',
     screeningQuestions: []
   });
@@ -127,6 +137,11 @@ export default function PostJobPage({ currentUser }) {
             requiredSkills: Array.isArray(parsed.formData.requiredSkills) 
               ? parsed.formData.requiredSkills 
               : [],
+            uploadedFiles: Array.isArray(parsed.formData.uploadedFiles) ? parsed.formData.uploadedFiles : [],
+            cloudDriveLinks: Array.isArray(parsed.formData.cloudDriveLinks) ? parsed.formData.cloudDriveLinks : [],
+            referenceWebsites: Array.isArray(parsed.formData.referenceWebsites) && parsed.formData.referenceWebsites.length > 0 
+              ? parsed.formData.referenceWebsites 
+              : [''],
             budgetType: parsed.formData.budgetType || 'RANGE',
             currency: 'INR'
           }));
@@ -154,17 +169,7 @@ export default function PostJobPage({ currentUser }) {
   };
 
   const handleAddDeliverable = () => {
-    setFormData(prev => ({
-      ...prev,
-      deliverables: [...prev.deliverables, '']
-    }));
-    if (errors.deliverables) {
-      setErrors(prev => {
-        const copy = { ...prev };
-        delete copy.deliverables;
-        return copy;
-      });
-    }
+    setFormData(prev => ({ ...prev, deliverables: [...prev.deliverables, ''] }));
   };
 
   const handleDeliverableChange = (index, value) => {
@@ -173,13 +178,6 @@ export default function PostJobPage({ currentUser }) {
       updated[index] = value;
       return { ...prev, deliverables: updated };
     });
-    if (errors.deliverables) {
-      setErrors(prev => {
-        const copy = { ...prev };
-        delete copy.deliverables;
-        return copy;
-      });
-    }
   };
 
   const handleRemoveDeliverable = (index) => {
@@ -192,122 +190,152 @@ export default function PostJobPage({ currentUser }) {
   const handleAddSkill = (skillToAdd) => {
     const trimmed = (skillToAdd || '').trim();
     if (!trimmed) return;
-    
     if (formData.requiredSkills.includes(trimmed)) {
       setSkillSearchInput('');
       setShowSkillDropdown(false);
       return;
     }
-
     if (formData.requiredSkills.length >= 10) {
       setErrors(prev => ({ ...prev, requiredSkills: 'You can select up to 10 skills maximum' }));
       return;
     }
-
-    setFormData(prev => ({
-      ...prev,
-      requiredSkills: [...prev.requiredSkills, trimmed]
-    }));
+    setFormData(prev => ({ ...prev, requiredSkills: [...prev.requiredSkills, trimmed] }));
     setSkillSearchInput('');
     setShowSkillDropdown(false);
-
-    if (errors.requiredSkills) {
-      setErrors(prev => {
-        const copy = { ...prev };
-        delete copy.requiredSkills;
-        return copy;
-      });
-    }
   };
 
   const handleRemoveSkill = (skillToRemove) => {
+    setFormData(prev => ({ ...prev, requiredSkills: prev.requiredSkills.filter(s => s !== skillToRemove) }));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesSelected = (filesList) => {
+    setFileError('');
+    const newFiles = [];
+    for (let i = 0; i < filesList.length; i++) {
+      const file = filesList[i];
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setFileError(`"${file.name}" exceeds the 500 MB upload limit. Please use a cloud drive link for larger files.`);
+        continue;
+      }
+      newFiles.push({
+        id: `${Date.now()}_${i}_${Math.random().toString(36).substr(2, 5)}`,
+        name: file.name,
+        size: file.size,
+        type: file.type || file.name.split('.').pop()?.toUpperCase() || 'FILE',
+        status: 'Uploaded',
+        uploadedAt: new Date().toISOString()
+      });
+    }
+
+    if (newFiles.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        uploadedFiles: [...prev.uploadedFiles, ...newFiles]
+      }));
+    }
+  };
+
+  const handleRemoveFile = (fileId) => {
     setFormData(prev => ({
       ...prev,
-      requiredSkills: prev.requiredSkills.filter(s => s !== skillToRemove)
+      uploadedFiles: prev.uploadedFiles.filter(f => f.id !== fileId)
     }));
+  };
+
+  const handleAddCloudLink = () => {
+    const trimmed = cloudLinkInput.trim();
+    if (!trimmed) return;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setFileError('Please enter a valid URL starting with https:// or http://');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      cloudDriveLinks: [...prev.cloudDriveLinks, trimmed]
+    }));
+    setCloudLinkInput('');
+    setFileError('');
+  };
+
+  const handleRemoveCloudLink = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      cloudDriveLinks: prev.cloudDriveLinks.filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleAddReferenceWebsite = () => {
+    setFormData(prev => ({
+      ...prev,
+      referenceWebsites: [...prev.referenceWebsites, '']
+    }));
+  };
+
+  const handleReferenceWebsiteChange = (index, value) => {
+    setFormData(prev => {
+      const updated = [...prev.referenceWebsites];
+      updated[index] = value;
+      return { ...prev, referenceWebsites: updated };
+    });
+  };
+
+  const handleRemoveReferenceWebsite = (index) => {
+    setFormData(prev => {
+      const updated = prev.referenceWebsites.filter((_, idx) => idx !== index);
+      return { ...prev, referenceWebsites: updated.length > 0 ? updated : [''] };
+    });
   };
 
   const validateCurrentStep = (step) => {
     const stepErrors = {};
     if (step === 1) {
       const trimmedTitle = (formData.title || '').trim();
-      if (!trimmedTitle) {
-        stepErrors.title = 'Job title is required';
-      } else if (trimmedTitle.length < 10) {
-        stepErrors.title = 'Title must be at least 10 characters long';
-      } else if (trimmedTitle.length > 100) {
-        stepErrors.title = 'Title cannot exceed 100 characters';
-      }
-
-      if (!formData.category) {
-        stepErrors.category = 'Please select a primary category';
-      }
-
-      if (formData.category && !formData.subcategory) {
-        stepErrors.subcategory = 'Please select a subcategory for your project';
-      }
-
-      if (!formData.projectType) {
-        stepErrors.projectType = 'Please select a project type';
-      }
+      if (!trimmedTitle) stepErrors.title = 'Job title is required';
+      else if (trimmedTitle.length < 10) stepErrors.title = 'Title must be at least 10 characters long';
+      else if (trimmedTitle.length > 100) stepErrors.title = 'Title cannot exceed 100 characters';
+      if (!formData.category) stepErrors.category = 'Please select a primary category';
+      if (formData.category && !formData.subcategory) stepErrors.subcategory = 'Please select a subcategory';
+      if (!formData.projectType) stepErrors.projectType = 'Please select a project type';
     } else if (step === 2) {
       const trimmedDesc = (formData.description || '').trim();
-      if (!trimmedDesc) {
-        stepErrors.description = 'Project description is required';
-      } else if (trimmedDesc.length < 50) {
-        stepErrors.description = 'Description must be at least 50 characters long to provide sufficient detail';
-      } else if (trimmedDesc.length > 3000) {
-        stepErrors.description = 'Description cannot exceed 3000 characters';
-      }
-
+      if (!trimmedDesc) stepErrors.description = 'Project description is required';
+      else if (trimmedDesc.length < 50) stepErrors.description = 'Description must be at least 50 characters long';
       const validDeliverables = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
-      if (validDeliverables.length === 0) {
-        stepErrors.deliverables = 'Please specify at least one project deliverable';
-      }
+      if (validDeliverables.length === 0) stepErrors.deliverables = 'Please specify at least one project deliverable';
     } else if (step === 3) {
       if (!formData.requiredSkills || formData.requiredSkills.length === 0) {
-        stepErrors.requiredSkills = 'Please select at least one required skill for your project';
+        stepErrors.requiredSkills = 'Please select at least one required skill';
       }
     } else if (step === 4) {
       if (formData.budgetType === 'FIXED') {
         const fb = Number(formData.fixedBudget);
-        if (!formData.fixedBudget || isNaN(fb) || fb <= 0) {
-          stepErrors.fixedBudget = 'Please enter a valid fixed budget amount greater than 0';
-        }
+        if (!formData.fixedBudget || isNaN(fb) || fb <= 0) stepErrors.fixedBudget = 'Please enter a valid fixed budget greater than 0';
       } else {
         const minB = Number(formData.minimumBudget);
         const maxB = Number(formData.maximumBudget);
-
-        if (!formData.minimumBudget || isNaN(minB) || minB <= 0) {
-          stepErrors.minimumBudget = 'Minimum budget is required and must be greater than 0';
-        }
-        if (!formData.maximumBudget || isNaN(maxB) || maxB <= 0) {
-          stepErrors.maximumBudget = 'Maximum budget is required and must be greater than 0';
-        }
+        if (!formData.minimumBudget || isNaN(minB) || minB <= 0) stepErrors.minimumBudget = 'Minimum budget must be greater than 0';
+        if (!formData.maximumBudget || isNaN(maxB) || maxB <= 0) stepErrors.maximumBudget = 'Maximum budget must be greater than 0';
         if (!isNaN(minB) && !isNaN(maxB) && minB > 0 && maxB > 0 && maxB < minB) {
           stepErrors.maximumBudget = 'Maximum budget must be greater than or equal to minimum budget';
         }
       }
-
-      if (formData.startPreference === 'SPECIFIC_DATE') {
-        if (!formData.startDate) {
-          stepErrors.startDate = 'Please select a specific start date';
-        } else if (formData.startDate < todayDateString) {
-          stepErrors.startDate = 'Start date cannot be in the past';
-        }
+      if (formData.startPreference === 'SPECIFIC_DATE' && (!formData.startDate || formData.startDate < todayDateString)) {
+        stepErrors.startDate = 'Please select a valid future start date';
       }
-
       if (formData.deadlineType === 'SPECIFIC_DATE') {
-        if (!formData.deadlineDate) {
-          stepErrors.deadlineDate = 'Please select a specific deadline date';
-        } else if (formData.deadlineDate < todayDateString) {
-          stepErrors.deadlineDate = 'Deadline date cannot be in the past';
+        if (!formData.deadlineDate || formData.deadlineDate < todayDateString) {
+          stepErrors.deadlineDate = 'Please select a valid future deadline date';
         } else if (formData.startPreference === 'SPECIFIC_DATE' && formData.startDate && formData.deadlineDate < formData.startDate) {
-          stepErrors.deadlineDate = 'Project deadline must be on or after the selected start date';
+          stepErrors.deadlineDate = 'Deadline must be on or after start date';
         }
       }
     }
-    
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
@@ -358,7 +386,6 @@ export default function PostJobPage({ currentUser }) {
   }
 
   const availableSubcategories = formData.category ? CATEGORIES_DATA[formData.category] || [] : [];
-  
   const filteredSkillSuggestions = ALL_SKILLS_DATABASE.filter(s => 
     s.toLowerCase().includes(skillSearchInput.toLowerCase().trim()) &&
     !formData.requiredSkills.includes(s)
@@ -412,7 +439,7 @@ export default function PostJobPage({ currentUser }) {
           </div>
         </div>
 
-        {/* Progress Stepper */}
+        {/* Stepper */}
         <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
           <div className="md:hidden flex justify-between items-center text-xs font-bold">
             <span className="text-indigo-400 uppercase tracking-wider">Step {currentStep} of {STEPS.length}</span>
@@ -450,7 +477,7 @@ export default function PostJobPage({ currentUser }) {
           </div>
         </div>
 
-        {/* Step Container */}
+        {/* Step Body */}
         <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-8 min-h-[400px]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step {currentStep}</div>
@@ -458,7 +485,7 @@ export default function PostJobPage({ currentUser }) {
             <p className="text-xs sm:text-sm text-slate-400">{STEPS[currentStep - 1].desc}</p>
           </div>
 
-          {/* STEP 1: Basic Information */}
+          {/* STEP 1 */}
           {currentStep === 1 && (
             <div className="space-y-8">
               <div className="space-y-2">
@@ -466,9 +493,7 @@ export default function PostJobPage({ currentUser }) {
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
                     What do you need help with? <span className="text-pink-500">*</span>
                   </label>
-                  <span className={`text-[11px] font-semibold ${formData.title.length > 100 ? 'text-red-400' : 'text-slate-500'}`}>
-                    {formData.title.length}/100
-                  </span>
+                  <span className={`text-[11px] font-semibold ${formData.title.length > 100 ? 'text-red-400' : 'text-slate-500'}`}>{formData.title.length}/100</span>
                 </div>
                 <input
                   type="text"
@@ -476,97 +501,46 @@ export default function PostJobPage({ currentUser }) {
                   value={formData.title}
                   onChange={(e) => handleFieldChange('title', e.target.value)}
                   placeholder="e.g. Build a responsive e-commerce website"
-                  className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
-                    errors.title ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                  }`}
+                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-2xl text-sm text-white outline-none transition"
                 />
-                {errors.title ? (
-                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.title}</span>
-                  </p>
-                ) : (
-                  <p className="text-xs text-slate-500">
-                    Use a clear and specific title so freelancers can quickly understand your project.
-                  </p>
-                )}
+                {errors.title && <p className="text-xs text-red-400 font-semibold">{errors.title}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Category <span className="text-pink-500">*</span>
-                  </label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Category <span className="text-pink-500">*</span></label>
                   <select
                     value={formData.category}
                     onChange={(e) => handleFieldChange('category', e.target.value)}
-                    className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
-                      errors.category ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                    }`}
+                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500"
                   >
                     <option value="">Select a category...</option>
-                    {Object.keys(CATEGORIES_DATA).map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                    {Object.keys(CATEGORIES_DATA).map(cat => (<option key={cat} value={cat}>{cat}</option>))}
                   </select>
-                  {errors.category && (
-                    <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{errors.category}</span>
-                    </p>
-                  )}
+                  {errors.category && <p className="text-xs text-red-400 font-semibold">{errors.category}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Subcategory <span className="text-pink-500">*</span>
-                  </label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Subcategory <span className="text-pink-500">*</span></label>
                   <select
                     value={formData.subcategory}
                     disabled={!formData.category}
                     onChange={(e) => handleFieldChange('subcategory', e.target.value)}
-                    className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm outline-none transition ${
-                      !formData.category 
-                        ? 'opacity-50 cursor-not-allowed border-slate-900 text-slate-600' 
-                        : errors.subcategory 
-                          ? 'border-red-500 focus:border-red-400 text-white bg-red-500/5' 
-                          : 'border-slate-800 focus:border-indigo-500 text-white'
-                    }`}
+                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="">
-                      {!formData.category ? 'Select a category first...' : 'Select a subcategory...'}
-                    </option>
-                    {availableSubcategories.map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
+                    <option value="">{!formData.category ? 'Select a category first...' : 'Select a subcategory...'}</option>
+                    {availableSubcategories.map(sub => (<option key={sub} value={sub}>{sub}</option>))}
                   </select>
-                  {errors.subcategory && (
-                    <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{errors.subcategory}</span>
-                    </p>
-                  )}
+                  {errors.subcategory && <p className="text-xs text-red-400 font-semibold">{errors.subcategory}</p>}
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                  What type of project is this? <span className="text-pink-500">*</span>
-                </label>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">What type of project is this? <span className="text-pink-500">*</span></label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { 
-                      id: 'ONE_TIME', 
-                      title: 'One-time project', 
-                      desc: 'Find a student for a specific project or task with clear deliverables',
-                      icon: Clock 
-                    },
-                    { 
-                      id: 'ONGOING', 
-                      title: 'Ongoing work', 
-                      desc: 'Hire a student on a recurring or long-term basis for ongoing support',
-                      icon: Repeat 
-                    }
+                    { id: 'ONE_TIME', title: 'One-time project', desc: 'Find a student for a specific project or task with clear deliverables', icon: Clock },
+                    { id: 'ONGOING', title: 'Ongoing work', desc: 'Hire a student on a recurring or long-term basis for ongoing support', icon: Repeat }
                   ].map(type => {
                     const isSelected = formData.projectType === type.id;
                     const Icon = type.icon;
@@ -576,20 +550,11 @@ export default function PostJobPage({ currentUser }) {
                         type="button"
                         onClick={() => handleFieldChange('projectType', type.id)}
                         className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
-                          isSelected
-                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
-                            : 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                          isSelected ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <div className={`p-2.5 rounded-xl border mt-0.5 ${
-                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-sm font-bold text-white">{type.title}</div>
-                          <div className="text-xs text-slate-400 leading-relaxed">{type.desc}</div>
-                        </div>
+                        <div className={`p-2.5 rounded-xl border mt-0.5 ${isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'}`}><Icon className="w-5 h-5" /></div>
+                        <div><div className="text-sm font-bold text-white">{type.title}</div><div className="text-xs text-slate-400">{type.desc}</div></div>
                       </button>
                     );
                   })}
@@ -598,17 +563,13 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* STEP 2: Project Description */}
+          {/* STEP 2 */}
           {currentStep === 2 && (
             <div className="space-y-8">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Describe your project <span className="text-pink-500">*</span>
-                  </label>
-                  <span className={`text-[11px] font-semibold ${formData.description.length > 3000 ? 'text-red-400' : 'text-slate-500'}`}>
-                    {formData.description.length}/3000
-                  </span>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Describe your project <span className="text-pink-500">*</span></label>
+                  <span className={`text-[11px] font-semibold ${formData.description.length > 3000 ? 'text-red-400' : 'text-slate-500'}`}>{formData.description.length}/3000</span>
                 </div>
                 <textarea
                   rows={7}
@@ -616,254 +577,104 @@ export default function PostJobPage({ currentUser }) {
                   value={formData.description}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
                   placeholder="Tell freelancers what you need, what you are trying to achieve, and what the final result should look like."
-                  className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
-                    errors.description ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                  }`}
+                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-2xl text-sm text-white outline-none transition"
                 />
-                {errors.description ? (
-                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.description}</span>
-                  </p>
-                ) : (
-                  <p className="text-xs text-slate-500">
-                    Detailed descriptions help freelancers submit better and more accurate proposals.
-                  </p>
-                )}
+                {errors.description && <p className="text-xs text-red-400 font-semibold">{errors.description}</p>}
               </div>
 
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    What should the freelancer deliver? <span className="text-pink-500">*</span>
-                  </label>
-                  <p className="text-xs text-slate-500">
-                    List specific deliverables expected upon completion (e.g. Responsive website, Admin dashboard, Source code, Deployment).
-                  </p>
-                </div>
-
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">What should the freelancer deliver? <span className="text-pink-500">*</span></label>
                 <div className="space-y-3">
                   {formData.deliverables.map((deliverable, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={deliverable}
-                          onChange={(e) => handleDeliverableChange(index, e.target.value)}
-                          placeholder={`e.g. ${index === 0 ? 'Responsive website' : index === 1 ? 'Source code repository' : index === 2 ? 'Live deployment & documentation' : 'Additional deliverable'}`}
-                          className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500 transition"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={deliverable}
+                        onChange={(e) => handleDeliverableChange(index, e.target.value)}
+                        placeholder={`e.g. ${index === 0 ? 'Responsive website' : index === 1 ? 'Source code repository' : 'Deployment'}`}
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                      />
                       {formData.deliverables.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDeliverable(index)}
-                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800 hover:border-red-500/40 transition"
-                          title="Remove deliverable"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <button type="button" onClick={() => handleRemoveDeliverable(index)} className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"><Trash2 className="w-4 h-4" /></button>
                       )}
                     </div>
                   ))}
                 </div>
-
-                <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleAddDeliverable}
-                    className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 transition"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add deliverable</span>
-                  </button>
-
-                  {errors.deliverables && (
-                    <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{errors.deliverables}</span>
-                    </p>
-                  )}
-                </div>
+                <button type="button" onClick={handleAddDeliverable} className="px-4 py-2.5 bg-slate-900 border border-slate-800 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2"><Plus className="w-4 h-4" /><span>Add deliverable</span></button>
+                {errors.deliverables && <p className="text-xs text-red-400 font-semibold">{errors.deliverables}</p>}
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                  Are there any specific requirements? <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span>
-                </label>
-                <textarea
-                  rows={4}
-                  value={formData.specificRequirements}
-                  onChange={(e) => handleFieldChange('specificRequirements', e.target.value)}
-                  placeholder="Describe technology requirements, technical constraints, design guidelines, or specific conditions..."
-                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
-                />
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Are there any specific requirements? <span className="text-xs text-slate-500 font-medium">(Optional)</span></label>
+                <textarea rows={4} value={formData.specificRequirements} onChange={(e) => handleFieldChange('specificRequirements', e.target.value)} placeholder="Describe technology requirements, technical constraints, design guidelines..." className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500" />
               </div>
             </div>
           )}
 
-          {/* STEP 3: Skills & Experience */}
+          {/* STEP 3 */}
           {currentStep === 3 && (
             <div className="space-y-8">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                      What skills should the freelancer have? <span className="text-pink-500">*</span>
-                    </label>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Select up to 10 key technologies or capabilities required for your project.
-                    </p>
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">What skills should the freelancer have? <span className="text-pink-500">*</span></label>
+                    <p className="text-xs text-slate-500">Select up to 10 key technologies or capabilities.</p>
                   </div>
-                  <span className={`text-[11px] font-semibold ${formData.requiredSkills.length >= 10 ? 'text-amber-400' : 'text-slate-500'}`}>
-                    {formData.requiredSkills.length}/10 selected
-                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500">{formData.requiredSkills.length}/10 selected</span>
                 </div>
 
                 <div className="min-h-[52px] p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex flex-wrap items-center gap-2">
                   {formData.requiredSkills.length > 0 ? (
                     formData.requiredSkills.map(skill => (
-                      <span
-                        key={skill}
-                        className="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition"
-                      >
+                      <span key={skill} className="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl flex items-center gap-2">
                         <span>{skill}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSkill(skill)}
-                          className="text-indigo-300 hover:text-white transition p-0.5 rounded-md hover:bg-indigo-500/30"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <button type="button" onClick={() => handleRemoveSkill(skill)}><X className="w-3.5 h-3.5" /></button>
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-600 italic px-2">
-                      No skills selected yet. Search below or pick from recommended skills.
-                    </span>
+                    <span className="text-xs text-slate-600 italic px-2">No skills selected yet. Search below.</span>
                   )}
                 </div>
 
                 <div className="relative">
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={skillSearchInput}
-                      onFocus={() => setShowSkillDropdown(true)}
-                      onChange={(e) => {
-                        setSkillSearchInput(e.target.value);
-                        setShowSkillDropdown(true);
-                      }}
-                      onKeyDown={(e) => {
-                        if ((e.key === 'Enter' || e.key === ',') && skillSearchInput.trim()) {
-                          e.preventDefault();
-                          handleAddSkill(skillSearchInput);
-                        }
-                      }}
-                      placeholder="Search skills (e.g. React, Python, Figma, Tailwind, Node.js)..."
-                      className={`w-full pl-11 pr-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
-                        errors.requiredSkills ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                      }`}
-                    />
-                  </div>
-
+                  <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={skillSearchInput}
+                    onFocus={() => setShowSkillDropdown(true)}
+                    onChange={(e) => { setSkillSearchInput(e.target.value); setShowSkillDropdown(true); }}
+                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ',') && skillSearchInput.trim()) { e.preventDefault(); handleAddSkill(skillSearchInput); } }}
+                    placeholder="Search skills (e.g. React, Python, Figma, Tailwind, Node.js)..."
+                    className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500"
+                  />
                   {showSkillDropdown && skillSearchInput.trim() && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-56 overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
-                      {filteredSkillSuggestions.length > 0 ? (
-                        filteredSkillSuggestions.map(skill => (
-                          <button
-                            key={skill}
-                            type="button"
-                            onClick={() => handleAddSkill(skill)}
-                            className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-indigo-600/30 flex items-center justify-between transition"
-                          >
-                            <span>{skill}</span>
-                            <Plus className="w-3.5 h-3.5 text-indigo-400" />
-                          </button>
-                        ))
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleAddSkill(skillSearchInput)}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-indigo-300 hover:bg-indigo-600/30 flex items-center justify-between transition"
-                        >
-                          <span>+ Add custom skill "{skillSearchInput}"</span>
-                        </button>
-                      )}
+                      {filteredSkillSuggestions.map(skill => (
+                        <button key={skill} type="button" onClick={() => handleAddSkill(skill)} className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-indigo-600/30 flex justify-between"><span>{skill}</span><Plus className="w-3.5 h-3.5 text-indigo-400" /></button>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {errors.requiredSkills && (
-                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.requiredSkills}</span>
-                  </p>
-                )}
-
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Popular Skills:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["React", "Node.js", "Python", "Tailwind CSS", "Figma", "TypeScript", "UI/UX Design", "Next.js", "PostgreSQL"]
-                      .filter(s => !formData.requiredSkills.includes(s))
-                      .map(skill => (
-                        <button
-                          key={skill}
-                          type="button"
-                          onClick={() => handleAddSkill(skill)}
-                          className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-slate-400 hover:text-indigo-300 text-xs font-medium rounded-lg flex items-center gap-1 transition"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>{skill}</span>
-                        </button>
-                      ))}
-                  </div>
-                </div>
+                {errors.requiredSkills && <p className="text-xs text-red-400 font-semibold">{errors.requiredSkills}</p>}
               </div>
 
               <div className="space-y-3 pt-4 border-t border-slate-800">
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    What level of freelancer are you looking for?
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Select the experience level that best matches your project complexity.
-                  </p>
-                </div>
-
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">What level of freelancer are you looking for?</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {EXPERIENCE_LEVELS.map(lvl => {
                     const isSelected = formData.experienceLevel === lvl.id;
                     const Icon = lvl.icon;
-
                     return (
                       <button
                         key={lvl.id}
                         type="button"
                         onClick={() => handleFieldChange('experienceLevel', lvl.id)}
                         className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
-                          isSelected
-                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
-                            : 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                          isSelected ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
-                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{lvl.title}</span>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
-                              isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-900 text-slate-500'
-                            }`}>
-                              {lvl.badge}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 leading-relaxed">{lvl.desc}</p>
-                        </div>
+                        <div className={`p-2.5 rounded-xl border mt-0.5 ${isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'}`}><Icon className="w-5 h-5" /></div>
+                        <div><div className="text-sm font-bold text-white">{lvl.title}</div><div className="text-xs text-slate-400">{lvl.desc}</div></div>
                       </button>
                     );
                   })}
@@ -872,34 +683,15 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* STEP 4: Budget & Timeline (INR ₹) */}
+          {/* STEP 4 */}
           {currentStep === 4 && (
             <div className="space-y-8">
-              {/* Section 1 & 2: Budget Type */}
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    What's your budget for this project? <span className="text-pink-500">*</span>
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Set a realistic budget to help freelancers decide whether your project is suitable for them (All rates in INR ₹).
-                  </p>
-                </div>
-
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">What's your budget for this project? (INR ₹) <span className="text-pink-500">*</span></label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    {
-                      id: 'RANGE',
-                      title: 'Budget Range (Recommended)',
-                      desc: 'Set a flexible minimum and maximum amount you are comfortable spending.',
-                      icon: TrendingUp
-                    },
-                    {
-                      id: 'FIXED',
-                      title: 'Fixed Budget',
-                      desc: 'Set a specific total amount available for the complete project.',
-                      icon: IndianRupee
-                    }
+                    { id: 'RANGE', title: 'Budget Range (Recommended)', desc: 'Set a flexible minimum and maximum amount in INR ₹.', icon: TrendingUp },
+                    { id: 'FIXED', title: 'Fixed Budget', desc: 'Set a specific total amount available for the project in INR ₹.', icon: IndianRupee }
                   ].map(type => {
                     const isSelected = formData.budgetType === type.id;
                     const Icon = type.icon;
@@ -909,228 +701,296 @@ export default function PostJobPage({ currentUser }) {
                         type="button"
                         onClick={() => handleFieldChange('budgetType', type.id)}
                         className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
-                          isSelected
-                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
-                            : 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                          isSelected ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
-                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-sm font-bold text-white">{type.title}</div>
-                          <div className="text-xs text-slate-400 leading-relaxed">{type.desc}</div>
-                        </div>
+                        <div className={`p-2.5 rounded-xl border mt-0.5 ${isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'}`}><Icon className="w-5 h-5" /></div>
+                        <div><div className="text-sm font-bold text-white">{type.title}</div><div className="text-xs text-slate-400">{type.desc}</div></div>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Section 3 or 4: Budget Input Form */}
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
                 {formData.budgetType === 'FIXED' ? (
                   <div className="space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                      Total Project Budget <span className="text-pink-500">*</span>
-                    </label>
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Total Project Budget <span className="text-pink-500">*</span></label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={formData.fixedBudget}
-                        onChange={(e) => handleFieldChange('fixedBudget', e.target.value)}
-                        placeholder="10,000"
-                        className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
-                          errors.fixedBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                        }`}
-                      />
+                      <input type="number" min="1" value={formData.fixedBudget} onChange={(e) => handleFieldChange('fixedBudget', e.target.value)} placeholder="10,000" className="w-full pl-8 pr-4 py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                     </div>
-                    {errors.fixedBudget ? (
-                      <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        <span>{errors.fixedBudget}</span>
-                      </p>
-                    ) : (
-                      <p className="text-xs text-slate-500">
-                        This is the total amount you expect to spend on this complete project.
-                      </p>
-                    )}
+                    {errors.fixedBudget && <p className="text-xs text-red-400 font-semibold">{errors.fixedBudget}</p>}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                          Minimum Budget <span className="text-pink-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={formData.minimumBudget}
-                            onChange={(e) => handleFieldChange('minimumBudget', e.target.value)}
-                            placeholder="5,000"
-                            className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
-                              errors.minimumBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                            }`}
-                          />
-                        </div>
-                        {errors.minimumBudget && (
-                          <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>{errors.minimumBudget}</span>
-                          </p>
-                        )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Minimum Budget <span className="text-pink-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
+                        <input type="number" min="1" value={formData.minimumBudget} onChange={(e) => handleFieldChange('minimumBudget', e.target.value)} placeholder="5,000" className="w-full pl-8 pr-4 py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                          Maximum Budget <span className="text-pink-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={formData.maximumBudget}
-                            onChange={(e) => handleFieldChange('maximumBudget', e.target.value)}
-                            placeholder="15,000"
-                            className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
-                              errors.maximumBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
-                            }`}
-                          />
-                        </div>
-                        {errors.maximumBudget && (
-                          <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>{errors.maximumBudget}</span>
-                          </p>
-                        )}
+                      {errors.minimumBudget && <p className="text-xs text-red-400 font-semibold">{errors.minimumBudget}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Maximum Budget <span className="text-pink-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
+                        <input type="number" min="1" value={formData.maximumBudget} onChange={(e) => handleFieldChange('maximumBudget', e.target.value)} placeholder="15,000" className="w-full pl-8 pr-4 py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                       </div>
+                      {errors.maximumBudget && <p className="text-xs text-red-400 font-semibold">{errors.maximumBudget}</p>}
                     </div>
                   </div>
                 )}
-
-                {/* Section 5: Budget Guidance Box */}
                 <div className="p-4 bg-indigo-950/30 border border-indigo-500/20 rounded-xl flex items-start gap-3 mt-4">
                   <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <div className="text-xs font-bold text-indigo-200">Not sure about the right budget?</div>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      Freelancers will review your project requirements and submit proposals based on the work involved. You can negotiate when reviewing applications.
-                    </p>
+                    <p className="text-xs text-slate-400">Freelancers will review your project requirements and submit proposals based on the work involved.</p>
                   </div>
                 </div>
               </div>
 
-              {/* Section 6 & 7: Timeline & Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-800">
-                {/* Section 6: Project Start */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    When should the freelancer start?
-                  </label>
-                  <select
-                    value={formData.startPreference}
-                    onChange={(e) => handleFieldChange('startPreference', e.target.value)}
-                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
-                  >
-                    {START_PREFERENCES.map(pref => (
-                      <option key={pref.id} value={pref.id}>{pref.label}</option>
-                    ))}
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">When should the freelancer start?</label>
+                  <select value={formData.startPreference} onChange={(e) => handleFieldChange('startPreference', e.target.value)} className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500">
+                    {START_PREFERENCES.map(pref => (<option key={pref.id} value={pref.id}>{pref.label}</option>))}
                   </select>
-
                   {formData.startPreference === 'SPECIFIC_DATE' && (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="block text-xs font-semibold text-slate-400">Select Start Date</label>
-                      <input
-                        type="date"
-                        min={todayDateString}
-                        value={formData.startDate}
-                        onChange={(e) => handleFieldChange('startDate', e.target.value)}
-                        className={`w-full px-4 py-3 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
-                          errors.startDate ? 'border-red-500 focus:border-red-400' : 'border-slate-800 focus:border-indigo-500'
-                        }`}
-                      />
-                      {errors.startDate && (
-                        <p className="text-xs text-red-400 font-semibold flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          <span>{errors.startDate}</span>
-                        </p>
-                      )}
-                    </div>
+                    <input type="date" min={todayDateString} value={formData.startDate} onChange={(e) => handleFieldChange('startDate', e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                   )}
+                  {errors.startDate && <p className="text-xs text-red-400 font-semibold">{errors.startDate}</p>}
                 </div>
 
-                {/* Section 7: Project Deadline */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    When should the project be completed?
-                  </label>
-                  <select
-                    value={formData.deadlineType}
-                    onChange={(e) => handleFieldChange('deadlineType', e.target.value)}
-                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
-                  >
-                    {DEADLINE_TYPES.map(type => (
-                      <option key={type.id} value={type.id}>{type.label}</option>
-                    ))}
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">When should the project be completed?</label>
+                  <select value={formData.deadlineType} onChange={(e) => handleFieldChange('deadlineType', e.target.value)} className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500">
+                    {DEADLINE_TYPES.map(type => (<option key={type.id} value={type.id}>{type.label}</option>))}
                   </select>
-
                   {formData.deadlineType === 'SPECIFIC_DATE' && (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="block text-xs font-semibold text-slate-400">Select Project Deadline</label>
-                      <input
-                        type="date"
-                        min={formData.startDate || todayDateString}
-                        value={formData.deadlineDate}
-                        onChange={(e) => handleFieldChange('deadlineDate', e.target.value)}
-                        className={`w-full px-4 py-3 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
-                          errors.deadlineDate ? 'border-red-500 focus:border-red-400' : 'border-slate-800 focus:border-indigo-500'
-                        }`}
-                      />
-                      {errors.deadlineDate && (
-                        <p className="text-xs text-red-400 font-semibold flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          <span>{errors.deadlineDate}</span>
-                        </p>
-                      )}
-                    </div>
+                    <input type="date" min={formData.startDate || todayDateString} value={formData.deadlineDate} onChange={(e) => handleFieldChange('deadlineDate', e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                   )}
+                  {errors.deadlineDate && <p className="text-xs text-red-400 font-semibold">{errors.deadlineDate}</p>}
                 </div>
               </div>
 
-              {/* Section 8: Live Timeline Summary Card */}
               <div className="p-5 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-indigo-400" />
-                  <span>Timeline & Budget Summary</span>
-                </div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-400" /><span>Timeline & Budget Summary</span></div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-900">
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Estimated Budget</div>
-                    <div className="text-sm font-bold text-emerald-400 mt-0.5">{getFormattedBudgetSummary()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Expected Start</div>
-                    <div className="text-sm font-bold text-white mt-0.5">{getFormattedStartSummary()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Project Deadline</div>
-                    <div className="text-sm font-bold text-indigo-300 mt-0.5">{getFormattedDeadlineSummary()}</div>
-                  </div>
+                  <div><div className="text-[11px] text-slate-500 uppercase">Estimated Budget</div><div className="text-sm font-bold text-emerald-400 mt-0.5">{getFormattedBudgetSummary()}</div></div>
+                  <div><div className="text-[11px] text-slate-500 uppercase">Expected Start</div><div className="text-sm font-bold text-white mt-0.5">{getFormattedStartSummary()}</div></div>
+                  <div><div className="text-[11px] text-slate-500 uppercase">Project Deadline</div><div className="text-sm font-bold text-indigo-300 mt-0.5">{getFormattedDeadlineSummary()}</div></div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Placeholders for Steps 5 to 7 */}
-          {currentStep > 4 && (
+          {/* STEP 5: Files & References */}
+          {currentStep === 5 && (
+            <div className="space-y-8">
+              {/* Section 1, 2, 3: Drag & Drop Area */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Add project files <span className="text-xs text-slate-500 font-medium normal-case">(Optional, max 500 MB per file)</span>
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Upload documents, images, designs, requirements, or other files that will help freelancers understand your project.
+                  </p>
+                </div>
+
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+                  onDragLeave={() => setIsDraggingFile(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingFile(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      handleFilesSelected(e.dataTransfer.files);
+                    }
+                  }}
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  className={`p-8 border-2 border-dashed rounded-3xl text-center space-y-3 cursor-pointer transition-all ${
+                    isDraggingFile
+                      ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
+                      : 'border-slate-800 hover:border-slate-700 bg-slate-950/40 hover:bg-slate-900/40'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    multiple
+                    onChange={(e) => { if (e.target.files) handleFilesSelected(e.target.files); }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.zip,.txt"
+                    className="hidden"
+                  />
+                  <div className="w-14 h-14 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                    <UploadCloud className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">Drag & drop files here</div>
+                    <div className="text-xs text-slate-400 mt-0.5">or <span className="text-indigo-400 font-bold hover:underline">browse files</span> from your device</div>
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, PNG, JPG, ZIP, TXT (up to 500 MB)
+                  </div>
+                </div>
+
+                {fileError && (
+                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{fileError}</span>
+                  </p>
+                )}
+
+                {/* Section 4 & 5: Uploaded Files Display List */}
+                {formData.uploadedFiles.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      Attached Files ({formData.uploadedFiles.length})
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {formData.uploadedFiles.map(file => (
+                        <div key={file.id} className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 shrink-0">
+                              <File className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-white truncate">{file.name}</div>
+                              <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                <span>{formatFileSize(file.size)}</span>
+                                <span className="text-emerald-400 flex items-center gap-0.5 font-semibold">
+                                  <CheckCircle className="w-3 h-3" />
+                                  <span>Uploaded</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveFile(file.id); }}
+                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
+                            title="Remove file"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 6: Large Files / Cloud Drive Links */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Have a larger file? <span className="text-xs text-slate-500 font-medium normal-case">(Cloud Drive Link)</span>
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Upload large files (over 500 MB) or folders to Google Drive, Dropbox, or OneDrive and share the link here.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="url"
+                    value={cloudLinkInput}
+                    onChange={(e) => setCloudLinkInput(e.target.value)}
+                    placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                    className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCloudLink}
+                    className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-indigo-500/25 shrink-0"
+                  >
+                    + Add Link
+                  </button>
+                </div>
+
+                {formData.cloudDriveLinks.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-900">
+                    {formData.cloudDriveLinks.map((link, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ExternalLink className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span className="text-xs text-indigo-300 truncate">{link}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCloudLink(idx)}
+                          className="text-slate-500 hover:text-red-400 p-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Section 7: Reference Websites */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Reference Websites <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Share websites or online examples that show what you want (e.g. competitor platforms, visual inspirations).
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {formData.referenceWebsites.map((website, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-1 relative">
+                        <Globe className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="url"
+                          value={website}
+                          onChange={(e) => handleReferenceWebsiteChange(index, e.target.value)}
+                          placeholder="https://example.com"
+                          className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500 transition"
+                        />
+                      </div>
+                      {formData.referenceWebsites.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveReferenceWebsite(index)}
+                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddReferenceWebsite}
+                  className="px-4 py-2.5 bg-slate-900 border border-slate-800 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 hover:border-indigo-500/40"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add another link</span>
+                </button>
+              </div>
+
+              {/* Section 8: File Privacy Notice */}
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex items-start gap-3">
+                <Shield className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  <strong className="text-slate-200">File Privacy:</strong> Files and references attached to this job posting may be visible to verified student freelancers who view your project brief.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Placeholders for Steps 6 & 7 */}
+          {currentStep > 5 && (
             <div className="py-12 text-center text-slate-400 space-y-2">
               <div className="text-base font-bold text-white">Step {currentStep}: {STEPS[currentStep - 1].label}</div>
               <p className="text-xs text-slate-500">Form fields for this step will be populated in subsequent requirements.</p>
