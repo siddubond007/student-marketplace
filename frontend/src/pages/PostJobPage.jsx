@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Briefcase, FileText, Layers, DollarSign, Paperclip, 
   Sliders, CheckCircle2, ArrowLeft, ArrowRight, Save, 
-  Sparkles, Check, Lock, AlertCircle, Clock, Repeat
+  Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
+  Plus, Trash2
 } from 'lucide-react';
 
 const STEPS = [
@@ -46,7 +47,8 @@ export default function PostJobPage({ currentUser }) {
     subcategory: '',
     projectType: 'ONE_TIME',
     description: '',
-    deliverables: '',
+    deliverables: [''],
+    specificRequirements: '',
     requiredSkills: [],
     experienceLevel: 'INTERMEDIATE',
     pricingType: 'FIXED',
@@ -63,7 +65,15 @@ export default function PostJobPage({ currentUser }) {
       const savedDraft = localStorage.getItem('marketplace_job_draft');
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        if (parsed.formData) setFormData(parsed.formData);
+        if (parsed.formData) {
+          setFormData(prev => ({
+            ...prev,
+            ...parsed.formData,
+            deliverables: Array.isArray(parsed.formData.deliverables) && parsed.formData.deliverables.length > 0 
+              ? parsed.formData.deliverables 
+              : ['']
+          }));
+        }
         if (parsed.currentStep) setCurrentStep(parsed.currentStep);
       }
     } catch (e) {
@@ -84,6 +94,42 @@ export default function PostJobPage({ currentUser }) {
         return copy;
       });
     }
+  };
+
+  const handleAddDeliverable = () => {
+    setFormData(prev => ({
+      ...prev,
+      deliverables: [...prev.deliverables, '']
+    }));
+    if (errors.deliverables) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.deliverables;
+        return copy;
+      });
+    }
+  };
+
+  const handleDeliverableChange = (index, value) => {
+    setFormData(prev => {
+      const updated = [...prev.deliverables];
+      updated[index] = value;
+      return { ...prev, deliverables: updated };
+    });
+    if (errors.deliverables) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.deliverables;
+        return copy;
+      });
+    }
+  };
+
+  const handleRemoveDeliverable = (index) => {
+    setFormData(prev => {
+      const updated = prev.deliverables.filter((_, idx) => idx !== index);
+      return { ...prev, deliverables: updated.length > 0 ? updated : [''] };
+    });
   };
 
   const validateCurrentStep = (step) => {
@@ -109,7 +155,22 @@ export default function PostJobPage({ currentUser }) {
       if (!formData.projectType) {
         stepErrors.projectType = 'Please select a project type';
       }
+    } else if (step === 2) {
+      const trimmedDesc = (formData.description || '').trim();
+      if (!trimmedDesc) {
+        stepErrors.description = 'Project description is required';
+      } else if (trimmedDesc.length < 50) {
+        stepErrors.description = 'Description must be at least 50 characters long to provide sufficient detail';
+      } else if (trimmedDesc.length > 3000) {
+        stepErrors.description = 'Description cannot exceed 3000 characters';
+      }
+
+      const validDeliverables = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
+      if (validDeliverables.length === 0) {
+        stepErrors.deliverables = 'Please specify at least one project deliverable';
+      }
     }
+    
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
@@ -221,7 +282,7 @@ export default function PostJobPage({ currentUser }) {
           </div>
         </div>
 
-        {/* Step 1 Container */}
+        {/* Form Container */}
         <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-8 min-h-[400px]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step {currentStep}</div>
@@ -229,9 +290,9 @@ export default function PostJobPage({ currentUser }) {
             <p className="text-xs sm:text-sm text-slate-400">{STEPS[currentStep - 1].desc}</p>
           </div>
 
+          {/* STEP 1: Basic Information */}
           {currentStep === 1 && (
             <div className="space-y-8">
-              {/* 1. Job Title */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -263,7 +324,6 @@ export default function PostJobPage({ currentUser }) {
                 )}
               </div>
 
-              {/* 2 & 3. Category & Subcategory */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -321,7 +381,6 @@ export default function PostJobPage({ currentUser }) {
                 </div>
               </div>
 
-              {/* 4. Project Type */}
               <div className="space-y-3">
                 <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
                   What type of project is this? <span className="text-pink-500">*</span>
@@ -371,8 +430,115 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* Placeholders for Steps 2 to 7 */}
-          {currentStep > 1 && (
+          {/* STEP 2: Project Description */}
+          {currentStep === 2 && (
+            <div className="space-y-8">
+              {/* Section 1: Describe your project */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Describe your project <span className="text-pink-500">*</span>
+                  </label>
+                  <span className={`text-[11px] font-semibold ${formData.description.length > 3000 ? 'text-red-400' : 'text-slate-500'}`}>
+                    {formData.description.length}/3000
+                  </span>
+                </div>
+                <textarea
+                  rows={7}
+                  maxLength={3000}
+                  value={formData.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  placeholder="Tell freelancers what you need, what you are trying to achieve, and what the final result should look like."
+                  className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
+                    errors.description ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                  }`}
+                />
+                {errors.description ? (
+                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errors.description}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Detailed descriptions help freelancers submit better and more accurate proposals.
+                  </p>
+                )}
+              </div>
+
+              {/* Section 2: Deliverables */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    What should the freelancer deliver? <span className="text-pink-500">*</span>
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    List specific deliverables expected upon completion (e.g. Responsive website, Admin dashboard, Source code, Deployment).
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {formData.deliverables.map((deliverable, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={deliverable}
+                          onChange={(e) => handleDeliverableChange(index, e.target.value)}
+                          placeholder={`e.g. ${index === 0 ? 'Responsive website' : index === 1 ? 'Source code repository' : index === 2 ? 'Live deployment & documentation' : 'Additional deliverable'}`}
+                          className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500 transition"
+                        />
+                      </div>
+                      {formData.deliverables.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDeliverable(index)}
+                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800 hover:border-red-500/40 transition"
+                          title="Remove deliverable"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAddDeliverable}
+                    className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add deliverable</span>
+                  </button>
+
+                  {errors.deliverables && (
+                    <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{errors.deliverables}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 3: Project Requirements (Optional) */}
+              <div className="space-y-2">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                  Are there any specific requirements? <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.specificRequirements}
+                  onChange={(e) => handleFieldChange('specificRequirements', e.target.value)}
+                  placeholder="Describe technology requirements, technical constraints, design guidelines, or specific conditions..."
+                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Placeholders for Steps 3 to 7 */}
+          {currentStep > 2 && (
             <div className="py-12 text-center text-slate-400 space-y-2">
               <div className="text-base font-bold text-white">Step {currentStep}: {STEPS[currentStep - 1].label}</div>
               <p className="text-xs text-slate-500">Form fields for this step will be populated in subsequent requirements.</p>
