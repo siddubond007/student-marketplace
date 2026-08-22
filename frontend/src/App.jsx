@@ -1,3 +1,4 @@
+import PostJobPage from './pages/PostJobPage';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -48,6 +49,7 @@ export default function App() {
         {/* Main Content Area */}
         <main className="flex-1 w-full px-6 sm:px-8 lg:px-10 py-8 z-10">
           <Routes>
+        <Route path="/post-job" element={<PostJobPage currentUser={currentUser} />} />
             <Route path="/" element={<HomePage currentUser={currentUser} />} />
             
             {/* 1. Dedicated Admin Console */}

@@ -196,7 +196,7 @@ export default function Navbar({ currentUser, onLogout }) {
           ) : (
             <div className="flex items-center space-x-3">
               <Link to="/login" className="text-xs font-black text-slate-300 hover:text-white">Log In</Link>
-              <Link to="/register" className="text-xs font-black text-slate-300 hover:text-white">Sign Up</Link>
+              <Link to="/post-job" className="text-xs font-black text-slate-300 hover:text-white">Sign Up</Link>
               <Link 
                 to="/register"
                 className="px-6 py-2.5 bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 text-white text-xs font-black rounded-2xl shadow-xl shadow-pink-600/30 uppercase tracking-wider"
