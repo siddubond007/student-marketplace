@@ -4,7 +4,7 @@ import {
   Briefcase, FileText, Layers, DollarSign, Paperclip, 
   Sliders, CheckCircle2, ArrowLeft, ArrowRight, Save, 
   Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
-  Plus, Trash2
+  Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle
 } from 'lucide-react';
 
 const STEPS = [
@@ -32,6 +32,53 @@ const CATEGORIES_DATA = {
   "Other": ["General Tech Support", "Custom Scripting & Automation", "Other Specialized Work"]
 };
 
+const ALL_SKILLS_DATABASE = [
+  "React", "Node.js", "Python", "JavaScript", "TypeScript", "Tailwind CSS", "Next.js", 
+  "Express.js", "MongoDB", "PostgreSQL", "HTML5 & CSS3", "Vue.js", "Django", "Flask",
+  "UI/UX Design", "Figma", "Adobe XD", "Wireframing", "User Research", "Prototyping",
+  "Flutter", "React Native", "iOS (Swift)", "Android (Kotlin)", "Mobile UI",
+  "Graphic Design", "Logo Design", "Adobe Photoshop", "Adobe Illustrator", "Canva",
+  "Video Editing", "Adobe Premiere Pro", "After Effects", "DaVinci Resolve", "CapCut", "Motion Graphics",
+  "Content Writing", "Copywriting", "SEO Writing", "Technical Writing", "Proofreading",
+  "Digital Marketing", "SEO", "Google Ads", "Social Media Marketing", "Meta Ads", "Email Marketing",
+  "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "NLP", "Computer Vision", "LLM & OpenAI API",
+  "Data Analysis", "Pandas & NumPy", "PowerBI", "Tableau", "Excel / Spreadsheets", "SQL",
+  "Cybersecurity", "Penetration Testing", "Ethical Hacking", "Network Security", "Vulnerability Assessment",
+  "Business Analysis", "Financial Modeling", "Market Research", "Pitch Deck Creation", "Virtual Assistance",
+  "Git & GitHub", "Docker", "AWS", "Firebase", "Linux", "REST APIs", "GraphQL"
+];
+
+const EXPERIENCE_LEVELS = [
+  {
+    id: 'BEGINNER',
+    title: 'Beginner',
+    badge: 'Rising Star',
+    desc: 'Suitable for simple projects or clients comfortable with some guidance.',
+    icon: Sparkle
+  },
+  {
+    id: 'INTERMEDIATE',
+    title: 'Intermediate',
+    badge: 'Standard',
+    desc: 'Has professional experience and can independently handle most projects.',
+    icon: Zap
+  },
+  {
+    id: 'EXPERT',
+    title: 'Expert',
+    badge: 'Top Tier',
+    desc: 'Highly experienced professional suitable for complex projects.',
+    icon: Award
+  },
+  {
+    id: 'NOT_SURE',
+    title: "I'm not sure",
+    badge: 'Flexible',
+    desc: 'Let the marketplace recommend suitable freelancers based on proposals.',
+    icon: HelpCircle
+  }
+];
+
 export default function PostJobPage({ currentUser }) {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -40,6 +87,9 @@ export default function PostJobPage({ currentUser }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [saveStatus, setSaveStatus] = useState('');
   const [errors, setErrors] = useState({});
+
+  const [skillSearchInput, setSkillSearchInput] = useState('');
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -71,7 +121,10 @@ export default function PostJobPage({ currentUser }) {
             ...parsed.formData,
             deliverables: Array.isArray(parsed.formData.deliverables) && parsed.formData.deliverables.length > 0 
               ? parsed.formData.deliverables 
-              : ['']
+              : [''],
+            requiredSkills: Array.isArray(parsed.formData.requiredSkills) 
+              ? parsed.formData.requiredSkills 
+              : []
           }));
         }
         if (parsed.currentStep) setCurrentStep(parsed.currentStep);
@@ -132,6 +185,44 @@ export default function PostJobPage({ currentUser }) {
     });
   };
 
+  const handleAddSkill = (skillToAdd) => {
+    const trimmed = (skillToAdd || '').trim();
+    if (!trimmed) return;
+    
+    if (formData.requiredSkills.includes(trimmed)) {
+      setSkillSearchInput('');
+      setShowSkillDropdown(false);
+      return;
+    }
+
+    if (formData.requiredSkills.length >= 10) {
+      setErrors(prev => ({ ...prev, requiredSkills: 'You can select up to 10 skills maximum' }));
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      requiredSkills: [...prev.requiredSkills, trimmed]
+    }));
+    setSkillSearchInput('');
+    setShowSkillDropdown(false);
+
+    if (errors.requiredSkills) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.requiredSkills;
+        return copy;
+      });
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      requiredSkills: prev.requiredSkills.filter(s => s !== skillToRemove)
+    }));
+  };
+
   const validateCurrentStep = (step) => {
     const stepErrors = {};
     if (step === 1) {
@@ -168,6 +259,10 @@ export default function PostJobPage({ currentUser }) {
       const validDeliverables = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
       if (validDeliverables.length === 0) {
         stepErrors.deliverables = 'Please specify at least one project deliverable';
+      }
+    } else if (step === 3) {
+      if (!formData.requiredSkills || formData.requiredSkills.length === 0) {
+        stepErrors.requiredSkills = 'Please select at least one required skill for your project';
       }
     }
     
@@ -221,6 +316,11 @@ export default function PostJobPage({ currentUser }) {
   }
 
   const availableSubcategories = formData.category ? CATEGORIES_DATA[formData.category] || [] : [];
+  
+  const filteredSkillSuggestions = ALL_SKILLS_DATABASE.filter(s => 
+    s.toLowerCase().includes(skillSearchInput.toLowerCase().trim()) &&
+    !formData.requiredSkills.includes(s)
+  ).slice(0, 8);
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -282,7 +382,7 @@ export default function PostJobPage({ currentUser }) {
           </div>
         </div>
 
-        {/* Form Container */}
+        {/* Step Container */}
         <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-8 min-h-[400px]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step {currentStep}</div>
@@ -433,7 +533,6 @@ export default function PostJobPage({ currentUser }) {
           {/* STEP 2: Project Description */}
           {currentStep === 2 && (
             <div className="space-y-8">
-              {/* Section 1: Describe your project */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -465,7 +564,6 @@ export default function PostJobPage({ currentUser }) {
                 )}
               </div>
 
-              {/* Section 2: Deliverables */}
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
                 <div className="space-y-1">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -521,7 +619,6 @@ export default function PostJobPage({ currentUser }) {
                 </div>
               </div>
 
-              {/* Section 3: Project Requirements (Optional) */}
               <div className="space-y-2">
                 <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
                   Are there any specific requirements? <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span>
@@ -537,8 +634,183 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* Placeholders for Steps 3 to 7 */}
-          {currentStep > 2 && (
+          {/* STEP 3: Skills & Experience */}
+          {currentStep === 3 && (
+            <div className="space-y-8">
+              {/* Section 1: Searchable Skill Selector */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                      What skills should the freelancer have? <span className="text-pink-500">*</span>
+                    </label>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Select up to 10 key technologies or capabilities required for your project.
+                    </p>
+                  </div>
+                  <span className={`text-[11px] font-semibold ${formData.requiredSkills.length >= 10 ? 'text-amber-400' : 'text-slate-500'}`}>
+                    {formData.requiredSkills.length}/10 selected
+                  </span>
+                </div>
+
+                {/* Selected Skills Tags Display */}
+                <div className="min-h-[52px] p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex flex-wrap items-center gap-2">
+                  {formData.requiredSkills.length > 0 ? (
+                    formData.requiredSkills.map(skill => (
+                      <span
+                        key={skill}
+                        className="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm transition"
+                      >
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="text-indigo-300 hover:text-white transition p-0.5 rounded-md hover:bg-indigo-500/30"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-600 italic px-2">
+                      No skills selected yet. Search below or pick from recommended skills.
+                    </span>
+                  )}
+                </div>
+
+                {/* Skill Search Input & Dropdown */}
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={skillSearchInput}
+                      onFocus={() => setShowSkillDropdown(true)}
+                      onChange={(e) => {
+                        setSkillSearchInput(e.target.value);
+                        setShowSkillDropdown(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ',') && skillSearchInput.trim()) {
+                          e.preventDefault();
+                          handleAddSkill(skillSearchInput);
+                        }
+                      }}
+                      placeholder="Search skills (e.g. React, Python, Figma, Tailwind, Node.js)..."
+                      className={`w-full pl-11 pr-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
+                        errors.requiredSkills ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                      }`}
+                    />
+                  </div>
+
+                  {showSkillDropdown && skillSearchInput.trim() && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-56 overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
+                      {filteredSkillSuggestions.length > 0 ? (
+                        filteredSkillSuggestions.map(skill => (
+                          <button
+                            key={skill}
+                            type="button"
+                            onClick={() => handleAddSkill(skill)}
+                            className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-indigo-600/30 flex items-center justify-between transition"
+                          >
+                            <span>{skill}</span>
+                            <Plus className="w-3.5 h-3.5 text-indigo-400" />
+                          </button>
+                        ))
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleAddSkill(skillSearchInput)}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-indigo-300 hover:bg-indigo-600/30 flex items-center justify-between transition"
+                        >
+                          <span>+ Add custom skill "{skillSearchInput}"</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {errors.requiredSkills && (
+                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errors.requiredSkills}</span>
+                  </p>
+                )}
+
+                {/* Popular Recommended Skills Chips */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Popular Skills:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["React", "Node.js", "Python", "Tailwind CSS", "Figma", "TypeScript", "UI/UX Design", "Next.js", "PostgreSQL"]
+                      .filter(s => !formData.requiredSkills.includes(s))
+                      .map(skill => (
+                        <button
+                          key={skill}
+                          type="button"
+                          onClick={() => handleAddSkill(skill)}
+                          className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-slate-400 hover:text-indigo-300 text-xs font-medium rounded-lg flex items-center gap-1 transition"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{skill}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Experience Level Selection */}
+              <div className="space-y-3 pt-4 border-t border-slate-800">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    What level of freelancer are you looking for?
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Select the experience level that best matches your project complexity.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {EXPERIENCE_LEVELS.map(lvl => {
+                    const isSelected = formData.experienceLevel === lvl.id;
+                    const Icon = lvl.icon;
+
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => handleFieldChange('experienceLevel', lvl.id)}
+                        className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
+                          isSelected
+                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
+                            : 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
+                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{lvl.title}</span>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                              isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-900 text-slate-500'
+                            }`}>
+                              {lvl.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 leading-relaxed">{lvl.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Placeholders for Steps 4 to 7 */}
+          {currentStep > 3 && (
             <div className="py-12 text-center text-slate-400 space-y-2">
               <div className="text-base font-bold text-white">Step {currentStep}: {STEPS[currentStep - 1].label}</div>
               <p className="text-xs text-slate-500">Form fields for this step will be populated in subsequent requirements.</p>
