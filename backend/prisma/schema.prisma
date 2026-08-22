@@ -43,40 +43,40 @@ enum PayoutStatus {
 }
 
 model User {
-  id                String               @id @default(uuid())
-  username          String?              @unique
-  email             String               @unique
-  passwordHash      String
-  firstName         String?
-  middleName        String?
-  lastName          String?
-  fullName          String
-  phone             String?
-  role              Role                 @default(STUDENT_FREELANCER)
-  isMinor           Boolean              @default(false)
-  age               Int                  @default(20)
-  dob               DateTime?
-  points            Int                  @default(0)
-  strikesCount      Int                  @default(0)
-  isSuspended       Boolean              @default(false)
-  suspendedUntil    DateTime?
-  freeBidsRemaining Int                  @default(15)
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  id                 String               @id @default(uuid())
+  username           String?              @unique
+  email              String               @unique
+  passwordHash       String
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  fullName           String
+  phone              String?
+  role               Role                 @default(STUDENT_FREELANCER)
+  isMinor            Boolean              @default(false)
+  age                Int                  @default(20)
+  dob                DateTime?
+  points             Int                  @default(0)
+  strikesCount       Int                  @default(0)
+  isSuspended        Boolean              @default(false)
+  suspendedUntil     DateTime?
+  freeBidsRemaining  Int                  @default(15)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
-  profile           Profile?
-  verification      VerificationRequest?
-  wallet            Wallet?
-  gigs              Gig[]
-  jobsPosted        Job[]                @relation("ClientJobs")
-  bidsPlaced        Bid[]                @relation("StudentBids")
-  ordersAsClient    Order[]              @relation("ClientOrders")
-  ordersAsSeller    Order[]              @relation("SellerOrders")
-  reviewsWritten    Review[]             @relation("ReviewsWritten")
-  reviewsReceived   Review[]             @relation("ReviewsReceived")
-  messagesSent      Message[]            @relation("Sender")
-  payoutRequests    PayoutRequest[]
-  moderationLogs    ModerationLog[]
+  profile            Profile?
+  verification       VerificationRequest?
+  wallet             Wallet?
+  gigs               Gig[]
+  jobsPosted         Job[]                @relation("ClientJobs")
+  bidsPlaced         Bid[]                @relation("StudentBids")
+  ordersAsClient     Order[]              @relation("ClientOrders")
+  ordersAsSeller     Order[]              @relation("SellerOrders")
+  reviewsWritten     Review[]             @relation("ReviewsWritten")
+  reviewsReceived    Review[]             @relation("ReviewsReceived")
+  messagesSent       Message[]            @relation("Sender")
+  payoutRequests     PayoutRequest[]
+  moderationLogs     ModerationLog[]
 }
 
 model Profile {
@@ -159,20 +159,36 @@ model GigPackage {
 }
 
 model Job {
-  id             String    @id @default(uuid())
-  clientId       String
-  client         User      @relation("ClientJobs", fields: [clientId], references: [id], onDelete: Cascade)
-  title          String
-  category       String
-  description    String
-  budget         Float
-  reviewWindow   Int       @default(5)
-  attachmentUrls String[]
-  isOpen         Boolean   @default(true)
-  createdAt      DateTime  @default(now())
+  id                  String    @id @default(uuid())
+  clientId            String
+  client              User      @relation("ClientJobs", fields: [clientId], references: [id], onDelete: Cascade)
+  title               String    @default("Untitled Draft")
+  category            String    @default("Web Development")
+  subcategory         String?
+  projectType         String?   @default("FIXED")
+  description         String    @default("")
+  deliverables        String[]  @default([])
+  requirements        String[]  @default([])
+  skills              String[]  @default([])
+  experienceLevel     String?   @default("INTERMEDIATE")
+  budget              Float     @default(0)
+  timeline            String?   @default("1_MONTH")
+  reviewWindow        Int       @default(5)
+  attachmentUrls      String[]  @default([])
+  externalLinks       String[]  @default([])
+  referenceLinks      String[]  @default([])
+  visibility          String?   @default("PUBLIC")
+  locationPreferences String?
+  languagePreferences String?
+  screeningQuestions  String[]  @default([])
+  currentStep         Int       @default(1)
+  status              String    @default("OPEN")
+  isOpen              Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
 
-  bids           Bid[]
-  orders         Order[]
+  bids                Bid[]
+  orders              Order[]
 }
 
 model Bid {
@@ -190,28 +206,28 @@ model Bid {
 }
 
 model Order {
-  id                 String       @id @default(uuid())
-  clientId           String
-  client             User         @relation("ClientOrders", fields: [clientId], references: [id])
-  sellerId           String
-  seller             User         @relation("SellerOrders", fields: [sellerId], references: [id])
-  gigId              String?
-  gig                Gig?         @relation(fields: [gigId], references: [id])
-  jobId              String?
-  job                Job?         @relation(fields: [jobId], references: [id])
-  totalAmount        Float
-  platformFee        Float
-  sellerEarnings     Float
-  status             OrderStatus  @default(FUNDED_IN_ESCROW)
-  deadline           DateTime
-  requirements       String?
-  autoApproveAt      DateTime?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  clientId       String
+  client         User         @relation("ClientOrders", fields: [clientId], references: [id])
+  sellerId       String
+  seller         User         @relation("SellerOrders", fields: [sellerId], references: [id])
+  gigId          String?
+  gig            Gig?         @relation(fields: [gigId], references: [id])
+  jobId          String?
+  job            Job?         @relation(fields: [jobId], references: [id])
+  totalAmount    Float
+  platformFee    Float
+  sellerEarnings Float
+  status         OrderStatus  @default(FUNDED_IN_ESCROW)
+  deadline       DateTime
+  requirements   String?
+  autoApproveAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  deliverables       Deliverable[]
-  messages           Message[]
-  review             Review?
+  deliverables   Deliverable[]
+  messages       Message[]
+  review         Review?
 }
 
 model Deliverable {

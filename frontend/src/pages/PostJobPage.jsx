@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Briefcase, FileText, Layers, DollarSign, Paperclip, Sliders, CheckCircle2, 
   ArrowLeft, ArrowRight, Save, Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
@@ -101,6 +102,8 @@ export default function PostJobPage({ currentUser }) {
   const [errors, setErrors] = useState({});
 
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState(null);
   const [publishedJobInfo, setPublishedJobInfo] = useState(null);
 
   const [skillSearchInput, setSkillSearchInput] = useState('');
@@ -160,6 +163,9 @@ export default function PostJobPage({ currentUser }) {
           setDraftId(found.id);
           setFormData(prev => ({ ...prev, ...found.formData }));
           if (found.currentStep) setCurrentStep(found.currentStep);
+          if (found.lastSaved) {
+            setLastSavedTime(new Date(found.lastSaved).toLocaleTimeString());
+          }
           showToast('Draft loaded: ' + (found.formData.title || 'Untitled Draft'), 'success');
           return;
         }
@@ -169,6 +175,9 @@ export default function PostJobPage({ currentUser }) {
       if (savedActiveDraft) {
         const parsed = JSON.parse(savedActiveDraft);
         if (parsed.draftId) setDraftId(parsed.draftId);
+        if (parsed.lastSaved) {
+          setLastSavedTime(new Date(parsed.lastSaved).toLocaleTimeString());
+        }
         if (parsed.formData) {
           setFormData(prev => ({
             ...prev,
@@ -448,11 +457,72 @@ export default function PostJobPage({ currentUser }) {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  // SAVE DRAFT: Updates existing draft if draftId is set, or creates new draft
   const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
     try {
-      const activeDraftId = draftId || `DRAFT-${Date.now().toString().slice(-6)}`;
-      if (!draftId) setDraftId(activeDraftId);
+      const timeString = new Date().toLocaleTimeString();
+      let activeDraftId = draftId;
 
+      const payload = {
+        id: activeDraftId && !activeDraftId.startsWith('DRAFT-') ? activeDraftId : undefined,
+        title: formData.title || 'Untitled Draft',
+        category: formData.category || 'Web Development',
+        subcategory: formData.subcategory || '',
+        projectType: formData.projectType || 'ONE_TIME',
+        description: formData.description || '',
+        deliverables: (formData.deliverables || []).filter(d => (d || '').trim().length > 0),
+        requirements: formData.specificRequirements ? [formData.specificRequirements] : [],
+        skills: formData.requiredSkills || [],
+        experienceLevel: formData.experienceLevel || 'INTERMEDIATE',
+        budget: formData.budgetType === 'FIXED' 
+          ? (parseFloat(formData.fixedBudget) || 0) 
+          : (parseFloat(formData.maximumBudget) || parseFloat(formData.minimumBudget) || 0),
+        timeline: formData.deadlineType || '1_MONTH',
+        attachmentUrls: (formData.uploadedFiles || []).map(f => f.name),
+        externalLinks: (formData.cloudDriveLinks || []).filter(l => (l || '').trim().length > 0),
+        referenceLinks: (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0),
+        visibility: formData.visibility || 'PUBLIC',
+        locationPreferences: formData.preferredLocationType === 'SPECIFIC_STATE' ? formData.preferredState : formData.preferredLocationType === 'SPECIFIC_CITY' ? formData.preferredCity : formData.preferredLocationType,
+        languagePreferences: (formData.preferredLanguages || []).join(', '),
+        screeningQuestions: (formData.screeningQuestions || []).filter(q => (q || '').trim().length > 0),
+        currentStep,
+        status: 'DRAFT',
+        isOpen: false
+      };
+
+      // Sync with PostgreSQL backend database if token is available
+      if (token) {
+        try {
+          let res;
+          if (activeDraftId && !activeDraftId.startsWith('DRAFT-')) {
+            res = await axios.put(`http://localhost:5000/api/jobs/${activeDraftId}`, payload, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } else {
+            res = await axios.post('http://localhost:5000/api/jobs', payload, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          }
+          const serverJob = res.data.job || res.data;
+          if (serverJob && serverJob.id) {
+            activeDraftId = serverJob.id;
+            setDraftId(serverJob.id);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('draftId', serverJob.id);
+            window.history.replaceState(null, '', newUrl.toString());
+          }
+        } catch (apiErr) {
+          console.warn('Backend draft sync notice:', apiErr);
+        }
+      }
+
+      if (!activeDraftId) {
+        activeDraftId = `DRAFT-${Date.now().toString().slice(-6)}`;
+        setDraftId(activeDraftId);
+      }
+
+      // Update LocalStorage cache
       const draftPayload = {
         id: activeDraftId,
         draftId: activeDraftId,
@@ -476,13 +546,17 @@ export default function PostJobPage({ currentUser }) {
       }
       localStorage.setItem('marketplace_client_drafts', JSON.stringify(updatedDrafts));
 
-      showToast('Draft saved successfully.', 'success');
+      setLastSavedTime(timeString);
+      showToast(draftId ? `✓ Draft updated successfully at ${timeString}` : `✓ Draft saved successfully at ${timeString}`, 'success');
     } catch (e) {
       console.error('Save draft error:', e);
       showToast('Failed to save draft. Your data has been preserved, please try again.', 'error');
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
+  // PUBLISH JOB (Final Step)
   const handlePublishJob = async () => {
     const v = validateAllSteps();
     if (!v.isValid) {
@@ -495,10 +569,63 @@ export default function PostJobPage({ currentUser }) {
     }
 
     setIsPublishing(true);
-    setTimeout(() => {
-      const newJobId = `JOB-${Date.now().toString().slice(-6)}`;
+    try {
+      let createdJobId = draftId;
+
+      const payload = {
+        id: draftId && !draftId.startsWith('DRAFT-') ? draftId : undefined,
+        title: formData.title,
+        category: formData.category,
+        subcategory: formData.subcategory || '',
+        projectType: formData.projectType || 'ONE_TIME',
+        description: formData.description,
+        deliverables: (formData.deliverables || []).filter(d => (d || '').trim().length > 0),
+        requirements: formData.specificRequirements ? [formData.specificRequirements] : [],
+        skills: formData.requiredSkills || [],
+        experienceLevel: formData.experienceLevel || 'INTERMEDIATE',
+        budget: formData.budgetType === 'FIXED' 
+          ? (parseFloat(formData.fixedBudget) || 0) 
+          : (parseFloat(formData.maximumBudget) || parseFloat(formData.minimumBudget) || 0),
+        timeline: formData.deadlineType || '1_MONTH',
+        attachmentUrls: (formData.uploadedFiles || []).map(f => f.name),
+        externalLinks: (formData.cloudDriveLinks || []).filter(l => (l || '').trim().length > 0),
+        referenceLinks: (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0),
+        visibility: formData.visibility || 'PUBLIC',
+        locationPreferences: formData.preferredLocationType === 'SPECIFIC_STATE' ? formData.preferredState : formData.preferredLocationType === 'SPECIFIC_CITY' ? formData.preferredCity : formData.preferredLocationType,
+        languagePreferences: (formData.preferredLanguages || []).join(', '),
+        screeningQuestions: (formData.screeningQuestions || []).filter(q => (q || '').trim().length > 0),
+        currentStep: 7,
+        status: 'OPEN',
+        isOpen: true
+      };
+
+      if (token) {
+        try {
+          let res;
+          if (draftId && !draftId.startsWith('DRAFT-')) {
+            res = await axios.put(`http://localhost:5000/api/jobs/${draftId}`, payload, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } else {
+            res = await axios.post('http://localhost:5000/api/jobs', payload, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          }
+          const serverJob = res.data.job || res.data;
+          if (serverJob && serverJob.id) {
+            createdJobId = serverJob.id;
+          }
+        } catch (apiErr) {
+          console.warn('Backend publish fallback to local:', apiErr);
+        }
+      }
+
+      if (!createdJobId) {
+        createdJobId = `JOB-${Date.now().toString().slice(-6)}`;
+      }
+
       const publishedRecord = {
-        id: newJobId,
+        id: createdJobId,
         title: formData.title,
         category: formData.category,
         subcategory: formData.subcategory,
@@ -521,15 +648,20 @@ export default function PostJobPage({ currentUser }) {
       }
 
       setPublishedJobInfo(publishedRecord);
-      setIsPublishing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 600);
+    } catch (err) {
+      console.error('Error publishing job:', err);
+      showToast('Error publishing job. Please check all fields.', 'error');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const handleResetForNewJob = () => {
     setFormData(initialFormState);
     setCurrentStep(1);
     setDraftId('');
+    setLastSavedTime(null);
     setPublishedJobInfo(null);
     setErrors({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -687,13 +819,19 @@ export default function PostJobPage({ currentUser }) {
             <p className="text-sm text-slate-400 mt-1">Hire verified college talent, developers, and creators for your project.</p>
           </div>
           <div className="flex items-center gap-3">
+            {lastSavedTime && (
+              <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                Saved at {lastSavedTime}
+              </span>
+            )}
             <button
               type="button"
               onClick={handleSaveDraft}
-              className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
+              disabled={isSavingDraft}
+              className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm disabled:opacity-50"
             >
-              <Save className="w-4 h-4 text-indigo-400" />
-              <span>Save Draft</span>
+              <Save className={`w-4 h-4 text-indigo-400 ${isSavingDraft ? 'animate-spin' : ''}`} />
+              <span>{isSavingDraft ? 'Saving...' : 'Save Draft'}</span>
             </button>
           </div>
         </div>
