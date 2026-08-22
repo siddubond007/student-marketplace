@@ -6,7 +6,8 @@ import {
   Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
   Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle,
   Calendar, IndianRupee, Info, TrendingUp, UploadCloud,
-  File, Globe, Shield, CheckCircle
+  File, Globe, Shield, CheckCircle, Eye, EyeOff, MapPin,
+  Languages, MessageSquare, FileCheck
 } from 'lucide-react';
 
 const STEPS = [
@@ -74,7 +75,19 @@ const DEADLINE_TYPES = [
   { id: 'FLEXIBLE', label: 'Flexible' }
 ];
 
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Telangana", "Karnataka", "Tamil Nadu", "Maharashtra", 
+  "Delhi (NCR)", "Uttar Pradesh", "Gujarat", "West Bengal", "Kerala", 
+  "Rajasthan", "Punjab", "Haryana", "Madhya Pradesh", "Bihar", "Odisha", 
+  "Assam", "Goa", "Uttarakhand", "Jharkhand", "Chhattisgarh", "Himachal Pradesh"
+];
+
+const INDIAN_LANGUAGES = [
+  "English", "Hindi", "Telugu", "Tamil", "Kannada", 
+  "Malayalam", "Marathi", "Bengali", "Gujarati", "Punjabi", "Other"
+];
+
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
 
 export default function PostJobPage({ currentUser }) {
   const navigate = useNavigate();
@@ -119,7 +132,12 @@ export default function PostJobPage({ currentUser }) {
     cloudDriveLinks: [],
     referenceWebsites: [''],
     visibility: 'PUBLIC',
-    screeningQuestions: []
+    preferredLocationType: 'ANYWHERE_INDIA',
+    preferredState: '',
+    preferredCity: '',
+    preferredLanguages: ['English'],
+    screeningQuestions: [],
+    ndaRequired: false
   });
 
   useEffect(() => {
@@ -134,14 +152,16 @@ export default function PostJobPage({ currentUser }) {
             deliverables: Array.isArray(parsed.formData.deliverables) && parsed.formData.deliverables.length > 0 
               ? parsed.formData.deliverables 
               : [''],
-            requiredSkills: Array.isArray(parsed.formData.requiredSkills) 
-              ? parsed.formData.requiredSkills 
-              : [],
+            requiredSkills: Array.isArray(parsed.formData.requiredSkills) ? parsed.formData.requiredSkills : [],
             uploadedFiles: Array.isArray(parsed.formData.uploadedFiles) ? parsed.formData.uploadedFiles : [],
             cloudDriveLinks: Array.isArray(parsed.formData.cloudDriveLinks) ? parsed.formData.cloudDriveLinks : [],
             referenceWebsites: Array.isArray(parsed.formData.referenceWebsites) && parsed.formData.referenceWebsites.length > 0 
               ? parsed.formData.referenceWebsites 
               : [''],
+            preferredLanguages: Array.isArray(parsed.formData.preferredLanguages) && parsed.formData.preferredLanguages.length > 0
+              ? parsed.formData.preferredLanguages
+              : ['English'],
+            screeningQuestions: Array.isArray(parsed.formData.screeningQuestions) ? parsed.formData.screeningQuestions : [],
             budgetType: parsed.formData.budgetType || 'RANGE',
             currency: 'INR'
           }));
@@ -168,10 +188,7 @@ export default function PostJobPage({ currentUser }) {
     }
   };
 
-  const handleAddDeliverable = () => {
-    setFormData(prev => ({ ...prev, deliverables: [...prev.deliverables, ''] }));
-  };
-
+  const handleAddDeliverable = () => setFormData(prev => ({ ...prev, deliverables: [...prev.deliverables, ''] }));
   const handleDeliverableChange = (index, value) => {
     setFormData(prev => {
       const updated = [...prev.deliverables];
@@ -179,7 +196,6 @@ export default function PostJobPage({ currentUser }) {
       return { ...prev, deliverables: updated };
     });
   };
-
   const handleRemoveDeliverable = (index) => {
     setFormData(prev => {
       const updated = prev.deliverables.filter((_, idx) => idx !== index);
@@ -203,7 +219,6 @@ export default function PostJobPage({ currentUser }) {
     setSkillSearchInput('');
     setShowSkillDropdown(false);
   };
-
   const handleRemoveSkill = (skillToRemove) => {
     setFormData(prev => ({ ...prev, requiredSkills: prev.requiredSkills.filter(s => s !== skillToRemove) }));
   };
@@ -232,20 +247,13 @@ export default function PostJobPage({ currentUser }) {
         uploadedAt: new Date().toISOString()
       });
     }
-
     if (newFiles.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        uploadedFiles: [...prev.uploadedFiles, ...newFiles]
-      }));
+      setFormData(prev => ({ ...prev, uploadedFiles: [...prev.uploadedFiles, ...newFiles] }));
     }
   };
 
   const handleRemoveFile = (fileId) => {
-    setFormData(prev => ({
-      ...prev,
-      uploadedFiles: prev.uploadedFiles.filter(f => f.id !== fileId)
-    }));
+    setFormData(prev => ({ ...prev, uploadedFiles: prev.uploadedFiles.filter(f => f.id !== fileId) }));
   };
 
   const handleAddCloudLink = () => {
@@ -255,28 +263,16 @@ export default function PostJobPage({ currentUser }) {
       setFileError('Please enter a valid URL starting with https:// or http://');
       return;
     }
-    setFormData(prev => ({
-      ...prev,
-      cloudDriveLinks: [...prev.cloudDriveLinks, trimmed]
-    }));
+    setFormData(prev => ({ ...prev, cloudDriveLinks: [...prev.cloudDriveLinks, trimmed] }));
     setCloudLinkInput('');
     setFileError('');
   };
 
   const handleRemoveCloudLink = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      cloudDriveLinks: prev.cloudDriveLinks.filter((_, idx) => idx !== index)
-    }));
+    setFormData(prev => ({ ...prev, cloudDriveLinks: prev.cloudDriveLinks.filter((_, idx) => idx !== index) }));
   };
 
-  const handleAddReferenceWebsite = () => {
-    setFormData(prev => ({
-      ...prev,
-      referenceWebsites: [...prev.referenceWebsites, '']
-    }));
-  };
-
+  const handleAddReferenceWebsite = () => setFormData(prev => ({ ...prev, referenceWebsites: [...prev.referenceWebsites, ''] }));
   const handleReferenceWebsiteChange = (index, value) => {
     setFormData(prev => {
       const updated = [...prev.referenceWebsites];
@@ -284,12 +280,45 @@ export default function PostJobPage({ currentUser }) {
       return { ...prev, referenceWebsites: updated };
     });
   };
-
   const handleRemoveReferenceWebsite = (index) => {
     setFormData(prev => {
       const updated = prev.referenceWebsites.filter((_, idx) => idx !== index);
       return { ...prev, referenceWebsites: updated.length > 0 ? updated : [''] };
     });
+  };
+
+  const handleToggleLanguage = (lang) => {
+    setFormData(prev => {
+      const exists = prev.preferredLanguages.includes(lang);
+      if (exists) {
+        if (prev.preferredLanguages.length === 1) return prev;
+        return { ...prev, preferredLanguages: prev.preferredLanguages.filter(l => l !== lang) };
+      }
+      return { ...prev, preferredLanguages: [...prev.preferredLanguages, lang] };
+    });
+  };
+
+  const handleAddScreeningQuestion = () => {
+    if (formData.screeningQuestions.length >= 5) {
+      setErrors(prev => ({ ...prev, screeningQuestions: 'You can add up to 5 screening questions maximum' }));
+      return;
+    }
+    setFormData(prev => ({ ...prev, screeningQuestions: [...prev.screeningQuestions, ''] }));
+  };
+
+  const handleScreeningQuestionChange = (index, value) => {
+    setFormData(prev => {
+      const updated = [...prev.screeningQuestions];
+      updated[index] = value;
+      return { ...prev, screeningQuestions: updated };
+    });
+  };
+
+  const handleRemoveScreeningQuestion = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      screeningQuestions: prev.screeningQuestions.filter((_, idx) => idx !== index)
+    }));
   };
 
   const validateCurrentStep = (step) => {
@@ -786,10 +815,9 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* STEP 5: Files & References */}
+          {/* STEP 5 */}
           {currentStep === 5 && (
             <div className="space-y-8">
-              {/* Section 1, 2, 3: Drag & Drop Area */}
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -806,76 +834,31 @@ export default function PostJobPage({ currentUser }) {
                   onDrop={(e) => {
                     e.preventDefault();
                     setIsDraggingFile(false);
-                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                      handleFilesSelected(e.dataTransfer.files);
-                    }
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) handleFilesSelected(e.dataTransfer.files);
                   }}
                   onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   className={`p-8 border-2 border-dashed rounded-3xl text-center space-y-3 cursor-pointer transition-all ${
-                    isDraggingFile
-                      ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
-                      : 'border-slate-800 hover:border-slate-700 bg-slate-950/40 hover:bg-slate-900/40'
+                    isDraggingFile ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' : 'border-slate-800 hover:border-slate-700 bg-slate-950/40 hover:bg-slate-900/40'
                   }`}
                 >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    multiple
-                    onChange={(e) => { if (e.target.files) handleFilesSelected(e.target.files); }}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.zip,.txt"
-                    className="hidden"
-                  />
-                  <div className="w-14 h-14 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                    <UploadCloud className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">Drag & drop files here</div>
-                    <div className="text-xs text-slate-400 mt-0.5">or <span className="text-indigo-400 font-bold hover:underline">browse files</span> from your device</div>
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, PNG, JPG, ZIP, TXT (up to 500 MB)
-                  </div>
+                  <input type="file" ref={fileInputRef} multiple onChange={(e) => { if (e.target.files) handleFilesSelected(e.target.files); }} accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.zip,.txt" className="hidden" />
+                  <div className="w-14 h-14 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg"><UploadCloud className="w-7 h-7" /></div>
+                  <div><div className="text-sm font-bold text-white">Drag & drop files here</div><div className="text-xs text-slate-400 mt-0.5">or <span className="text-indigo-400 font-bold hover:underline">browse files</span> from your device</div></div>
+                  <div className="text-[11px] text-slate-500">Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, PNG, JPG, ZIP, TXT (up to 500 MB)</div>
                 </div>
+                {fileError && <p className="text-xs text-red-400 font-semibold mt-1">{fileError}</p>}
 
-                {fileError && (
-                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{fileError}</span>
-                  </p>
-                )}
-
-                {/* Section 4 & 5: Uploaded Files Display List */}
                 {formData.uploadedFiles.length > 0 && (
                   <div className="space-y-2 pt-2">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Attached Files ({formData.uploadedFiles.length})
-                    </div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attached Files ({formData.uploadedFiles.length})</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {formData.uploadedFiles.map(file => (
                         <div key={file.id} className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 shrink-0">
-                              <File className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-white truncate">{file.name}</div>
-                              <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                                <span>{formatFileSize(file.size)}</span>
-                                <span className="text-emerald-400 flex items-center gap-0.5 font-semibold">
-                                  <CheckCircle className="w-3 h-3" />
-                                  <span>Uploaded</span>
-                                </span>
-                              </div>
-                            </div>
+                            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 shrink-0"><File className="w-4 h-4" /></div>
+                            <div className="min-w-0"><div className="text-xs font-bold text-white truncate">{file.name}</div><div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5"><span>{formatFileSize(file.size)}</span><span className="text-emerald-400 font-semibold">✓ Uploaded</span></div></div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleRemoveFile(file.id); }}
-                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
-                            title="Remove file"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveFile(file.id); }} className="p-2 text-slate-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       ))}
                     </div>
@@ -883,117 +866,329 @@ export default function PostJobPage({ currentUser }) {
                 )}
               </div>
 
-              {/* Section 6: Large Files / Cloud Drive Links */}
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Have a larger file? <span className="text-xs text-slate-500 font-medium normal-case">(Cloud Drive Link)</span>
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Upload large files (over 500 MB) or folders to Google Drive, Dropbox, or OneDrive and share the link here.
-                  </p>
-                </div>
-
+                <div><label className="block text-xs font-black uppercase tracking-wider text-slate-300">Have a larger file? <span className="text-xs text-slate-500 font-medium normal-case">(Cloud Drive Link)</span></label><p className="text-xs text-slate-500 mt-0.5">Upload large files (over 500 MB) to Google Drive, Dropbox, or OneDrive and share the link here.</p></div>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="url"
-                    value={cloudLinkInput}
-                    onChange={(e) => setCloudLinkInput(e.target.value)}
-                    placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                    className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCloudLink}
-                    className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-indigo-500/25 shrink-0"
-                  >
-                    + Add Link
-                  </button>
+                  <input type="url" value={cloudLinkInput} onChange={(e) => setCloudLinkInput(e.target.value)} placeholder="https://drive.google.com/... or https://dropbox.com/..." className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
+                  <button type="button" onClick={handleAddCloudLink} className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-indigo-500/25 shrink-0">+ Add Link</button>
                 </div>
-
                 {formData.cloudDriveLinks.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-slate-900">
                     {formData.cloudDriveLinks.map((link, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <ExternalLink className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                          <span className="text-xs text-indigo-300 truncate">{link}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCloudLink(idx)}
-                          className="text-slate-500 hover:text-red-400 p-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800 rounded-xl"><span className="text-xs text-indigo-300 truncate">{link}</span><button type="button" onClick={() => handleRemoveCloudLink(idx)} className="text-slate-500 hover:text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button></div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Section 7: Reference Websites */}
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Reference Websites <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span>
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Share websites or online examples that show what you want (e.g. competitor platforms, visual inspirations).
-                  </p>
-                </div>
-
+                <div><label className="block text-xs font-black uppercase tracking-wider text-slate-300">Reference Websites <span className="text-xs text-slate-500 font-medium normal-case">(Optional)</span></label><p className="text-xs text-slate-500 mt-0.5">Share websites or online examples that show what you want.</p></div>
                 <div className="space-y-3">
                   {formData.referenceWebsites.map((website, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1 relative">
-                        <Globe className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="url"
-                          value={website}
-                          onChange={(e) => handleReferenceWebsiteChange(index, e.target.value)}
-                          placeholder="https://example.com"
-                          className="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500 transition"
-                        />
-                      </div>
-                      {formData.referenceWebsites.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveReferenceWebsite(index)}
-                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <input type="url" value={website} onChange={(e) => handleReferenceWebsiteChange(index, e.target.value)} placeholder="https://example.com" className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
+                      {formData.referenceWebsites.length > 1 && (<button type="button" onClick={() => handleRemoveReferenceWebsite(index)} className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"><Trash2 className="w-4 h-4" /></button>)}
                     </div>
                   ))}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddReferenceWebsite}
-                  className="px-4 py-2.5 bg-slate-900 border border-slate-800 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 hover:border-indigo-500/40"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add another link</span>
-                </button>
+                <button type="button" onClick={handleAddReferenceWebsite} className="px-4 py-2.5 bg-slate-900 border border-slate-800 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 hover:border-indigo-500/40"><Plus className="w-4 h-4" /><span>Add another link</span></button>
               </div>
 
-              {/* Section 8: File Privacy Notice */}
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex items-start gap-3">
                 <Shield className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  <strong className="text-slate-200">File Privacy:</strong> Files and references attached to this job posting may be visible to verified student freelancers who view your project brief.
-                </p>
+                <p className="text-xs text-slate-400 leading-relaxed"><strong className="text-slate-200">File Privacy:</strong> Files and references attached to this job posting may be visible to verified student freelancers who view your project brief.</p>
               </div>
             </div>
           )}
 
-          {/* Placeholders for Steps 6 & 7 */}
-          {currentStep > 5 && (
-            <div className="py-12 text-center text-slate-400 space-y-2">
-              <div className="text-base font-bold text-white">Step {currentStep}: {STEPS[currentStep - 1].label}</div>
-              <p className="text-xs text-slate-500">Form fields for this step will be populated in subsequent requirements.</p>
+          {/* STEP 6: Additional Options */}
+          {currentStep === 6 && (
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Who should be able to see this job?
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Choose who can view your project brief and submit proposals.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    {
+                      id: 'PUBLIC',
+                      title: 'Public Marketplace',
+                      badge: 'Recommended',
+                      desc: 'Any eligible freelancer on SkillLaunch can view this job and submit a proposal.',
+                      icon: Eye
+                    },
+                    {
+                      id: 'PRIVATE',
+                      title: 'Private / Invite Only',
+                      badge: 'Confidential',
+                      desc: 'Only freelancers you directly invite can view and access this job.',
+                      icon: EyeOff
+                    }
+                  ].map(vis => {
+                    const isSelected = formData.visibility === vis.id;
+                    const Icon = vis.icon;
+
+                    return (
+                      <button
+                        key={vis.id}
+                        type="button"
+                        onClick={() => handleFieldChange('visibility', vis.id)}
+                        className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
+                          isSelected
+                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50'
+                            : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
+                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{vis.title}</span>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                              isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-900 text-slate-500'
+                            }`}>
+                              {vis.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 leading-relaxed">{vis.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-indigo-400" />
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    Do you have a preferred freelancer location?
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'ANYWHERE_INDIA', label: 'Anywhere in India' },
+                    { id: 'SPECIFIC_STATE', label: 'Specific State' },
+                    { id: 'SPECIFIC_CITY', label: 'Specific City' },
+                    { id: 'NO_PREFERENCE', label: 'No Preference' }
+                  ].map(loc => {
+                    const isSelected = formData.preferredLocationType === loc.id;
+                    return (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onClick={() => handleFieldChange('preferredLocationType', loc.id)}
+                        className={`p-3 rounded-xl border text-center transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-md'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-xs">{loc.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {formData.preferredLocationType === 'SPECIFIC_STATE' && (
+                  <div className="space-y-1.5 pt-2">
+                    <label className="block text-xs font-semibold text-slate-400">Select Indian State</label>
+                    <select
+                      value={formData.preferredState}
+                      onChange={(e) => handleFieldChange('preferredState', e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                    >
+                      <option value="">Select a state...</option>
+                      {INDIAN_STATES.map(st => (<option key={st} value={st}>{st}</option>))}
+                    </select>
+                  </div>
+                )}
+
+                {formData.preferredLocationType === 'SPECIFIC_CITY' && (
+                  <div className="space-y-1.5 pt-2">
+                    <label className="block text-xs font-semibold text-slate-400">Enter Preferred City</label>
+                    <input
+                      type="text"
+                      value={formData.preferredCity}
+                      onChange={(e) => handleFieldChange('preferredCity', e.target.value)}
+                      placeholder="e.g. Hyderabad, Bengaluru, Mumbai, Delhi, Chennai, Visakhapatnam..."
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div className="flex items-center gap-2">
+                  <Languages className="w-4 h-4 text-indigo-400" />
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                      Preferred communication language
+                    </label>
+                    <p className="text-xs text-slate-500">Select one or more languages you prefer to communicate in.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {INDIAN_LANGUAGES.map(lang => {
+                    const isSelected = formData.preferredLanguages.includes(lang);
+                    return (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => handleToggleLanguage(lang)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-indigo-600/25 border-indigo-500 text-indigo-200 shadow-sm'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {isSelected && <span className="mr-1.5">✓</span>}
+                        {lang}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-indigo-400" />
+                      <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                        Want to ask applicants a few questions? <span className="text-xs text-slate-500 font-medium normal-case">(Optional, max 5)</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Screening questions can help you understand whether a freelancer is suitable for your project.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500">{formData.screeningQuestions.length}/5</span>
+                </div>
+
+                {formData.screeningQuestions.length > 0 && (
+                  <div className="space-y-3">
+                    {formData.screeningQuestions.map((q, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-indigo-400 w-5">Q{index + 1}</span>
+                        <input
+                          type="text"
+                          value={q}
+                          onChange={(e) => handleScreeningQuestionChange(index, e.target.value)}
+                          placeholder={`e.g. ${index === 0 ? 'Have you worked on a similar project before?' : index === 1 ? 'Please link your portfolio or GitHub repository' : 'How many hours per week can you dedicate?'}`}
+                          className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveScreeningQuestion(index)}
+                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {formData.screeningQuestions.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={handleAddScreeningQuestion}
+                    className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Question</span>
+                  </button>
+                )}
+                {errors.screeningQuestions && <p className="text-xs text-red-400 font-semibold">{errors.screeningQuestions}</p>}
+              </div>
+
+              <div className="p-5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">Require Non-Disclosure Agreement (NDA)</div>
+                    <div className="text-xs text-slate-400">Freelancers must sign standard confidentiality before viewing proprietary project files.</div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formData.ndaRequired}
+                  onChange={(e) => handleFieldChange('ndaRequired', e.target.checked)}
+                  className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* STEP 7: Review & Publish */}
+          {currentStep === 7 && (
+            <div className="space-y-6">
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-6">
+                <div>
+                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Project Title</div>
+                  <h3 className="text-xl font-bold text-white mt-1">{formData.title || 'Untitled Project'}</h3>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl">
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Category</div>
+                    <div className="text-sm font-bold text-indigo-400">{formData.category}</div>
+                    <div className="text-xs text-slate-400">{formData.subcategory}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Budget (INR)</div>
+                    <div className="text-sm font-bold text-emerald-400">{getFormattedBudgetSummary()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Start Date</div>
+                    <div className="text-sm font-bold text-white">{getFormattedStartSummary()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Deadline</div>
+                    <div className="text-sm font-bold text-indigo-300">{getFormattedDeadlineSummary()}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Required Skills</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {formData.requiredSkills.map(s => (
+                      <span key={s} className="px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold rounded-lg">{s}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-900">
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Visibility</div>
+                    <div className="text-xs font-bold text-white mt-0.5">{formData.visibility === 'PUBLIC' ? 'Public Marketplace' : 'Private / Invite Only'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Location</div>
+                    <div className="text-xs font-bold text-white mt-0.5">
+                      {formData.preferredLocationType === 'ANYWHERE_INDIA' ? 'Anywhere in India' : formData.preferredLocationType === 'SPECIFIC_STATE' ? formData.preferredState : formData.preferredLocationType === 'SPECIFIC_CITY' ? formData.preferredCity : 'No Preference'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Languages</div>
+                    <div className="text-xs font-bold text-white mt-0.5">{formData.preferredLanguages.join(', ')}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1025,6 +1220,7 @@ export default function PostJobPage({ currentUser }) {
               ) : (
                 <button
                   type="button"
+                  onClick={() => alert('Job posting ready! Backend submission will be connected in next requirements.')}
                   className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/25"
                 >
                   <CheckCircle2 className="w-4 h-4" />
