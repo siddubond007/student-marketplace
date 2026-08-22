@@ -7,7 +7,7 @@ import {
   Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle,
   Calendar, IndianRupee, Info, TrendingUp, UploadCloud,
   File, Globe, Shield, CheckCircle, Eye, EyeOff, MapPin,
-  Languages, MessageSquare, FileCheck
+  Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
 } from 'lucide-react';
 
 const STEPS = [
@@ -100,6 +100,9 @@ export default function PostJobPage({ currentUser }) {
   const [saveStatus, setSaveStatus] = useState('');
   const [errors, setErrors] = useState({});
 
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishedJobInfo, setPublishedJobInfo] = useState(null);
+
   const [skillSearchInput, setSkillSearchInput] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
@@ -109,7 +112,7 @@ export default function PostJobPage({ currentUser }) {
 
   const todayDateString = new Date().toISOString().split('T')[0];
 
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     title: '',
     category: '',
     subcategory: '',
@@ -138,7 +141,9 @@ export default function PostJobPage({ currentUser }) {
     preferredLanguages: ['English'],
     screeningQuestions: [],
     ndaRequired: false
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     try {
@@ -150,17 +155,14 @@ export default function PostJobPage({ currentUser }) {
             ...prev,
             ...parsed.formData,
             deliverables: Array.isArray(parsed.formData.deliverables) && parsed.formData.deliverables.length > 0 
-              ? parsed.formData.deliverables 
-              : [''],
+              ? parsed.formData.deliverables : [''],
             requiredSkills: Array.isArray(parsed.formData.requiredSkills) ? parsed.formData.requiredSkills : [],
             uploadedFiles: Array.isArray(parsed.formData.uploadedFiles) ? parsed.formData.uploadedFiles : [],
             cloudDriveLinks: Array.isArray(parsed.formData.cloudDriveLinks) ? parsed.formData.cloudDriveLinks : [],
             referenceWebsites: Array.isArray(parsed.formData.referenceWebsites) && parsed.formData.referenceWebsites.length > 0 
-              ? parsed.formData.referenceWebsites 
-              : [''],
+              ? parsed.formData.referenceWebsites : [''],
             preferredLanguages: Array.isArray(parsed.formData.preferredLanguages) && parsed.formData.preferredLanguages.length > 0
-              ? parsed.formData.preferredLanguages
-              : ['English'],
+              ? parsed.formData.preferredLanguages : ['English'],
             screeningQuestions: Array.isArray(parsed.formData.screeningQuestions) ? parsed.formData.screeningQuestions : [],
             budgetType: parsed.formData.budgetType || 'RANGE',
             currency: 'INR'
@@ -243,8 +245,7 @@ export default function PostJobPage({ currentUser }) {
         name: file.name,
         size: file.size,
         type: file.type || file.name.split('.').pop()?.toUpperCase() || 'FILE',
-        status: 'Uploaded',
-        uploadedAt: new Date().toISOString()
+        status: 'Uploaded'
       });
     }
     if (newFiles.length > 0) {
@@ -315,10 +316,56 @@ export default function PostJobPage({ currentUser }) {
   };
 
   const handleRemoveScreeningQuestion = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      screeningQuestions: prev.screeningQuestions.filter((_, idx) => idx !== index)
-    }));
+    setFormData(prev => ({ ...prev, screeningQuestions: prev.screeningQuestions.filter((_, idx) => idx !== index) }));
+  };
+
+  const validateAllSteps = () => {
+    const s1 = {}, s2 = {}, s3 = {}, s4 = {};
+    const trimmedTitle = (formData.title || '').trim();
+    if (!trimmedTitle) s1.title = 'Job title is required';
+    else if (trimmedTitle.length < 10) s1.title = 'Title must be at least 10 characters long';
+    else if (trimmedTitle.length > 100) s1.title = 'Title cannot exceed 100 characters';
+    if (!formData.category) s1.category = 'Please select a primary category';
+    if (formData.category && !formData.subcategory) s1.subcategory = 'Please select a subcategory';
+    if (!formData.projectType) s1.projectType = 'Please select a project type';
+
+    const trimmedDesc = (formData.description || '').trim();
+    if (!trimmedDesc) s2.description = 'Project description is required';
+    else if (trimmedDesc.length < 50) s2.description = 'Description must be at least 50 characters long';
+    const validDeliv = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
+    if (validDeliv.length === 0) s2.deliverables = 'Please specify at least one project deliverable';
+
+    if (!formData.requiredSkills || formData.requiredSkills.length === 0) {
+      s3.requiredSkills = 'Please select at least one required skill';
+    }
+
+    if (formData.budgetType === 'FIXED') {
+      const fb = Number(formData.fixedBudget);
+      if (!formData.fixedBudget || isNaN(fb) || fb <= 0) s4.fixedBudget = 'Please enter a valid fixed budget greater than 0';
+    } else {
+      const minB = Number(formData.minimumBudget);
+      const maxB = Number(formData.maximumBudget);
+      if (!formData.minimumBudget || isNaN(minB) || minB <= 0) s4.minimumBudget = 'Minimum budget must be greater than 0';
+      if (!formData.maximumBudget || isNaN(maxB) || maxB <= 0) s4.maximumBudget = 'Maximum budget must be greater than 0';
+      if (!isNaN(minB) && !isNaN(maxB) && minB > 0 && maxB > 0 && maxB < minB) {
+        s4.maximumBudget = 'Maximum budget must be greater than or equal to minimum budget';
+      }
+    }
+    if (formData.startPreference === 'SPECIFIC_DATE' && (!formData.startDate || formData.startDate < todayDateString)) {
+      s4.startDate = 'Please select a valid future start date';
+    }
+    if (formData.deadlineType === 'SPECIFIC_DATE') {
+      if (!formData.deadlineDate || formData.deadlineDate < todayDateString) {
+        s4.deadlineDate = 'Please select a valid future deadline date';
+      } else if (formData.startPreference === 'SPECIFIC_DATE' && formData.startDate && formData.deadlineDate < formData.startDate) {
+        s4.deadlineDate = 'Deadline must be on or after start date';
+      }
+    }
+
+    return {
+      isValid: Object.keys(s1).length === 0 && Object.keys(s2).length === 0 && Object.keys(s3).length === 0 && Object.keys(s4).length === 0,
+      s1, s2, s3, s4
+    };
   };
 
   const validateCurrentStep = (step) => {
@@ -335,8 +382,8 @@ export default function PostJobPage({ currentUser }) {
       const trimmedDesc = (formData.description || '').trim();
       if (!trimmedDesc) stepErrors.description = 'Project description is required';
       else if (trimmedDesc.length < 50) stepErrors.description = 'Description must be at least 50 characters long';
-      const validDeliverables = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
-      if (validDeliverables.length === 0) stepErrors.deliverables = 'Please specify at least one project deliverable';
+      const validDeliv = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
+      if (validDeliv.length === 0) stepErrors.deliverables = 'Please specify at least one project deliverable';
     } else if (step === 3) {
       if (!formData.requiredSkills || formData.requiredSkills.length === 0) {
         stepErrors.requiredSkills = 'Please select at least one required skill';
@@ -392,6 +439,52 @@ export default function PostJobPage({ currentUser }) {
     }
   };
 
+  const handlePublishJob = async () => {
+    const v = validateAllSteps();
+    if (!v.isValid) {
+      if (Object.keys(v.s1).length > 0) { setCurrentStep(1); setErrors(v.s1); }
+      else if (Object.keys(v.s2).length > 0) { setCurrentStep(2); setErrors(v.s2); }
+      else if (Object.keys(v.s3).length > 0) { setCurrentStep(3); setErrors(v.s3); }
+      else if (Object.keys(v.s4).length > 0) { setCurrentStep(4); setErrors(v.s4); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setIsPublishing(true);
+    setTimeout(() => {
+      const newJobId = `JOB-${Date.now().toString().slice(-6)}`;
+      const publishedRecord = {
+        id: newJobId,
+        title: formData.title,
+        category: formData.category,
+        subcategory: formData.subcategory,
+        budget: getFormattedBudgetSummary(),
+        createdAt: new Date().toISOString(),
+        status: 'Active'
+      };
+
+      try {
+        const existingJobs = JSON.parse(localStorage.getItem('marketplace_client_jobs') || '[]');
+        localStorage.setItem('marketplace_client_jobs', JSON.stringify([publishedRecord, ...existingJobs]));
+        localStorage.removeItem('marketplace_job_draft');
+      } catch (e) {
+        console.error('Error saving published job locally:', e);
+      }
+
+      setPublishedJobInfo(publishedRecord);
+      setIsPublishing(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 600);
+  };
+
+  const handleResetForNewJob = () => {
+    setFormData(initialFormState);
+    setCurrentStep(1);
+    setPublishedJobInfo(null);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-6">
@@ -409,6 +502,71 @@ export default function PostJobPage({ currentUser }) {
           <Link to="/register" className="px-6 py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 text-xs font-black rounded-xl transition">
             Create Client Account
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (publishedJobInfo) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-slate-100 py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto glass-panel p-8 sm:p-12 rounded-3xl border border-slate-800 shadow-2xl text-center space-y-8 animate-fade-in">
+          <div className="w-20 h-20 bg-emerald-500/15 border-2 border-emerald-500/30 text-emerald-400 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/20">
+            <CheckCircle className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Live on Marketplace</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Your job has been published successfully!</h1>
+            <p className="text-slate-400 text-sm max-w-md mx-auto">
+              Eligible student freelancers can now discover your project brief and submit custom proposals.
+            </p>
+          </div>
+
+          <div className="p-6 bg-slate-950/80 border border-slate-800 rounded-2xl text-left space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase">Job Title</div>
+                <div className="text-base font-bold text-white mt-0.5">{publishedJobInfo.title}</div>
+              </div>
+              <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
+                #{publishedJobInfo.id}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-900 text-xs">
+              <div>
+                <span className="text-slate-500">Category: </span>
+                <span className="text-slate-300 font-semibold">{publishedJobInfo.category}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Budget: </span>
+                <span className="text-emerald-400 font-semibold">{publishedJobInfo.budget}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <Link to="/jobs" className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2">
+              <span>View Job on Marketplace</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+            <Link to="/client/portal" className="px-6 py-3.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 text-xs font-black rounded-xl transition flex items-center justify-center gap-2">
+              <span>Go to My Projects</span>
+            </Link>
+          </div>
+
+          <div className="pt-2 border-t border-slate-900">
+            <button
+              type="button"
+              onClick={handleResetForNewJob}
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition"
+            >
+              + Post Another Job
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -445,6 +603,9 @@ export default function PostJobPage({ currentUser }) {
     const found = DEADLINE_TYPES.find(d => d.id === formData.deadlineType);
     return found ? found.label : 'Within 1 month';
   };
+
+  const cleanDeliverables = (formData.deliverables || []).filter(d => (d || '').trim().length > 0);
+  const cleanRefWebsites = (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0);
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -510,8 +671,10 @@ export default function PostJobPage({ currentUser }) {
         <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-8 min-h-[400px]">
           <div className="space-y-1">
             <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Step {currentStep}</div>
-            <h2 className="text-2xl font-black text-white">{STEPS[currentStep - 1].label}</h2>
-            <p className="text-xs sm:text-sm text-slate-400">{STEPS[currentStep - 1].desc}</p>
+            <h2 className="text-2xl font-black text-white">{currentStep === 7 ? 'Review your job' : STEPS[currentStep - 1].label}</h2>
+            <p className="text-xs sm:text-sm text-slate-400">
+              {currentStep === 7 ? 'Make sure everything looks correct before publishing your project.' : STEPS[currentStep - 1].desc}
+            </p>
           </div>
 
           {/* STEP 1 */}
@@ -856,7 +1019,7 @@ export default function PostJobPage({ currentUser }) {
                         <div key={file.id} className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 shrink-0"><File className="w-4 h-4" /></div>
-                            <div className="min-w-0"><div className="text-xs font-bold text-white truncate">{file.name}</div><div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5"><span>{formatFileSize(file.size)}</span><span className="text-emerald-400 font-semibold">✓ Uploaded</span></div></div>
+                            <div className="min-w-0"><div className="text-xs font-bold text-white truncate">{file.name}</div><div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5"><span>{formatFileSize(file.size)}</span><span className="text-emerald-400 font-semibold">Uploaded</span></div></div>
                           </div>
                           <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveFile(file.id); }} className="p-2 text-slate-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -901,66 +1064,32 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* STEP 6: Additional Options */}
+          {/* STEP 6 */}
           {currentStep === 6 && (
             <div className="space-y-8">
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Who should be able to see this job?
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Choose who can view your project brief and submit proposals.
-                  </p>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Who should be able to see this job?</label>
+                  <p className="text-xs text-slate-500 mt-0.5">Choose who can view your project brief and submit proposals.</p>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    {
-                      id: 'PUBLIC',
-                      title: 'Public Marketplace',
-                      badge: 'Recommended',
-                      desc: 'Any eligible freelancer on SkillLaunch can view this job and submit a proposal.',
-                      icon: Eye
-                    },
-                    {
-                      id: 'PRIVATE',
-                      title: 'Private / Invite Only',
-                      badge: 'Confidential',
-                      desc: 'Only freelancers you directly invite can view and access this job.',
-                      icon: EyeOff
-                    }
+                    { id: 'PUBLIC', title: 'Public Marketplace', badge: 'Recommended', desc: 'Any eligible freelancer on SkillLaunch can view this job and submit a proposal.', icon: Eye },
+                    { id: 'PRIVATE', title: 'Private / Invite Only', badge: 'Confidential', desc: 'Only freelancers you directly invite can view and access this job.', icon: EyeOff }
                   ].map(vis => {
                     const isSelected = formData.visibility === vis.id;
                     const Icon = vis.icon;
-
                     return (
                       <button
                         key={vis.id}
                         type="button"
                         onClick={() => handleFieldChange('visibility', vis.id)}
                         className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
-                          isSelected
-                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50'
-                            : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                          isSelected ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg ring-1 ring-indigo-500/50' : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
-                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-white">{vis.title}</span>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
-                              isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-900 text-slate-500'
-                            }`}>
-                              {vis.badge}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 leading-relaxed">{vis.desc}</p>
-                        </div>
+                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'}`}><Icon className="w-5 h-5" /></div>
+                        <div><div className="flex items-center gap-2"><span className="text-sm font-bold text-white">{vis.title}</span><span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isSelected ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-900 text-slate-500'}`}>{vis.badge}</span></div><p className="text-xs text-slate-400 leading-relaxed">{vis.desc}</p></div>
                       </button>
                     );
                   })}
@@ -968,13 +1097,7 @@ export default function PostJobPage({ currentUser }) {
               </div>
 
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-indigo-400" />
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                    Do you have a preferred freelancer location?
-                  </label>
-                </div>
-
+                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-indigo-400" /><label className="block text-xs font-black uppercase tracking-wider text-slate-300">Do you have a preferred freelancer location?</label></div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { id: 'ANYWHERE_INDIA', label: 'Anywhere in India' },
@@ -984,77 +1107,29 @@ export default function PostJobPage({ currentUser }) {
                   ].map(loc => {
                     const isSelected = formData.preferredLocationType === loc.id;
                     return (
-                      <button
-                        key={loc.id}
-                        type="button"
-                        onClick={() => handleFieldChange('preferredLocationType', loc.id)}
-                        className={`p-3 rounded-xl border text-center transition-all ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-md'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <span className="text-xs">{loc.label}</span>
-                      </button>
+                      <button key={loc.id} type="button" onClick={() => handleFieldChange('preferredLocationType', loc.id)} className={`p-3 rounded-xl border text-center transition-all ${isSelected ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}><span className="text-xs">{loc.label}</span></button>
                     );
                   })}
                 </div>
-
                 {formData.preferredLocationType === 'SPECIFIC_STATE' && (
-                  <div className="space-y-1.5 pt-2">
-                    <label className="block text-xs font-semibold text-slate-400">Select Indian State</label>
-                    <select
-                      value={formData.preferredState}
-                      onChange={(e) => handleFieldChange('preferredState', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
-                    >
-                      <option value="">Select a state...</option>
-                      {INDIAN_STATES.map(st => (<option key={st} value={st}>{st}</option>))}
-                    </select>
-                  </div>
+                  <select value={formData.preferredState} onChange={(e) => handleFieldChange('preferredState', e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500">
+                    <option value="">Select a state...</option>
+                    {INDIAN_STATES.map(st => (<option key={st} value={st}>{st}</option>))}
+                  </select>
                 )}
-
                 {formData.preferredLocationType === 'SPECIFIC_CITY' && (
-                  <div className="space-y-1.5 pt-2">
-                    <label className="block text-xs font-semibold text-slate-400">Enter Preferred City</label>
-                    <input
-                      type="text"
-                      value={formData.preferredCity}
-                      onChange={(e) => handleFieldChange('preferredCity', e.target.value)}
-                      placeholder="e.g. Hyderabad, Bengaluru, Mumbai, Delhi, Chennai, Visakhapatnam..."
-                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
-                    />
-                  </div>
+                  <input type="text" value={formData.preferredCity} onChange={(e) => handleFieldChange('preferredCity', e.target.value)} placeholder="e.g. Hyderabad, Bengaluru, Mumbai, Delhi..." className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
                 )}
               </div>
 
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
-                <div className="flex items-center gap-2">
-                  <Languages className="w-4 h-4 text-indigo-400" />
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                      Preferred communication language
-                    </label>
-                    <p className="text-xs text-slate-500">Select one or more languages you prefer to communicate in.</p>
-                  </div>
-                </div>
-
+                <div className="flex items-center gap-2"><Languages className="w-4 h-4 text-indigo-400" /><label className="block text-xs font-black uppercase tracking-wider text-slate-300">Preferred communication language</label></div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {INDIAN_LANGUAGES.map(lang => {
                     const isSelected = formData.preferredLanguages.includes(lang);
                     return (
-                      <button
-                        key={lang}
-                        type="button"
-                        onClick={() => handleToggleLanguage(lang)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                          isSelected
-                            ? 'bg-indigo-600/25 border-indigo-500 text-indigo-200 shadow-sm'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {isSelected && <span className="mr-1.5">✓</span>}
-                        {lang}
+                      <button key={lang} type="button" onClick={() => handleToggleLanguage(lang)} className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${isSelected ? 'bg-indigo-600/25 border-indigo-500 text-indigo-200 shadow-sm' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}>
+                        {isSelected && <span className="mr-1.5">✓</span>}{lang}
                       </button>
                     );
                   })}
@@ -1063,131 +1138,162 @@ export default function PostJobPage({ currentUser }) {
 
               <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
                 <div className="flex justify-between items-start">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-indigo-400" />
-                      <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
-                        Want to ask applicants a few questions? <span className="text-xs text-slate-500 font-medium normal-case">(Optional, max 5)</span>
-                      </label>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Screening questions can help you understand whether a freelancer is suitable for your project.
-                    </p>
-                  </div>
+                  <div className="flex items-center gap-2"><MessageSquare className="w-4 h-4 text-indigo-400" /><label className="block text-xs font-black uppercase tracking-wider text-slate-300">Want to ask applicants a few questions? <span className="text-xs text-slate-500 font-medium">(Optional, max 5)</span></label></div>
                   <span className="text-[11px] font-semibold text-slate-500">{formData.screeningQuestions.length}/5</span>
                 </div>
-
-                {formData.screeningQuestions.length > 0 && (
-                  <div className="space-y-3">
-                    {formData.screeningQuestions.map((q, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-indigo-400 w-5">Q{index + 1}</span>
-                        <input
-                          type="text"
-                          value={q}
-                          onChange={(e) => handleScreeningQuestionChange(index, e.target.value)}
-                          placeholder={`e.g. ${index === 0 ? 'Have you worked on a similar project before?' : index === 1 ? 'Please link your portfolio or GitHub repository' : 'How many hours per week can you dedicate?'}`}
-                          className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveScreeningQuestion(index)}
-                          className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                {formData.screeningQuestions.map((q, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-indigo-400 w-5">Q{index + 1}</span>
+                    <input type="text" value={q} onChange={(e) => handleScreeningQuestionChange(index, e.target.value)} placeholder="e.g. Have you worked on a similar project before?" className="flex-1 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500" />
+                    <button type="button" onClick={() => handleRemoveScreeningQuestion(index)} className="p-3 bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-xl border border-slate-800"><Trash2 className="w-4 h-4" /></button>
                   </div>
-                )}
-
+                ))}
                 {formData.screeningQuestions.length < 5 && (
-                  <button
-                    type="button"
-                    onClick={handleAddScreeningQuestion}
-                    className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 transition"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Question</span>
-                  </button>
+                  <button type="button" onClick={handleAddScreeningQuestion} className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-indigo-400 text-xs font-bold rounded-xl flex items-center gap-2 transition"><Plus className="w-4 h-4" /><span>Add Question</span></button>
                 )}
-                {errors.screeningQuestions && <p className="text-xs text-red-400 font-semibold">{errors.screeningQuestions}</p>}
               </div>
 
               <div className="p-5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
-                    <FileCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">Require Non-Disclosure Agreement (NDA)</div>
-                    <div className="text-xs text-slate-400">Freelancers must sign standard confidentiality before viewing proprietary project files.</div>
-                  </div>
+                  <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20"><FileCheck className="w-5 h-5" /></div>
+                  <div><div className="text-sm font-bold text-white">Require Non-Disclosure Agreement (NDA)</div><div className="text-xs text-slate-400">Freelancers must sign standard confidentiality before viewing proprietary project files.</div></div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={formData.ndaRequired}
-                  onChange={(e) => handleFieldChange('ndaRequired', e.target.checked)}
-                  className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
-                />
+                <input type="checkbox" checked={formData.ndaRequired} onChange={(e) => handleFieldChange('ndaRequired', e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded cursor-pointer" />
               </div>
             </div>
           )}
 
-          {/* STEP 7: Review & Publish */}
+          {/* STEP 7 */}
           {currentStep === 7 && (
-            <div className="space-y-6">
-              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-6">
-                <div>
-                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Project Title</div>
-                  <h3 className="text-xl font-bold text-white mt-1">{formData.title || 'Untitled Project'}</h3>
+            <div className="space-y-8">
+              {/* Section 1 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">1. Basic Information</span></div>
+                  <button type="button" onClick={() => setCurrentStep(1)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl">
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Category</div>
-                    <div className="text-sm font-bold text-indigo-400">{formData.category}</div>
-                    <div className="text-xs text-slate-400">{formData.subcategory}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Budget (INR)</div>
-                    <div className="text-sm font-bold text-emerald-400">{getFormattedBudgetSummary()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Start Date</div>
-                    <div className="text-sm font-bold text-white">{getFormattedStartSummary()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Deadline</div>
-                    <div className="text-sm font-bold text-indigo-300">{getFormattedDeadlineSummary()}</div>
+                <div className="space-y-3">
+                  <div><div className="text-[11px] font-bold text-slate-500 uppercase">Project Title</div><div className="text-base font-bold text-white mt-0.5">{formData.title || 'Untitled Project'}</div></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div><div className="text-[11px] font-bold text-slate-500 uppercase">Category</div><div className="text-xs font-semibold text-slate-200 mt-0.5">{formData.category || 'Not specified'}</div></div>
+                    <div><div className="text-[11px] font-bold text-slate-500 uppercase">Subcategory</div><div className="text-xs font-semibold text-slate-200 mt-0.5">{formData.subcategory || 'Not specified'}</div></div>
+                    <div><div className="text-[11px] font-bold text-slate-500 uppercase">Project Type</div><div className="text-xs font-semibold text-slate-200 mt-0.5">{formData.projectType === 'ONE_TIME' ? 'One-time project' : 'Ongoing work'}</div></div>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Required Skills</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {formData.requiredSkills.map(s => (
-                      <span key={s} className="px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold rounded-lg">{s}</span>
-                    ))}
-                  </div>
+              {/* Section 2 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">2. Project Description & Deliverables</span></div>
+                  <button type="button" onClick={() => setCurrentStep(2)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-900">
+                <div className="space-y-4">
+                  <div><div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Description</div><p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">{formData.description || 'No description provided.'}</p></div>
                   <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Visibility</div>
-                    <div className="text-xs font-bold text-white mt-0.5">{formData.visibility === 'PUBLIC' ? 'Public Marketplace' : 'Private / Invite Only'}</div>
+                    <div className="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Expected Deliverables ({cleanDeliverables.length})</div>
+                    <ul className="space-y-1.5">
+                      {cleanDeliverables.map((deliv, idx) => (
+                        <li key={idx} className="flex items-center gap-2 text-xs text-slate-300"><span className="text-emerald-400 font-bold">✓</span><span>{deliv}</span></li>
+                      ))}
+                    </ul>
                   </div>
+                  {formData.specificRequirements && (
+                    <div className="pt-2 border-t border-slate-900"><div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Specific Requirements</div><p className="text-xs text-slate-400 leading-relaxed">{formData.specificRequirements}</p></div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 3 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">3. Skills & Experience</span></div>
+                  <button type="button" onClick={() => setCurrentStep(3)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
+                </div>
+                <div className="space-y-3">
                   <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Location</div>
-                    <div className="text-xs font-bold text-white mt-0.5">
-                      {formData.preferredLocationType === 'ANYWHERE_INDIA' ? 'Anywhere in India' : formData.preferredLocationType === 'SPECIFIC_STATE' ? formData.preferredState : formData.preferredLocationType === 'SPECIFIC_CITY' ? formData.preferredCity : 'No Preference'}
+                    <div className="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Required Skills ({formData.requiredSkills.length})</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.requiredSkills.map(s => (<span key={s} className="px-3 py-1 bg-indigo-600/20 border border-indigo-500/30 text-indigo-200 text-xs font-bold rounded-lg">{s}</span>))}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase">Languages</div>
-                    <div className="text-xs font-bold text-white mt-0.5">{formData.preferredLanguages.join(', ')}</div>
+                  <div className="pt-2">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase">Target Experience Level</div>
+                    <div className="text-xs font-bold text-white mt-0.5">{EXPERIENCE_LEVELS.find(l => l.id === formData.experienceLevel)?.title || 'Intermediate'}</div>
                   </div>
                 </div>
+              </div>
+
+              {/* Section 4 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">4. Budget & Timeline (INR ₹)</span></div>
+                  <button type="button" onClick={() => setCurrentStep(4)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800"><div className="text-[11px] font-bold text-slate-500 uppercase">Project Budget</div><div className="text-base font-bold text-emerald-400 mt-1">{getFormattedBudgetSummary()}</div></div>
+                  <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800"><div className="text-[11px] font-bold text-slate-500 uppercase">Expected Start</div><div className="text-sm font-bold text-white mt-1">{getFormattedStartSummary()}</div></div>
+                  <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800"><div className="text-[11px] font-bold text-slate-500 uppercase">Project Deadline</div><div className="text-sm font-bold text-indigo-300 mt-1">{getFormattedDeadlineSummary()}</div></div>
+                </div>
+              </div>
+
+              {/* Section 5 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><Paperclip className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">5. Files & References</span></div>
+                  <button type="button" onClick={() => setCurrentStep(5)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Attached Files ({formData.uploadedFiles.length})</div>
+                    {formData.uploadedFiles.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.uploadedFiles.map(f => (
+                          <span key={f.id} className="px-3 py-1 bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded-lg flex items-center gap-1.5">
+                            <File className="w-3.5 h-3.5 text-indigo-400" /><span>{f.name}</span><span className="text-slate-500">({formatFileSize(f.size)})</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (<span className="text-xs text-slate-500 italic">No native files attached.</span>)}
+                  </div>
+                  {formData.cloudDriveLinks.length > 0 && (
+                    <div><div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Cloud Storage Links ({formData.cloudDriveLinks.length})</div>
+                      <div className="space-y-1">{formData.cloudDriveLinks.map((link, idx) => (<div key={idx} className="text-xs text-indigo-400 truncate flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /><span>{link}</span></div>))}</div>
+                    </div>
+                  )}
+                  {cleanRefWebsites.length > 0 && (
+                    <div><div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Reference Websites ({cleanRefWebsites.length})</div>
+                      <div className="space-y-1">{cleanRefWebsites.map((web, idx) => (<div key={idx} className="text-xs text-slate-300 truncate flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-slate-500" /><span>{web}</span></div>))}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 6 Review */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-3xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850">
+                  <div className="flex items-center gap-2"><Sliders className="w-4 h-4 text-indigo-400" /><span className="text-xs font-bold uppercase tracking-wider text-indigo-300">6. Additional Options & Visibility</span></div>
+                  <button type="button" onClick={() => setCurrentStep(6)} className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"><Edit3 className="w-3.5 h-3.5" /><span>Edit</span></button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div><div className="text-[11px] font-bold text-slate-500 uppercase">Visibility</div><div className="text-xs font-bold text-white mt-0.5">{formData.visibility === 'PUBLIC' ? 'Public Marketplace' : 'Private / Invite Only'}</div></div>
+                  <div><div className="text-[11px] font-bold text-slate-500 uppercase">Location Preference</div><div className="text-xs font-bold text-white mt-0.5">{formData.preferredLocationType === 'ANYWHERE_INDIA' ? 'Anywhere in India' : formData.preferredLocationType === 'SPECIFIC_STATE' ? formData.preferredState : formData.preferredLocationType === 'SPECIFIC_CITY' ? formData.preferredCity : 'No Preference'}</div></div>
+                  <div><div className="text-[11px] font-bold text-slate-500 uppercase">Languages</div><div className="text-xs font-bold text-white mt-0.5">{formData.preferredLanguages.join(', ')}</div></div>
+                </div>
+                {formData.screeningQuestions.length > 0 && (
+                  <div className="pt-2 border-t border-slate-900"><div className="text-[11px] font-bold text-slate-500 uppercase mb-1.5">Screening Questions ({formData.screeningQuestions.length})</div><ul className="space-y-1">{formData.screeningQuestions.map((q, idx) => (<li key={idx} className="text-xs text-slate-300 flex items-start gap-1.5"><span className="text-indigo-400 font-bold">Q{idx + 1}:</span><span>{q}</span></li>))}</ul></div>
+                )}
+                {formData.ndaRequired && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-1"><FileCheck className="w-4 h-4" /><span>Requires signed Non-Disclosure Agreement (NDA)</span></div>
+                )}
+              </div>
+
+              {/* Section 7 Notice */}
+              <div className="p-5 bg-indigo-950/30 border border-indigo-500/20 rounded-2xl flex items-start gap-3">
+                <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  <strong className="text-white">Publishing Policy:</strong> Once published, eligible freelancers will be able to view your project brief and submit proposals. You can manage submissions from your Client Portal.
+                </p>
               </div>
             </div>
           )}
@@ -1220,11 +1326,12 @@ export default function PostJobPage({ currentUser }) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => alert('Job posting ready! Backend submission will be connected in next requirements.')}
-                  className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/25"
+                  disabled={isPublishing}
+                  onClick={handlePublishJob}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Publish Job</span>
+                  <Send className="w-4 h-4" />
+                  <span>{isPublishing ? 'Publishing Job...' : 'Publish Job'}</span>
                 </button>
               )}
             </div>
