@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
-  Briefcase, FileText, Layers, DollarSign, Paperclip, 
-  Sliders, CheckCircle2, ArrowLeft, ArrowRight, Save, 
-  Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
-  Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle,
-  Calendar, IndianRupee, Info, TrendingUp, UploadCloud,
-  File, Globe, Shield, CheckCircle, Eye, EyeOff, MapPin,
-  Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
+  Briefcase, FileText, Layers, DollarSign, Paperclip, Sliders, CheckCircle2, 
+  ArrowLeft, ArrowRight, Save, Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
+  Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle, Calendar, IndianRupee, 
+  Info, TrendingUp, UploadCloud, File, Globe, Shield, CheckCircle, Eye, EyeOff, 
+  MapPin, Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
 } from 'lucide-react';
 
 const STEPS = [
@@ -91,13 +89,15 @@ const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
 
 export default function PostJobPage({ currentUser }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem('token');
   const isAuthenticated = Boolean(currentUser || token);
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [saveStatus, setSaveStatus] = useState('');
+  const [draftId, setDraftId] = useState(() => searchParams.get('draftId') || '');
+  const [toastMessage, setToastMessage] = useState(null);
   const [errors, setErrors] = useState({});
 
   const [isPublishing, setIsPublishing] = useState(false);
@@ -105,7 +105,6 @@ export default function PostJobPage({ currentUser }) {
 
   const [skillSearchInput, setSkillSearchInput] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
-
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [cloudLinkInput, setCloudLinkInput] = useState('');
   const [fileError, setFileError] = useState('');
@@ -145,11 +144,31 @@ export default function PostJobPage({ currentUser }) {
 
   const [formData, setFormData] = useState(initialFormState);
 
+  const showToast = (text, type = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   useEffect(() => {
     try {
-      const savedDraft = localStorage.getItem('marketplace_job_draft');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
+      const requestedDraftId = searchParams.get('draftId');
+      const allDrafts = JSON.parse(localStorage.getItem('marketplace_client_drafts') || '[]');
+
+      if (requestedDraftId) {
+        const found = allDrafts.find(d => d.id === requestedDraftId);
+        if (found && found.formData) {
+          setDraftId(found.id);
+          setFormData(prev => ({ ...prev, ...found.formData }));
+          if (found.currentStep) setCurrentStep(found.currentStep);
+          showToast('Draft loaded: ' + (found.formData.title || 'Untitled Draft'), 'success');
+          return;
+        }
+      }
+
+      const savedActiveDraft = localStorage.getItem('marketplace_job_draft');
+      if (savedActiveDraft) {
+        const parsed = JSON.parse(savedActiveDraft);
+        if (parsed.draftId) setDraftId(parsed.draftId);
         if (parsed.formData) {
           setFormData(prev => ({
             ...prev,
@@ -173,7 +192,7 @@ export default function PostJobPage({ currentUser }) {
     } catch (e) {
       console.error('Failed to load draft:', e);
     }
-  }, []);
+  }, [searchParams]);
 
   const handleFieldChange = (field, value) => {
     setFormData(prev => {
@@ -429,13 +448,38 @@ export default function PostJobPage({ currentUser }) {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     try {
-      localStorage.setItem('marketplace_job_draft', JSON.stringify({ formData, currentStep, lastSaved: new Date().toISOString() }));
-      setSaveStatus('Draft saved successfully!');
-      setTimeout(() => setSaveStatus(''), 3000);
+      const activeDraftId = draftId || `DRAFT-${Date.now().toString().slice(-6)}`;
+      if (!draftId) setDraftId(activeDraftId);
+
+      const draftPayload = {
+        id: activeDraftId,
+        draftId: activeDraftId,
+        status: 'draft',
+        currentStep,
+        formData,
+        lastSaved: new Date().toISOString()
+      };
+
+      localStorage.setItem('marketplace_job_draft', JSON.stringify(draftPayload));
+
+      const allDrafts = JSON.parse(localStorage.getItem('marketplace_client_drafts') || '[]');
+      const existingIdx = allDrafts.findIndex(d => d.id === activeDraftId);
+      
+      let updatedDrafts;
+      if (existingIdx >= 0) {
+        updatedDrafts = [...allDrafts];
+        updatedDrafts[existingIdx] = draftPayload;
+      } else {
+        updatedDrafts = [draftPayload, ...allDrafts];
+      }
+      localStorage.setItem('marketplace_client_drafts', JSON.stringify(updatedDrafts));
+
+      showToast('Draft saved successfully.', 'success');
     } catch (e) {
-      setSaveStatus('Failed to save draft.');
+      console.error('Save draft error:', e);
+      showToast('Failed to save draft. Your data has been preserved, please try again.', 'error');
     }
   };
 
@@ -466,7 +510,12 @@ export default function PostJobPage({ currentUser }) {
       try {
         const existingJobs = JSON.parse(localStorage.getItem('marketplace_client_jobs') || '[]');
         localStorage.setItem('marketplace_client_jobs', JSON.stringify([publishedRecord, ...existingJobs]));
+        
         localStorage.removeItem('marketplace_job_draft');
+        if (draftId) {
+          const allDrafts = JSON.parse(localStorage.getItem('marketplace_client_drafts') || '[]');
+          localStorage.setItem('marketplace_client_drafts', JSON.stringify(allDrafts.filter(d => d.id !== draftId)));
+        }
       } catch (e) {
         console.error('Error saving published job locally:', e);
       }
@@ -480,6 +529,7 @@ export default function PostJobPage({ currentUser }) {
   const handleResetForNewJob = () => {
     setFormData(initialFormState);
     setCurrentStep(1);
+    setDraftId('');
     setPublishedJobInfo(null);
     setErrors({});
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -608,7 +658,18 @@ export default function PostJobPage({ currentUser }) {
   const cleanRefWebsites = (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0);
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#030712] text-slate-100 py-8 px-4 sm:px-6 lg:px-8 relative">
+      {toastMessage && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 transition-all transform duration-300 animate-bounce ${
+          toastMessage.type === 'success' 
+            ? 'bg-slate-900 border-emerald-500/40 text-emerald-300 shadow-emerald-950/50' 
+            : 'bg-slate-900 border-red-500/40 text-red-300 shadow-red-950/50'
+        }`}>
+          {toastMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <AlertCircle className="w-5 h-5 text-red-400" />}
+          <span className="text-xs font-bold">{toastMessage.text}</span>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-800">
@@ -616,16 +677,24 @@ export default function PostJobPage({ currentUser }) {
             <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
               <Sparkles className="w-4 h-4" />
               <span>Client Project Hub</span>
+              {draftId && (
+                <span className="ml-2 px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[10px] rounded-md font-mono">
+                  Draft #{draftId}
+                </span>
+              )}
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Post a Job</h1>
             <p className="text-sm text-slate-400 mt-1">Hire verified college talent, developers, and creators for your project.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handleSaveDraft} className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold rounded-xl flex items-center gap-2 transition">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
+            >
               <Save className="w-4 h-4 text-indigo-400" />
               <span>Save Draft</span>
             </button>
-            {saveStatus && <span className="text-xs text-emerald-400 font-semibold">{saveStatus}</span>}
           </div>
         </div>
 
