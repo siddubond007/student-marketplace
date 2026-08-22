@@ -4,7 +4,8 @@ import {
   Briefcase, FileText, Layers, DollarSign, Paperclip, 
   Sliders, CheckCircle2, ArrowLeft, ArrowRight, Save, 
   Sparkles, Check, Lock, AlertCircle, Clock, Repeat,
-  Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle
+  Plus, Trash2, X, Search, Sparkle, Award, Zap, HelpCircle,
+  Calendar, IndianRupee, Info, TrendingUp
 } from 'lucide-react';
 
 const STEPS = [
@@ -49,34 +50,27 @@ const ALL_SKILLS_DATABASE = [
 ];
 
 const EXPERIENCE_LEVELS = [
-  {
-    id: 'BEGINNER',
-    title: 'Beginner',
-    badge: 'Rising Star',
-    desc: 'Suitable for simple projects or clients comfortable with some guidance.',
-    icon: Sparkle
-  },
-  {
-    id: 'INTERMEDIATE',
-    title: 'Intermediate',
-    badge: 'Standard',
-    desc: 'Has professional experience and can independently handle most projects.',
-    icon: Zap
-  },
-  {
-    id: 'EXPERT',
-    title: 'Expert',
-    badge: 'Top Tier',
-    desc: 'Highly experienced professional suitable for complex projects.',
-    icon: Award
-  },
-  {
-    id: 'NOT_SURE',
-    title: "I'm not sure",
-    badge: 'Flexible',
-    desc: 'Let the marketplace recommend suitable freelancers based on proposals.',
-    icon: HelpCircle
-  }
+  { id: 'BEGINNER', title: 'Beginner', badge: 'Rising Star', desc: 'Suitable for simple projects or clients comfortable with some guidance.', icon: Sparkle },
+  { id: 'INTERMEDIATE', title: 'Intermediate', badge: 'Standard', desc: 'Has professional experience and can independently handle most projects.', icon: Zap },
+  { id: 'EXPERT', title: 'Expert', badge: 'Top Tier', desc: 'Highly experienced professional suitable for complex projects.', icon: Award },
+  { id: 'NOT_SURE', title: "I'm not sure", badge: 'Flexible', desc: 'Let the marketplace recommend suitable freelancers based on proposals.', icon: HelpCircle }
+];
+
+const START_PREFERENCES = [
+  { id: 'ASAP', label: 'As soon as possible' },
+  { id: 'FEW_DAYS', label: 'Within a few days' },
+  { id: 'NEXT_WEEK', label: 'Next week' },
+  { id: 'FLEXIBLE', label: 'Flexible' },
+  { id: 'SPECIFIC_DATE', label: 'Specific date' }
+];
+
+const DEADLINE_TYPES = [
+  { id: 'ASAP', label: 'As soon as possible' },
+  { id: '1_WEEK', label: 'Within 1 week' },
+  { id: '2_WEEKS', label: 'Within 2 weeks' },
+  { id: '1_MONTH', label: 'Within 1 month' },
+  { id: 'SPECIFIC_DATE', label: 'I have a specific deadline' },
+  { id: 'FLEXIBLE', label: 'Flexible' }
 ];
 
 export default function PostJobPage({ currentUser }) {
@@ -91,6 +85,8 @@ export default function PostJobPage({ currentUser }) {
   const [skillSearchInput, setSkillSearchInput] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
+  const todayDateString = new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -101,9 +97,15 @@ export default function PostJobPage({ currentUser }) {
     specificRequirements: '',
     requiredSkills: [],
     experienceLevel: 'INTERMEDIATE',
-    pricingType: 'FIXED',
-    budget: '',
-    duration: '1_TO_3_MONTHS',
+    budgetType: 'RANGE',
+    fixedBudget: '',
+    minimumBudget: '',
+    maximumBudget: '',
+    currency: 'INR',
+    startPreference: 'ASAP',
+    startDate: '',
+    deadlineType: '1_MONTH',
+    deadlineDate: '',
     attachments: [],
     referenceLinks: '',
     visibility: 'PUBLIC',
@@ -124,7 +126,9 @@ export default function PostJobPage({ currentUser }) {
               : [''],
             requiredSkills: Array.isArray(parsed.formData.requiredSkills) 
               ? parsed.formData.requiredSkills 
-              : []
+              : [],
+            budgetType: parsed.formData.budgetType || 'RANGE',
+            currency: 'INR'
           }));
         }
         if (parsed.currentStep) setCurrentStep(parsed.currentStep);
@@ -264,6 +268,44 @@ export default function PostJobPage({ currentUser }) {
       if (!formData.requiredSkills || formData.requiredSkills.length === 0) {
         stepErrors.requiredSkills = 'Please select at least one required skill for your project';
       }
+    } else if (step === 4) {
+      if (formData.budgetType === 'FIXED') {
+        const fb = Number(formData.fixedBudget);
+        if (!formData.fixedBudget || isNaN(fb) || fb <= 0) {
+          stepErrors.fixedBudget = 'Please enter a valid fixed budget amount greater than 0';
+        }
+      } else {
+        const minB = Number(formData.minimumBudget);
+        const maxB = Number(formData.maximumBudget);
+
+        if (!formData.minimumBudget || isNaN(minB) || minB <= 0) {
+          stepErrors.minimumBudget = 'Minimum budget is required and must be greater than 0';
+        }
+        if (!formData.maximumBudget || isNaN(maxB) || maxB <= 0) {
+          stepErrors.maximumBudget = 'Maximum budget is required and must be greater than 0';
+        }
+        if (!isNaN(minB) && !isNaN(maxB) && minB > 0 && maxB > 0 && maxB < minB) {
+          stepErrors.maximumBudget = 'Maximum budget must be greater than or equal to minimum budget';
+        }
+      }
+
+      if (formData.startPreference === 'SPECIFIC_DATE') {
+        if (!formData.startDate) {
+          stepErrors.startDate = 'Please select a specific start date';
+        } else if (formData.startDate < todayDateString) {
+          stepErrors.startDate = 'Start date cannot be in the past';
+        }
+      }
+
+      if (formData.deadlineType === 'SPECIFIC_DATE') {
+        if (!formData.deadlineDate) {
+          stepErrors.deadlineDate = 'Please select a specific deadline date';
+        } else if (formData.deadlineDate < todayDateString) {
+          stepErrors.deadlineDate = 'Deadline date cannot be in the past';
+        } else if (formData.startPreference === 'SPECIFIC_DATE' && formData.startDate && formData.deadlineDate < formData.startDate) {
+          stepErrors.deadlineDate = 'Project deadline must be on or after the selected start date';
+        }
+      }
     }
     
     setErrors(stepErrors);
@@ -321,6 +363,32 @@ export default function PostJobPage({ currentUser }) {
     s.toLowerCase().includes(skillSearchInput.toLowerCase().trim()) &&
     !formData.requiredSkills.includes(s)
   ).slice(0, 8);
+
+  const getFormattedBudgetSummary = () => {
+    if (formData.budgetType === 'FIXED') {
+      return formData.fixedBudget ? `₹${Number(formData.fixedBudget).toLocaleString('en-IN')} (Fixed)` : 'Not set';
+    }
+    if (formData.minimumBudget && formData.maximumBudget) {
+      return `₹${Number(formData.minimumBudget).toLocaleString('en-IN')} — ₹${Number(formData.maximumBudget).toLocaleString('en-IN')}`;
+    }
+    return 'Not set';
+  };
+
+  const getFormattedStartSummary = () => {
+    if (formData.startPreference === 'SPECIFIC_DATE') {
+      return formData.startDate ? new Date(formData.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Specific date';
+    }
+    const found = START_PREFERENCES.find(p => p.id === formData.startPreference);
+    return found ? found.label : 'As soon as possible';
+  };
+
+  const getFormattedDeadlineSummary = () => {
+    if (formData.deadlineType === 'SPECIFIC_DATE') {
+      return formData.deadlineDate ? new Date(formData.deadlineDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Specific deadline';
+    }
+    const found = DEADLINE_TYPES.find(d => d.id === formData.deadlineType);
+    return found ? found.label : 'Within 1 month';
+  };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -637,7 +705,6 @@ export default function PostJobPage({ currentUser }) {
           {/* STEP 3: Skills & Experience */}
           {currentStep === 3 && (
             <div className="space-y-8">
-              {/* Section 1: Searchable Skill Selector */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
@@ -653,7 +720,6 @@ export default function PostJobPage({ currentUser }) {
                   </span>
                 </div>
 
-                {/* Selected Skills Tags Display */}
                 <div className="min-h-[52px] p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex flex-wrap items-center gap-2">
                   {formData.requiredSkills.length > 0 ? (
                     formData.requiredSkills.map(skill => (
@@ -678,7 +744,6 @@ export default function PostJobPage({ currentUser }) {
                   )}
                 </div>
 
-                {/* Skill Search Input & Dropdown */}
                 <div className="relative">
                   <div className="relative">
                     <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -737,7 +802,6 @@ export default function PostJobPage({ currentUser }) {
                   </p>
                 )}
 
-                {/* Popular Recommended Skills Chips */}
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Popular Skills:</span>
                   <div className="flex flex-wrap gap-1.5">
@@ -758,7 +822,6 @@ export default function PostJobPage({ currentUser }) {
                 </div>
               </div>
 
-              {/* Section 2: Experience Level Selection */}
               <div className="space-y-3 pt-4 border-t border-slate-800">
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
@@ -809,8 +872,265 @@ export default function PostJobPage({ currentUser }) {
             </div>
           )}
 
-          {/* Placeholders for Steps 4 to 7 */}
-          {currentStep > 3 && (
+          {/* STEP 4: Budget & Timeline (INR ₹) */}
+          {currentStep === 4 && (
+            <div className="space-y-8">
+              {/* Section 1 & 2: Budget Type */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    What's your budget for this project? <span className="text-pink-500">*</span>
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Set a realistic budget to help freelancers decide whether your project is suitable for them (All rates in INR ₹).
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    {
+                      id: 'RANGE',
+                      title: 'Budget Range (Recommended)',
+                      desc: 'Set a flexible minimum and maximum amount you are comfortable spending.',
+                      icon: TrendingUp
+                    },
+                    {
+                      id: 'FIXED',
+                      title: 'Fixed Budget',
+                      desc: 'Set a specific total amount available for the complete project.',
+                      icon: IndianRupee
+                    }
+                  ].map(type => {
+                    const isSelected = formData.budgetType === type.id;
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => handleFieldChange('budgetType', type.id)}
+                        className={`p-5 rounded-2xl text-left border transition-all flex items-start gap-4 ${
+                          isSelected
+                            ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
+                            : 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-xl border mt-0.5 shrink-0 ${
+                          isSelected ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 border-slate-800 text-slate-500'
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-bold text-white">{type.title}</div>
+                          <div className="text-xs text-slate-400 leading-relaxed">{type.desc}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3 or 4: Budget Input Form */}
+              <div className="p-6 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                {formData.budgetType === 'FIXED' ? (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                      Total Project Budget <span className="text-pink-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.fixedBudget}
+                        onChange={(e) => handleFieldChange('fixedBudget', e.target.value)}
+                        placeholder="10,000"
+                        className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
+                          errors.fixedBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                        }`}
+                      />
+                    </div>
+                    {errors.fixedBudget ? (
+                      <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>{errors.fixedBudget}</span>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        This is the total amount you expect to spend on this complete project.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                          Minimum Budget <span className="text-pink-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={formData.minimumBudget}
+                            onChange={(e) => handleFieldChange('minimumBudget', e.target.value)}
+                            placeholder="5,000"
+                            className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
+                              errors.minimumBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                            }`}
+                          />
+                        </div>
+                        {errors.minimumBudget && (
+                          <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>{errors.minimumBudget}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                          Maximum Budget <span className="text-pink-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={formData.maximumBudget}
+                            onChange={(e) => handleFieldChange('maximumBudget', e.target.value)}
+                            placeholder="15,000"
+                            className={`w-full pl-8 pr-4 py-3.5 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
+                              errors.maximumBudget ? 'border-red-500 focus:border-red-400 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                            }`}
+                          />
+                        </div>
+                        {errors.maximumBudget && (
+                          <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 mt-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>{errors.maximumBudget}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 5: Budget Guidance Box */}
+                <div className="p-4 bg-indigo-950/30 border border-indigo-500/20 rounded-xl flex items-start gap-3 mt-4">
+                  <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-indigo-200">Not sure about the right budget?</div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Freelancers will review your project requirements and submit proposals based on the work involved. You can negotiate when reviewing applications.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6 & 7: Timeline & Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-800">
+                {/* Section 6: Project Start */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    When should the freelancer start?
+                  </label>
+                  <select
+                    value={formData.startPreference}
+                    onChange={(e) => handleFieldChange('startPreference', e.target.value)}
+                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
+                  >
+                    {START_PREFERENCES.map(pref => (
+                      <option key={pref.id} value={pref.id}>{pref.label}</option>
+                    ))}
+                  </select>
+
+                  {formData.startPreference === 'SPECIFIC_DATE' && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="block text-xs font-semibold text-slate-400">Select Start Date</label>
+                      <input
+                        type="date"
+                        min={todayDateString}
+                        value={formData.startDate}
+                        onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                        className={`w-full px-4 py-3 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
+                          errors.startDate ? 'border-red-500 focus:border-red-400' : 'border-slate-800 focus:border-indigo-500'
+                        }`}
+                      />
+                      {errors.startDate && (
+                        <p className="text-xs text-red-400 font-semibold flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{errors.startDate}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 7: Project Deadline */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                    When should the project be completed?
+                  </label>
+                  <select
+                    value={formData.deadlineType}
+                    onChange={(e) => handleFieldChange('deadlineType', e.target.value)}
+                    className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 transition"
+                  >
+                    {DEADLINE_TYPES.map(type => (
+                      <option key={type.id} value={type.id}>{type.label}</option>
+                    ))}
+                  </select>
+
+                  {formData.deadlineType === 'SPECIFIC_DATE' && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="block text-xs font-semibold text-slate-400">Select Project Deadline</label>
+                      <input
+                        type="date"
+                        min={formData.startDate || todayDateString}
+                        value={formData.deadlineDate}
+                        onChange={(e) => handleFieldChange('deadlineDate', e.target.value)}
+                        className={`w-full px-4 py-3 bg-slate-900 border rounded-xl text-sm text-white outline-none transition ${
+                          errors.deadlineDate ? 'border-red-500 focus:border-red-400' : 'border-slate-800 focus:border-indigo-500'
+                        }`}
+                      />
+                      {errors.deadlineDate && (
+                        <p className="text-xs text-red-400 font-semibold flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{errors.deadlineDate}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 8: Live Timeline Summary Card */}
+              <div className="p-5 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-indigo-400" />
+                  <span>Timeline & Budget Summary</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-900">
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Estimated Budget</div>
+                    <div className="text-sm font-bold text-emerald-400 mt-0.5">{getFormattedBudgetSummary()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Expected Start</div>
+                    <div className="text-sm font-bold text-white mt-0.5">{getFormattedStartSummary()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase">Project Deadline</div>
+                    <div className="text-sm font-bold text-indigo-300 mt-0.5">{getFormattedDeadlineSummary()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Placeholders for Steps 5 to 7 */}
+          {currentStep > 4 && (
             <div className="py-12 text-center text-slate-400 space-y-2">
               <div className="text-base font-bold text-white">Step {currentStep}: {STEPS[currentStep - 1].label}</div>
               <p className="text-xs text-slate-500">Form fields for this step will be populated in subsequent requirements.</p>
