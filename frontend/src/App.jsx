@@ -16,6 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ClientProjectDetailsPage from './pages/ClientProjectDetailsPage';
 import ClientProposalsPage from './pages/ClientProposalsPage';
 import StudentMarketplacePage from './pages/StudentMarketplacePage';
+import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
 import API from './services/api';
 
 export default function App() {
@@ -76,6 +77,8 @@ export default function App() {
             <Route path="/hire/:categorySlug" element={<HireCategoryPage currentUser={currentUser} />} />
             <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
             <Route path="/jobs" element={<StudentMarketplacePage />} />
+            <Route path="/jobs/:jobId" element={<PublicJobDetailsPage />} />
+import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
             <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
             
             {/* User Profiles */}

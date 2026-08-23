@@ -369,3 +369,106 @@ exports.submitBid = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// PUBLIC JOB DETAILS (GET /api/jobs/public/:jobId)
+exports.getPublicJobById = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        client: {
+          select: {
+            id: true,
+            fullName: true
+          }
+        },
+        bids: {
+          select: {
+            id: true
+          }
+        }
+      }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.status === 'DRAFT' || !job.isOpen) {
+      return res.status(404).json({ error: 'Job not available' });
+    }
+
+    return res.json(job);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+// ACCEPT BID / HIRE STUDENT
+exports.acceptBid = async (req, res) => {
+  try {
+    const { jobId, bidId } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.clientId !== req.user.id) {
+      return res.status(403).json({ error: 'Only project owner can hire.' });
+    }
+
+    const bid = await prisma.bid.findUnique({
+      where: { id: bidId }
+    });
+
+    if (!bid || bid.jobId !== jobId) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    if (!job.isOpen) {
+      return res.status(400).json({ error: "This project already has a hired student." });
+    }
+
+    const platformFee = bid.proposedAmount * 0.10;
+    const sellerEarnings = bid.proposedAmount - platformFee;
+
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + bid.deliveryDays);
+
+    const order = await prisma.order.create({
+      data: {
+        clientId: job.clientId,
+        sellerId: bid.studentId,
+        jobId: job.id,
+        totalAmount: bid.proposedAmount,
+        platformFee,
+        sellerEarnings,
+        status: 'IN_PROGRESS',
+        deadline
+      }
+    });
+
+    await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        status: 'IN_PROGRESS',
+        isOpen: false
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Student hired successfully',
+      order
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+

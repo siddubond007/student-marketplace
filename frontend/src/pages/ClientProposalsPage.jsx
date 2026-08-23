@@ -19,6 +19,24 @@ export default function ClientProposalsPage() {
       });
   }, [projectId]);
 
+  const hireStudent = async (bidId) => {
+    try {
+      const res = await API.post(
+        `/jobs/${projectId}/accept-bid/${bidId}`
+      );
+
+      alert(res.data?.message || 'Student hired successfully');
+
+      const refreshed = await API.get(`/jobs/${projectId}`);
+      setJob(refreshed.data);
+    } catch (err) {
+      alert(
+        err?.response?.data?.error ||
+        'Failed to hire student'
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-20 text-slate-400">
@@ -104,13 +122,22 @@ export default function ClientProposalsPage() {
               </p>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5 flex gap-3">
+
+              <button
+                onClick={() => hireStudent(bid.id)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white text-sm font-bold"
+              >
+                Hire Student
+              </button>
+
               <Link
                 to={`/u/${bid.student?.id}`}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-bold"
               >
                 View Student Profile
               </Link>
+
             </div>
           </div>
         ))
