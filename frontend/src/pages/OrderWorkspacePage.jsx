@@ -121,11 +121,22 @@ export default function OrderWorkspacePage({ currentUser }) {
             </div>
             )}
 
+            {(isClient || isSeller) && (
+            <>
             {isClient && (
             <button onClick={handleApprove} className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-2xl shadow-xl flex items-center justify-center space-x-2">
               <CheckCircle2 className="w-5 h-5" />
               <span>Approve Deliverables & Release Payout</span>
             </button>
+            )}
+
+            <button
+              onClick={() => alert('Dispute UI will be connected in next step')}
+              className="w-full py-3 bg-red-600 hover:bg-red-500 text-white text-xs font-black rounded-2xl mt-3"
+            >
+              Open Dispute
+            </button>
+            </>
             )}
           </div>
 
