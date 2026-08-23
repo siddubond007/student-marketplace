@@ -290,9 +290,9 @@ exports.getJobById = async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Security: Only owner/admin can access the private client project page
-    if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Access Denied: You cannot view this project.' });
+    // Security: Only owner/admin can inspect drafts
+    if (job.status === 'DRAFT' && job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Access Denied: You cannot view this draft.' });
     }
 
     res.json(job);

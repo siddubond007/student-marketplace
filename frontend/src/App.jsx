@@ -13,6 +13,7 @@ import HireCategoryPage from './pages/HireCategoryPage';
 import UserProfilePage from './pages/UserProfilePage';
 import SkillSearchPage from './pages/SkillSearchPage';
 import AdminDashboard from './pages/AdminDashboard';
+import ClientProjectDetailsPage from './pages/ClientProjectDetailsPage';
 import API from './services/api';
 
 export default function App() {
@@ -86,6 +87,7 @@ export default function App() {
             {/* Workspaces */}
             <Route path="/student/portal" element={<StudentDashboard currentUser={currentUser} />} />
             <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
+            <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
             <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
             
             <Route path="*" element={<Navigate to="/" replace />} />

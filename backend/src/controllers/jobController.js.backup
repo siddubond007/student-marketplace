@@ -237,39 +237,6 @@ exports.getMyDrafts = async (req, res) => {
   }
 };
 
-
-// 5. GET ALL PROJECTS FOR LOGGED-IN CLIENT (GET /api/jobs/my-projects)
-exports.getMyProjects = async (req, res) => {
-  try {
-    const projects = await prisma.job.findMany({
-      where: {
-        clientId: req.user.id
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            fullName: true
-          }
-        },
-        bids: {
-          select: {
-            id: true,
-            studentId: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    res.json(projects);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 // 5. GET SINGLE JOB / DRAFT BY ID (GET /api/jobs/:jobId)
 exports.getJobById = async (req, res) => {
   try {
@@ -290,9 +257,9 @@ exports.getJobById = async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Security: Only owner/admin can access the private client project page
-    if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Access Denied: You cannot view this project.' });
+    // Security: Only owner/admin can inspect drafts
+    if (job.status === 'DRAFT' && job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Access Denied: You cannot view this draft.' });
     }
 
     res.json(job);
