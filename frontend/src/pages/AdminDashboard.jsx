@@ -13,6 +13,7 @@ export default function AdminDashboard({ currentUser }) {
   const [stats, setStats] = useState({ totalUsers: 0, studentCount: 0, clientCount: 0, totalJobs: 0, totalOrders: 0, moderationLogs: 0 });
   const [moderationLogs, setModerationLogs] = useState([]);
   const [verifications, setVerifications] = useState([]);
+  const [payouts, setPayouts] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -28,17 +29,19 @@ export default function AdminDashboard({ currentUser }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes, verifRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, verifRes, payoutsRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
         API.get('/admin/moderation-logs'),
-        API.get('/admin/verifications')
+        API.get('/admin/verifications'),
+        API.get('/admin/payouts')
       ]);
 
       setUsers(usersRes.data || []);
       setStats(statsRes.data || {});
       setModerationLogs(logsRes.data || []);
       setVerifications(verifRes.data || []);
+      setPayouts(payoutsRes.data || []);
       setIsAdminLoggedIn(true);
     } catch (err) {
       console.error('Fetch Admin Data Error:', err);
@@ -155,7 +158,29 @@ export default function AdminDashboard({ currentUser }) {
     }
   };
 
+
+  const handleApprovePayout = async (payoutId) => {
+    try {
+      await API.put(`/admin/payouts/${payoutId}/approve`);
+      alert('Payout approved successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to approve payout: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleRejectPayout = async (payoutId) => {
+    try {
+      await API.put(`/admin/payouts/${payoutId}/reject`);
+      alert('Payout rejected and funds returned.');
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to reject payout: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   const filteredUsers = users.filter(u => {
+
     const matchesSearch = 
       (u.fullName && u.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -307,9 +332,16 @@ export default function AdminDashboard({ currentUser }) {
         </button>
         <button 
           onClick={() => setActiveTab('moderation')}
-          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'moderation' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`
-        }>
+            className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'moderation' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
           AI Chat Moderation Queue ({moderationLogs.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('payouts')}
+            className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'payouts' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+        >
+          Withdrawal Requests ({payouts.length})
         </button>
       </div>
 
@@ -579,6 +611,57 @@ export default function AdminDashboard({ currentUser }) {
                       )}
                     </div>
 
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+
+      {/* 3. PAYOUT REQUESTS */}
+      {activeTab === 'payouts' && (
+        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
+          <h3 className="text-base font-black text-white">Withdrawal Requests</h3>
+
+          {payouts.length === 0 ? (
+            <div className="p-10 text-center text-slate-500">
+              No withdrawal requests found.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {payouts.map((payout) => (
+                <div key={payout.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-white">{payout.user?.fullName}</div>
+                    <div className="text-xs text-slate-400">{payout.user?.email}</div>
+                    <div className="text-sm text-emerald-400 font-bold mt-1">₹{payout.amount}</div>
+                    <div className="text-xs text-slate-500">UPI: {payout.destination}</div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {payout.status === 'PENDING' ? (
+                      <>
+                        <button
+                          onClick={() => handleApprovePayout(payout.id)}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() => handleRejectPayout(payout.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-bold text-white"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400">
+                        {payout.status}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

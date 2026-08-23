@@ -14,6 +14,8 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const payoutRoutes = require('./routes/payoutRoutes');
 const { moderateMessage } = require('./services/moderationService');
 
 const app = express();
@@ -45,6 +47,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/payouts', payoutRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Marketplace API running smoothly.' });

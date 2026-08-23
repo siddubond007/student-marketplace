@@ -152,3 +152,102 @@ exports.updateVerificationStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getPayoutRequests = async (req, res) => {
+  try {
+    const payouts = await prisma.payoutRequest.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json(payouts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.approvePayoutRequest = async (req, res) => {
+  try {
+    const { payoutId } = req.params;
+
+    const payout = await prisma.payoutRequest.findUnique({
+      where: { id: payoutId }
+    });
+
+    if (!payout) {
+      return res.status(404).json({ error: 'Payout request not found.' });
+    }
+
+    await prisma.$transaction([
+      prisma.payoutRequest.update({
+        where: { id: payoutId },
+        data: {
+          status: 'COMPLETED',
+          processedAt: new Date()
+        }
+      }),
+      prisma.wallet.update({
+        where: { userId: payout.userId },
+        data: {
+          pendingBalance: {
+            decrement: payout.amount
+          }
+        }
+      })
+    ]);
+
+    res.json({ message: 'Payout approved successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.rejectPayoutRequest = async (req, res) => {
+  try {
+    const { payoutId } = req.params;
+
+    const payout = await prisma.payoutRequest.findUnique({
+      where: { id: payoutId }
+    });
+
+    if (!payout) {
+      return res.status(404).json({ error: 'Payout request not found.' });
+    }
+
+    await prisma.$transaction([
+      prisma.payoutRequest.update({
+        where: { id: payoutId },
+        data: {
+          status: 'REJECTED',
+          processedAt: new Date()
+        }
+      }),
+      prisma.wallet.update({
+        where: { userId: payout.userId },
+        data: {
+          pendingBalance: {
+            decrement: payout.amount
+          },
+          availableBalance: {
+            increment: payout.amount
+          }
+        }
+      })
+    ]);
+
+    res.json({ message: 'Payout rejected and funds returned to wallet.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+

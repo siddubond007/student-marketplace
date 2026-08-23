@@ -43,10 +43,26 @@ export default function StudentDashboard({ currentUser }) {
     }
   };
 
-  const handleWithdraw = (e) => {
+  const handleWithdraw = async (e) => {
     e.preventDefault();
-    alert(`Withdrawal request of ₹${withdrawForm.amount} submitted to UPI ID: ${withdrawForm.upiId}!`);
-    setShowWithdrawModal(false);
+
+    try {
+      await API.post('/payouts', {
+        amount: Number(withdrawForm.amount),
+        upiId: withdrawForm.upiId
+      });
+
+      alert('Withdrawal request submitted successfully.');
+
+      setShowWithdrawModal(false);
+
+      setWithdrawForm({
+        upiId: '',
+        amount: '500'
+      });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to submit withdrawal request.');
+    }
   };
 
   return (

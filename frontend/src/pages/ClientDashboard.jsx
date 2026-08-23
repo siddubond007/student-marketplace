@@ -9,6 +9,15 @@ export default function ClientDashboard({ currentUser }) {
 
   const [jobs, setJobs] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    communication: 5,
+    qualityOfWork: 5,
+    timeliness: 5,
+    comment: ""
+  });
   const [filter, setFilter] = useState('ALL');
 
   const [showPostJobModal, setShowPostJobModal] = useState(false);
@@ -65,6 +74,19 @@ export default function ClientDashboard({ currentUser }) {
       });
     } catch (err) {
       alert(err.response?.data?.error || 'Error posting job');
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    try {
+      await API.post(`/reviews/${selectedOrderId}`, reviewForm);
+      alert("Review submitted successfully.");
+      setShowReviewModal(false);
+      setSelectedOrderId(null);
+      window.location.reload();
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to submit review.");
     }
   };
 
@@ -316,6 +338,18 @@ export default function ClientDashboard({ currentUser }) {
                     Escrow Status: {o.status}
                   </span>
                 </div>
+
+                  {o.status === "COMPLETED" && (
+                    <button
+                      onClick={() => {
+                        setSelectedOrderId(o.id);
+                        setShowReviewModal(true);
+                      }}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl mr-2"
+                    >
+                      Leave Review
+                    </button>
+                  )}
 
                 <Link
                   to={`/orders/${o.id}`}
