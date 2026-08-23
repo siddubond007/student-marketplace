@@ -12,3 +12,4 @@ backend.log
 *.backup
 *.pre-modal
 *.before-modal-replace
+.checkpoints/
