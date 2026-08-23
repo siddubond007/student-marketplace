@@ -61,11 +61,15 @@ export default function ClientProjectDetailsPage() {
             </div>
 
             <div className="mt-2 text-slate-300">
-              Deadline: {job.timeline}
+              Deadline: {(job.timeline || 'Not specified').toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
             </div>
 
             <div className="mt-2 text-slate-500 text-sm">
               Created: {new Date(job.createdAt).toLocaleDateString()}
+            </div>
+
+            <div className="mt-1 text-slate-500 text-sm">
+              Updated: {new Date(job.updatedAt).toLocaleDateString()}
             </div>
           </div>
 
@@ -186,9 +190,35 @@ export default function ClientProjectDetailsPage() {
           </div>
 
           <div>
-            <strong>Deadline:</strong> {job.timeline || 'Not specified'}
+            <strong>Deadline:</strong> {(job.timeline || 'Not specified').toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </div>
         </div>
+      </div>
+
+      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+        <h2 className="text-xl font-bold text-white mb-4">
+          Attachments & Links
+        </h2>
+
+        {(job.externalLinks || []).length > 0 ? (
+          <div className="space-y-2">
+            {job.externalLinks.map((link, i) => (
+              <a
+                key={i}
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-indigo-400 hover:text-indigo-300 break-all"
+              >
+                {link}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="text-slate-400">
+            No external links provided
+          </div>
+        )}
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800">
@@ -207,7 +237,13 @@ export default function ClientProjectDetailsPage() {
         </h2>
 
         <ul className="text-slate-300 space-y-2">
-          <li>Job created</li>
+          <li>✓ Job created on {new Date(job.createdAt).toLocaleDateString()}</li>
+
+          <li>✓ Last updated on {new Date(job.updatedAt).toLocaleDateString()}</li>
+
+          {job.status !== 'DRAFT' && (
+            <li>✓ Job published</li>
+          )}
         </ul>
       </div>
 
