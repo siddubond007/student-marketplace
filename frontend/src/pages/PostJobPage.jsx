@@ -472,7 +472,7 @@ export default function PostJobPage({ currentUser }) {
         projectType: formData.projectType || 'ONE_TIME',
         description: formData.description || '',
         deliverables: (formData.deliverables || []).filter(d => (d || '').trim().length > 0),
-        requirements: formData.specificRequirements ? [formData.specificRequirements] : [],
+        requirements: formData.specificRequirements || null,
         skills: formData.requiredSkills || [],
         experienceLevel: formData.experienceLevel || 'INTERMEDIATE',
         budget: formData.budgetType === 'FIXED' 
@@ -580,7 +580,7 @@ export default function PostJobPage({ currentUser }) {
         projectType: formData.projectType || 'ONE_TIME',
         description: formData.description,
         deliverables: (formData.deliverables || []).filter(d => (d || '').trim().length > 0),
-        requirements: formData.specificRequirements ? [formData.specificRequirements] : [],
+        requirements: formData.specificRequirements || null,
         skills: formData.requiredSkills || [],
         experienceLevel: formData.experienceLevel || 'INTERMEDIATE',
         budget: formData.budgetType === 'FIXED' 

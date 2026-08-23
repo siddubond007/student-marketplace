@@ -22,6 +22,13 @@ const io = new Server(server, {
 });
 
 app.use(cors());
+
+// TEMP REQUEST DEBUG LOGGER
+app.use((req, res, next) => {
+  console.log('📥 REQUEST:', req.method, req.originalUrl);
+  console.log('🔐 AUTH:', req.headers.authorization ? 'Bearer token present' : 'NO AUTH TOKEN');
+  next();
+});
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 

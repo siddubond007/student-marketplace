@@ -90,7 +90,7 @@ exports.createJob = async (req, res) => {
         projectType: projectType || 'FIXED',
         description: description || '',
         deliverables: deliverables || [],
-        requirements: requirements || [],
+        requirements: requirements || null,
         skills: skills || [],
         experienceLevel: experienceLevel || 'INTERMEDIATE',
         budget: budget ? parseFloat(budget) || 0 : 0,
