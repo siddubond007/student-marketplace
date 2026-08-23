@@ -59,10 +59,31 @@ export default function StudentMarketplacePage() {
   return (
     <>
       <div className="max-w-6xl mx-auto p-6">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          Student Job Marketplace
-        </h1>
+        <div className="mb-10">
+          <h1 className="text-5xl font-extrabold text-white mb-3">
+            Student Marketplace
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Discover freelance opportunities, build your portfolio, and earn while you learn.
+          </p>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+              <div className="text-3xl font-bold text-emerald-400">{jobs.length}</div>
+              <div className="text-slate-400">Active Jobs</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+              <div className="text-3xl font-bold text-blue-400">₹</div>
+              <div className="text-slate-400">Paid Projects</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+              <div className="text-3xl font-bold text-purple-400">24/7</div>
+              <div className="text-slate-400">Marketplace Access</div>
+            </div>
+          </div>
+        </div>
         {message && (
           <div className="mb-6 p-3 rounded bg-slate-800 text-white">
             {message}
