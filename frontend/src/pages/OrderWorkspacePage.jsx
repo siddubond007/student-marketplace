@@ -23,6 +23,17 @@ export default function OrderWorkspacePage({ currentUser }) {
       const found = res.data?.find(o => o.id === orderId);
       if (found) setOrder(found);
     }).catch(() => {});
+
+    API.get(`/orders/${orderId}/messages`)
+      .then(res => {
+        setChatMessages(
+          res.data.map(m => ({
+            sender: m.sender?.fullName || 'User',
+            text: m.content
+          }))
+        );
+      })
+      .catch(() => {});
   }, [orderId]);
 
   const handleDeliver = async (e) => {
@@ -49,7 +60,7 @@ export default function OrderWorkspacePage({ currentUser }) {
     }
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
@@ -61,8 +72,23 @@ export default function OrderWorkspacePage({ currentUser }) {
       return;
     }
 
-    setChatMessages([...chatMessages, { sender: 'You', text: chatInput }]);
-    setChatInput('');
+    try {
+      const res = await API.post(`/orders/${orderId}/messages`, {
+        content: chatInput
+      });
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          sender: res.data.sender?.fullName || 'You',
+          text: res.data.content
+        }
+      ]);
+
+      setChatInput('');
+    } catch (err) {
+      alert('Failed to send message');
+    }
   };
 
   return (
@@ -110,11 +136,30 @@ export default function OrderWorkspacePage({ currentUser }) {
               <span>AI Monitored Escrow Chat</span>
             </div>
             <div className="flex-1 p-4 overflow-y-auto space-y-2 text-xs">
-              {chatMessages.map((m, i) => (
-                <div key={i} className={`p-2.5 rounded-xl max-w-xs ${m.sender === 'You' ? 'ml-auto bg-indigo-600 text-white' : 'bg-slate-900 text-slate-300'}`}>
-                  {m.text}
-                </div>
-              ))}
+              {chatMessages.map((m, i) => {
+                const mine = m.sender === currentUser?.fullName;
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}
+                  >
+                    <div className={`text-[10px] mb-1 ${mine ? 'text-cyan-300' : 'text-slate-400'}`}>
+                      {m.sender}
+                    </div>
+
+                    <div
+                      className={`p-2.5 rounded-xl max-w-xs ${
+                        mine
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-900 text-slate-300'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
+                );
+              })}
               {chatWarning && <div className="p-2 bg-red-500/20 text-red-300 rounded-xl text-xs">{chatWarning}</div>}
             </div>
             <form onSubmit={handleSendMessage} className="p-2 border-t border-slate-800 flex">

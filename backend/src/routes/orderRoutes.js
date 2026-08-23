@@ -7,5 +7,7 @@ router.get('/', requireAuth, orderController.getMyOrders);
 router.post('/', requireAuth, orderController.createOrder);
 router.post('/:orderId/deliver', requireAuth, orderController.submitDeliverable);
 router.post('/:orderId/approve', requireAuth, orderController.approveOrder);
+router.get('/:orderId/messages', requireAuth, orderController.getMessages);
+router.post('/:orderId/messages', requireAuth, orderController.sendMessage);
 
 module.exports = router;

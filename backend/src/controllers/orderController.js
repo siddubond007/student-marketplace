@@ -136,3 +136,98 @@ exports.approveOrder = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get Order Messages
+exports.getMessages = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (
+      order.clientId !== req.user.id &&
+      order.sellerId !== req.user.id &&
+      req.user.role !== 'ADMIN'
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const messages = await prisma.message.findMany({
+      where: { orderId },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Send Message
+exports.sendMessage = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { content } = req.body;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ error: 'Message required' });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const isClient = order.clientId === req.user.id;
+    const isSeller = order.sellerId === req.user.id;
+
+    if (!isClient && !isSeller) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const recipientId = isClient
+      ? order.sellerId
+      : order.clientId;
+
+    const message = await prisma.message.create({
+      data: {
+        orderId,
+        senderId: req.user.id,
+        recipientId,
+        content: content.trim()
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json(message);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
