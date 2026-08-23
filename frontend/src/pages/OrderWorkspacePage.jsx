@@ -15,6 +15,10 @@ export default function OrderWorkspacePage({ currentUser }) {
   ]);
   const [chatWarning, setChatWarning] = useState('');
 
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeEvidence, setDisputeEvidence] = useState('');
+
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
 
@@ -57,6 +61,28 @@ export default function OrderWorkspacePage({ currentUser }) {
       window.location.reload();
     } catch (err) {
       alert('Error approving order.');
+    }
+  };
+
+
+  const handleOpenDispute = async () => {
+    if (!disputeReason.trim()) {
+      alert('Please enter a dispute reason.');
+      return;
+    }
+
+    try {
+      const res = await API.post('/disputes', {
+        orderId,
+        reason: disputeReason,
+        evidence: disputeEvidence
+      });
+
+      alert(res.data.message || 'Dispute opened successfully.');
+      setShowDisputeModal(false);
+      window.location.reload();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to open dispute.');
     }
   };
 
@@ -131,7 +157,7 @@ export default function OrderWorkspacePage({ currentUser }) {
             )}
 
             <button
-              onClick={() => alert('Dispute UI will be connected in next step')}
+              onClick={() => setShowDisputeModal(true)}
               className="w-full py-3 bg-red-600 hover:bg-red-500 text-white text-xs font-black rounded-2xl mt-3"
             >
               Open Dispute
@@ -179,6 +205,48 @@ export default function OrderWorkspacePage({ currentUser }) {
             </form>
           </div>
         </div>
+
+        {showDisputeModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-lg">
+              <h3 className="text-xl font-black text-white mb-4">
+                Open Dispute
+              </h3>
+
+              <textarea
+                rows="4"
+                value={disputeReason}
+                onChange={e => setDisputeReason(e.target.value)}
+                placeholder="Explain the issue..."
+                className="w-full mb-3 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white"
+              />
+
+              <input
+                type="text"
+                value={disputeEvidence}
+                onChange={e => setDisputeEvidence(e.target.value)}
+                placeholder="Evidence link (optional)"
+                className="w-full mb-4 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white"
+              />
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDisputeModal(false)}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-xl"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleOpenDispute}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold"
+                >
+                  Submit Dispute
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

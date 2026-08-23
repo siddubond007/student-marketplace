@@ -14,6 +14,7 @@ export default function AdminDashboard({ currentUser }) {
   const [moderationLogs, setModerationLogs] = useState([]);
   const [verifications, setVerifications] = useState([]);
   const [payouts, setPayouts] = useState([]);
+  const [disputes, setDisputes] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -29,12 +30,13 @@ export default function AdminDashboard({ currentUser }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes, verifRes, payoutsRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
         API.get('/admin/moderation-logs'),
         API.get('/admin/verifications'),
-        API.get('/admin/payouts')
+        API.get('/admin/payouts'),
+        API.get('/disputes')
       ]);
 
       setUsers(usersRes.data || []);
@@ -42,6 +44,7 @@ export default function AdminDashboard({ currentUser }) {
       setModerationLogs(logsRes.data || []);
       setVerifications(verifRes.data || []);
       setPayouts(payoutsRes.data || []);
+      setDisputes(disputesRes.data || []);
       setIsAdminLoggedIn(true);
     } catch (err) {
       console.error('Fetch Admin Data Error:', err);
@@ -176,6 +179,19 @@ export default function AdminDashboard({ currentUser }) {
       fetchAdminData();
     } catch (err) {
       alert('Failed to reject payout: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleResolveDispute = async (disputeId, decision) => {
+    try {
+      await API.put(`/disputes/${disputeId}/resolve`, {
+        decision
+      });
+
+      alert('Dispute resolved successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to resolve dispute: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -342,6 +358,13 @@ export default function AdminDashboard({ currentUser }) {
             className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'payouts' ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
         >
           Withdrawal Requests ({payouts.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('disputes')}
+          className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'disputes' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+        >
+          Disputes ({disputes.length})
         </button>
       </div>
 
@@ -670,7 +693,60 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       )}
 
-      {/* 3. AI CHAT MODERATION LOGS */}
+      
+      {/* 3. DISPUTES */}
+      {activeTab === 'disputes' && (
+        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
+          <h3 className="text-base font-black text-white">
+            Dispute Resolution Center
+          </h3>
+
+          {disputes.length === 0 ? (
+            <div className="p-10 text-center text-slate-500">
+              No disputes found.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {disputes.map((d) => (
+                <div
+                  key={d.id}
+                  className="p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-3"
+                >
+                  <div className="font-bold text-white">
+                    Order #{d.orderId?.slice?.(0,8) || d.orderId}
+                  </div>
+
+                  <div className="text-xs text-slate-400">
+                    Status: {d.status}
+                  </div>
+
+                  <div className="text-sm text-slate-300">
+                    {d.reason}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResolveDispute(d.id, 'RELEASE_TO_SELLER')}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white"
+                    >
+                      Release To Seller
+                    </button>
+
+                    <button
+                      onClick={() => handleResolveDispute(d.id, 'REFUND_CLIENT')}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-bold text-white"
+                    >
+                      Refund Client
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+{/* 3. AI CHAT MODERATION LOGS */}
       {activeTab === 'moderation' && (
         <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
           <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">AI Contact-Leak Interception Logs</h3>
