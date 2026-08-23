@@ -84,11 +84,12 @@ export default function ClientProjectDetailsPage() {
               </Link>
             ) : (
               <>
-                <button
+                <Link
+                  to={`/my-projects/${job.id}/proposals`}
                   className="px-4 py-2 bg-indigo-600 rounded-xl text-white text-sm font-bold"
                 >
                   View Proposals
-                </button>
+                </Link>
 
                 <Link
                   to={`/post-job?draftId=${job.id}`}
