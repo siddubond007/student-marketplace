@@ -11,7 +11,7 @@ export default function ClientDashboard({ currentUser }) {
   const [jobForm, setJobForm] = useState({ title: '', category: 'Programming & Tech', description: '', budget: '', deadlineDays: '3' });
 
   useEffect(() => {
-    API.get('/jobs').then(res => setJobs(res.data || [])).catch(() => {});
+    API.get('/jobs/my-projects').then(res => setJobs(res.data || [])).catch(() => {});
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
   }, []);
 
@@ -45,7 +45,7 @@ export default function ClientDashboard({ currentUser }) {
     }
   };
 
-  const myPostedJobs = jobs.filter(j => j.clientId === currentUser?.id || j.client?.id === currentUser?.id);
+  const myPostedJobs = jobs;
 
   return (
     <div className="space-y-8 pb-16">

@@ -237,6 +237,39 @@ exports.getMyDrafts = async (req, res) => {
   }
 };
 
+
+// 5. GET ALL PROJECTS FOR LOGGED-IN CLIENT (GET /api/jobs/my-projects)
+exports.getMyProjects = async (req, res) => {
+  try {
+    const projects = await prisma.job.findMany({
+      where: {
+        clientId: req.user.id
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            fullName: true
+          }
+        },
+        bids: {
+          select: {
+            id: true,
+            studentId: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // 5. GET SINGLE JOB / DRAFT BY ID (GET /api/jobs/:jobId)
 exports.getJobById = async (req, res) => {
   try {
