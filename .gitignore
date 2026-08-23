@@ -7,3 +7,8 @@ backend.log
 *.backup
 *.pre-modal
 *.before-modal-replace
+
+*.bak
+*.backup
+*.pre-modal
+*.before-modal-replace
