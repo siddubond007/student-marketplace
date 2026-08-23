@@ -85,6 +85,7 @@ model User {
   payoutRequests     PayoutRequest[]
   moderationLogs     ModerationLog[]
   notifications      Notification[]
+  disputesOpened     Dispute[]           @relation("DisputesOpened")
 }
 
 model Profile {
@@ -251,6 +252,7 @@ model Order {
   deliverables   Deliverable[]
   messages       Message[]
   review         Review?
+  dispute        Dispute?
 }
 
 model Deliverable {
@@ -325,6 +327,24 @@ model Review {
   comment       String
   isApproved    Boolean  @default(false)
   createdAt     DateTime @default(now())
+}
+
+
+model Dispute {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  openedById    String
+  openedBy      User     @relation("DisputesOpened", fields: [openedById], references: [id])
+
+  reason        String
+  evidence      String?
+  adminDecision String?
+  status        String   @default("OPEN")
+
+  createdAt     DateTime @default(now())
+  resolvedAt    DateTime?
 }
 
 model Notification {
