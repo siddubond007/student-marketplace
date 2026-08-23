@@ -20,11 +20,37 @@ exports.createDispute = async (req, res) => {
     }
 
     if (
-      ['COMPLETED', 'CANCELLED_REFUNDED', 'DISPUTED']
+      ['COMPLETED', 'CANCELLED_REFUNDED']
         .includes(order.status)
     ) {
       return res.status(400).json({
         error: 'Dispute cannot be opened for this order status.'
+      });
+    }
+
+    const existingDispute = await prisma.dispute.findUnique({
+      where: { orderId }
+    });
+
+    if (existingDispute) {
+
+      if (existingDispute.openedById === req.user.id) {
+        return res.status(400).json({
+          error: 'You have already submitted your dispute statement.'
+        });
+      }
+
+      const updatedDispute = await prisma.dispute.update({
+        where: { id: existingDispute.id },
+        data: {
+          sellerReason: reason,
+          sellerEvidence: evidence
+        }
+      });
+
+      return res.status(200).json({
+        message: 'Your dispute response has been added.',
+        dispute: updatedDispute
       });
     }
 

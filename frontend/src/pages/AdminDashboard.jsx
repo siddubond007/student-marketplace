@@ -720,8 +720,39 @@ export default function AdminDashboard({ currentUser }) {
                     Status: {d.status}
                   </div>
 
-                  <div className="text-sm text-slate-300">
-                    {d.reason}
+                  <div className="space-y-3 text-sm">
+                    <div className="p-3 rounded-xl bg-red-950/20 border border-red-900">
+                      <div className="text-red-400 font-bold mb-1">
+                        Client Complaint
+                      </div>
+                      <div className="text-slate-300">
+                        {d.reason || 'No complaint provided'}
+                      </div>
+
+                      {d.evidence && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          Evidence: {d.evidence}
+                        </div>
+                      )}
+                    </div>
+
+                    {d.sellerReason && (
+                      <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900">
+                        <div className="text-emerald-400 font-bold mb-1">
+                          Seller Response
+                        </div>
+
+                        <div className="text-slate-300">
+                          {d.sellerReason}
+                        </div>
+
+                        {d.sellerEvidence && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            Evidence: {d.sellerEvidence}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">

@@ -338,9 +338,13 @@ model Dispute {
   openedById    String
   openedBy      User     @relation("DisputesOpened", fields: [openedById], references: [id])
 
-  reason        String
-  evidence      String?
-  adminDecision String?
+  reason         String
+  evidence       String?
+
+  sellerReason   String?
+  sellerEvidence String?
+
+  adminDecision  String?
   status        String   @default("OPEN")
 
   createdAt     DateTime @default(now())
