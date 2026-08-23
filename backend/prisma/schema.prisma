@@ -42,6 +42,13 @@ enum PayoutStatus {
   REJECTED
 }
 
+enum BidStatus {
+  PENDING
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+
 model User {
   id                 String               @id @default(uuid())
   username           String?              @unique
@@ -214,6 +221,7 @@ model Bid {
   proposedAmount Float
   deliveryDays   Int
   coverLetter    String
+  status         BidStatus @default(PENDING)
   createdAt      DateTime @default(now())
 
   @@unique([jobId, studentId])

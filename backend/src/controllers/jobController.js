@@ -454,6 +454,13 @@ exports.acceptBid = async (req, res) => {
       }
     });
 
+    await prisma.bid.update({
+      where: { id: bid.id },
+      data: {
+        status: 'HIRED'
+      }
+    });
+
     await prisma.job.update({
       where: { id: job.id },
       data: {
@@ -472,3 +479,85 @@ exports.acceptBid = async (req, res) => {
   }
 };
 
+
+exports.shortlistBid = async (req, res) => {
+  try {
+    const { jobId, bidId } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.clientId !== req.user.id) {
+      return res.status(403).json({ error: 'Only project owner can manage proposals.' });
+    }
+
+    const bid = await prisma.bid.findUnique({
+      where: { id: bidId }
+    });
+
+    if (!bid || bid.jobId !== jobId) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    const updatedBid = await prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        status: 'SHORTLISTED'
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Proposal shortlisted',
+      bid: updatedBid
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.rejectBid = async (req, res) => {
+  try {
+    const { jobId, bidId } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.clientId !== req.user.id) {
+      return res.status(403).json({ error: 'Only project owner can manage proposals.' });
+    }
+
+    const bid = await prisma.bid.findUnique({
+      where: { id: bidId }
+    });
+
+    if (!bid || bid.jobId !== jobId) {
+      return res.status(404).json({ error: 'Bid not found' });
+    }
+
+    const updatedBid = await prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        status: 'REJECTED'
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Proposal rejected',
+      bid: updatedBid
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};

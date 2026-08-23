@@ -19,6 +19,24 @@ export default function ClientProposalsPage() {
       });
   }, [projectId]);
 
+  const updateProposalStatus = async (bidId, action) => {
+    try {
+      const res = await API.post(
+        `/jobs/${projectId}/${action}/${bidId}`
+      );
+
+      alert(res.data?.message || 'Proposal updated');
+
+      const refreshed = await API.get(`/jobs/${projectId}`);
+      setJob(refreshed.data);
+    } catch (err) {
+      alert(
+        err?.response?.data?.error ||
+        'Failed to update proposal'
+      );
+    }
+  };
+
   const hireStudent = async (bidId) => {
     try {
       const res = await API.post(
@@ -98,6 +116,12 @@ export default function ClientProposalsPage() {
                   {' '}
                   {new Date(bid.createdAt).toLocaleDateString()}
                 </div>
+
+                <div className="mt-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-700 text-white">
+                    {bid.status || 'PENDING'}
+                  </span>
+                </div>
               </div>
 
               <div className="text-right">
@@ -122,7 +146,21 @@ export default function ClientProposalsPage() {
               </p>
             </div>
 
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex gap-3 flex-wrap">
+
+              <button
+                onClick={() => updateProposalStatus(bid.id, 'shortlist-bid')}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-xl text-white text-sm font-bold"
+              >
+                Shortlist
+              </button>
+
+              <button
+                onClick={() => updateProposalStatus(bid.id, 'reject-bid')}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-white text-sm font-bold"
+              >
+                Reject
+              </button>
 
               <button
                 onClick={() => hireStudent(bid.id)}
