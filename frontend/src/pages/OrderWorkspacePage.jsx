@@ -15,6 +15,9 @@ export default function OrderWorkspacePage({ currentUser }) {
   ]);
   const [chatWarning, setChatWarning] = useState('');
 
+  const isClient = currentUser?.id === order?.clientId;
+  const isSeller = currentUser?.id === order?.sellerId;
+
   useEffect(() => {
     API.get('/orders').then(res => {
       const found = res.data?.find(o => o.id === orderId);
@@ -81,6 +84,7 @@ export default function OrderWorkspacePage({ currentUser }) {
         {/* Deliver Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
+            {isSeller && (
             <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
               <h3 className="text-sm font-black text-white">Submit Project Deliverables</h3>
               <form onSubmit={handleDeliver} className="space-y-3">
@@ -89,11 +93,14 @@ export default function OrderWorkspacePage({ currentUser }) {
                 <button type="submit" className="w-full py-3 neon-airflow-btn text-white text-xs font-black rounded-xl">Submit Deliverables</button>
               </form>
             </div>
+            )}
 
+            {isClient && (
             <button onClick={handleApprove} className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-2xl shadow-xl flex items-center justify-center space-x-2">
               <CheckCircle2 className="w-5 h-5" />
               <span>Approve Deliverables & Release Payout</span>
             </button>
+            )}
           </div>
 
           {/* AI Monitored Chat */}
