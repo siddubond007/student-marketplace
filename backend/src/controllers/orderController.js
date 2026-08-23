@@ -90,6 +90,14 @@ exports.submitDeliverable = async (req, res) => {
           status: 'DELIVERED',
           autoApproveAt
         }
+        }),
+      prisma.notification.create({
+        data: {
+          userId: order.clientId,
+          title: "Deliverable Submitted",
+          message: "A freelancer has submitted work for your review. The 5-day approval timer has started.",
+          type: "DELIVERABLE_SUBMITTED"
+        }
       })
     ]);
 
@@ -128,6 +136,14 @@ exports.approveOrder = async (req, res) => {
       prisma.user.update({
         where: { id: order.sellerId },
         data: { points: { increment: 50 } } // +50 student reputation points
+      }),
+      prisma.notification.create({
+        data: {
+          userId: order.sellerId,
+          title: "Order Approved",
+          message: `Your order has been approved and ₹${order.sellerEarnings} has been added to your wallet.`,
+          type: "ORDER_APPROVED"
+        }
       })
     ]);
 

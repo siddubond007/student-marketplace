@@ -461,6 +461,15 @@ exports.acceptBid = async (req, res) => {
       }
     });
 
+    await prisma.notification.create({
+      data: {
+        userId: bid.studentId,
+        title: "You Have Been Hired",
+        message: "Congratulations! Your proposal was accepted and the project is now in progress.",
+        type: "BID_HIRED"
+      }
+    });
+
     await prisma.job.update({
       where: { id: job.id },
       data: {

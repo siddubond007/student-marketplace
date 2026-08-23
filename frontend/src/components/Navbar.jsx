@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
-  Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard
+  Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell
 } from 'lucide-react';
 
 export default function Navbar({ currentUser, onLogout }) {
@@ -189,6 +189,9 @@ export default function Navbar({ currentUser, onLogout }) {
                   {currentUser.role === 'STUDENT_FREELANCER' ? 'Student Workspace' : 'Client Portal'}
                 </div>
               </Link>
+                <Link to="/notifications" className="p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl" title="Notifications">
+                  <Bell className="w-4 h-4" />
+                </Link>
               <button onClick={onLogout} className="p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 rounded-xl" title="Log Out">
                 <LogOut className="w-4 h-4" />
               </button>

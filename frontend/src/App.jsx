@@ -17,6 +17,7 @@ import ClientProjectDetailsPage from './pages/ClientProjectDetailsPage';
 import ClientProposalsPage from './pages/ClientProposalsPage';
 import StudentMarketplacePage from './pages/StudentMarketplacePage';
 import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
+import NotificationPage from './pages/NotificationPage';
 import API from './services/api';
 
 export default function App() {
@@ -78,7 +79,6 @@ export default function App() {
             <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
             <Route path="/jobs" element={<StudentMarketplacePage />} />
             <Route path="/jobs/:jobId" element={<PublicJobDetailsPage />} />
-import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
             <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
             
             {/* User Profiles */}
@@ -95,6 +95,7 @@ import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
             <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
             <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />
             <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
+            <Route path="/notifications" element={<NotificationPage />} />
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

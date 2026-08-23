@@ -84,6 +84,7 @@ model User {
   messagesSent       Message[]            @relation("Sender")
   payoutRequests     PayoutRequest[]
   moderationLogs     ModerationLog[]
+  notifications      Notification[]
 }
 
 model Profile {
@@ -324,4 +325,15 @@ model Review {
   comment       String
   isApproved    Boolean  @default(false)
   createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("SYSTEM")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
