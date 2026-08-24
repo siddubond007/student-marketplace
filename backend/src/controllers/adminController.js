@@ -145,6 +145,19 @@ exports.updateVerificationStatus = async (req, res) => {
       where: { id },
       data: dataToUpdate
     });
+
+    await prisma.notification.create({
+      data: {
+        userId: verification.userId,
+        title: status === 'APPROVED'
+          ? 'Verification Approved'
+          : 'Verification Update',
+        message: status === 'APPROVED'
+          ? 'Your student verification has been approved. Your profile now displays verified status.'
+          : `Verification status changed to ${status}.`,
+        type: 'VERIFICATION_STATUS'
+      }
+    });
     
     res.json({ message: `Verification for ${type || 'All'} updated to ${status}`, verification });
   } catch (err) {
@@ -246,6 +259,99 @@ exports.rejectPayoutRequest = async (req, res) => {
     ]);
 
     res.json({ message: 'Payout rejected and funds returned to wallet.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+exports.getAllReviews = async (req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      include: {
+        reviewer: { select: { fullName: true } },
+        reviewee: { select: { fullName: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.hideReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    const review = await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        isVisible: false,
+        moderatedBy: req.user.id,
+        moderatedAt: new Date(),
+        moderationReason: reason || 'Hidden by admin'
+      }
+    });
+
+    res.json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.showReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+
+    const review = await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        isVisible: true,
+        moderatedBy: req.user.id,
+        moderatedAt: new Date(),
+        moderationReason: 'Review restored by admin'
+      }
+    });
+
+    res.json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.flagReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    const review = await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        isFlagged: true,
+        moderatedBy: req.user.id,
+        moderatedAt: new Date(),
+        moderationReason: reason || 'Flagged by admin'
+      }
+    });
+
+    res.json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+
+    await prisma.review.delete({
+      where: { id: reviewId }
+    });
+
+    res.json({ message: 'Review deleted successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

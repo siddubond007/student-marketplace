@@ -12,10 +12,10 @@ export default function ClientDashboard({ currentUser }) {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [reviewForm, setReviewForm] = useState({
-    rating: 5,
-    communication: 5,
-    qualityOfWork: 5,
-    timeliness: 5,
+    overallRating: 5,
+    communicationRating: 5,
+    qualityRating: 5,
+    timelinessRating: 5,
     comment: ""
   });
   const [filter, setFilter] = useState('ALL');
@@ -339,17 +339,45 @@ export default function ClientDashboard({ currentUser }) {
                   </span>
                 </div>
 
-                  {o.status === "COMPLETED" && (
-                    <button
-                      onClick={() => {
-                        setSelectedOrderId(o.id);
-                        setShowReviewModal(true);
-                      }}
-                      className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl mr-2"
-                    >
-                      Leave Review
-                    </button>
-                  )}
+                  {o.status === "COMPLETED" && (() => {
+                    const clientReviewed = (o.reviews || []).some(
+                      r => r.reviewerId === o.client?.id
+                    );
+
+                    const freelancerReviewed = (o.reviews || []).some(
+                      r => r.reviewerId === o.seller?.id
+                    );
+
+                    return (
+                      <div className="flex flex-col items-end gap-2 mr-2">
+                        <div className="flex gap-2 text-[10px] font-black">
+                          <span className={clientReviewed ? "text-emerald-400" : "text-slate-500"}>
+                            Client Reviewed {clientReviewed ? "✓" : "✗"}
+                          </span>
+
+                          <span className={freelancerReviewed ? "text-emerald-400" : "text-slate-500"}>
+                            Freelancer Reviewed {freelancerReviewed ? "✓" : "✗"}
+                          </span>
+                        </div>
+
+                        {clientReviewed ? (
+                          <span className="px-4 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl">
+                            Review Submitted
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedOrderId(o.id);
+                              setShowReviewModal(true);
+                            }}
+                            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl"
+                          >
+                            Leave Review
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                 <Link
                   to={`/orders/${o.id}`}

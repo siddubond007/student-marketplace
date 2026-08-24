@@ -50,7 +50,15 @@ exports.getMyOrders = async (req, res) => {
       include: {
         client: { select: { id: true, fullName: true } },
         seller: { select: { id: true, fullName: true, age: true } },
-        deliverables: true
+        deliverables: true,
+        reviews: {
+          select: {
+            id: true,
+            reviewerId: true,
+            revieweeId: true,
+            overallRating: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });

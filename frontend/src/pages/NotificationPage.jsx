@@ -4,6 +4,11 @@ import API from '../services/api';
 
 export default function NotificationPage() {
   const [notifications, setNotifications] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    unread: 0,
+    read: 0
+  });
 
   useEffect(() => {
     loadNotifications();
@@ -12,7 +17,16 @@ export default function NotificationPage() {
   const loadNotifications = async () => {
     try {
       const res = await API.get('/notifications');
-      setNotifications(res.data || []);
+
+      setNotifications(
+        Array.isArray(res.data)
+          ? res.data
+          : (res.data.notifications || [])
+      );
+
+      if (res.data.stats) {
+        setStats(res.data.stats);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -50,6 +64,24 @@ export default function NotificationPage() {
         >
           Mark All Read
         </button>
+      </div>
+
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="glass-panel p-4 rounded-2xl text-center">
+          <div className="text-2xl font-black text-white">{stats.total}</div>
+          <div className="text-xs text-slate-400 uppercase font-bold">Total</div>
+        </div>
+
+        <div className="glass-panel p-4 rounded-2xl text-center border border-indigo-500/30">
+          <div className="text-2xl font-black text-indigo-400">{stats.unread}</div>
+          <div className="text-xs text-slate-400 uppercase font-bold">Unread</div>
+        </div>
+
+        <div className="glass-panel p-4 rounded-2xl text-center border border-emerald-500/30">
+          <div className="text-2xl font-black text-emerald-400">{stats.read}</div>
+          <div className="text-xs text-slate-400 uppercase font-bold">Read</div>
+        </div>
       </div>
 
       <div className="space-y-3">

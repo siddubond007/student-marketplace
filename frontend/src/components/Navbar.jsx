@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API from '../services/api';
 import { 
   Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
@@ -8,6 +9,22 @@ import {
 
 export default function Navbar({ currentUser, onLogout }) {
   const [activeMenu, setActiveMenu] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadNotificationStats = async () => {
+      try {
+        const res = await API.get('/notifications/stats');
+        setUnreadCount(res.data?.unread || 0);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadNotificationStats();
+  }, [currentUser]);
 
   return (
     <header className="sticky top-0 z-50 glass-nav border-b border-slate-800/80 w-full">
@@ -189,8 +206,18 @@ export default function Navbar({ currentUser, onLogout }) {
                   {currentUser.role === 'STUDENT_FREELANCER' ? 'Student Workspace' : 'Client Portal'}
                 </div>
               </Link>
-                <Link to="/notifications" className="p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl" title="Notifications">
+                <Link
+                  to="/notifications"
+                  className="relative p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl"
+                  title="Notifications"
+                >
                   <Bell className="w-4 h-4" />
+
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
               <button onClick={onLogout} className="p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 rounded-xl" title="Log Out">
                 <LogOut className="w-4 h-4" />

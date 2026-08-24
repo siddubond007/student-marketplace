@@ -520,6 +520,15 @@ exports.shortlistBid = async (req, res) => {
       }
     });
 
+    await prisma.notification.create({
+      data: {
+        userId: bid.studentId,
+        title: "Proposal Shortlisted",
+        message: "Good news! Your proposal has been shortlisted by a client. You are one step closer to being hired.",
+        type: "PROPOSAL_SHORTLISTED"
+      }
+    });
+
     return res.json({
       success: true,
       message: 'Proposal shortlisted',

@@ -68,6 +68,13 @@ model User {
   isSuspended        Boolean              @default(false)
   suspendedUntil     DateTime?
   freeBidsRemaining  Int                  @default(15)
+
+  averageRating      Float                @default(0)
+  communicationAvg   Float                @default(0)
+  qualityAvg         Float                @default(0)
+  timelinessAvg      Float                @default(0)
+  totalReviews       Int                  @default(0)
+
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
@@ -251,7 +258,7 @@ model Order {
 
   deliverables   Deliverable[]
   messages       Message[]
-  review         Review?
+  reviews       Review[]
   dispute        Dispute?
 }
 
@@ -313,20 +320,34 @@ model ModerationLog {
 }
 
 model Review {
-  id            String   @id @default(uuid())
-  orderId       String   @unique
-  order         Order    @relation(fields: [orderId], references: [id])
-  authorId      String
-  author        User     @relation("ReviewsWritten", fields: [authorId], references: [id])
-  receiverId    String
-  receiver      User     @relation("ReviewsReceived", fields: [receiverId], references: [id])
-  rating        Int
-  communication Int?
-  qualityOfWork Int?
-  timeliness    Int?
-  comment       String
-  isApproved    Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id                   String   @id @default(uuid())
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id])
+
+  reviewerId           String
+  reviewer             User     @relation("ReviewsWritten", fields: [reviewerId], references: [id])
+
+  revieweeId           String
+  reviewee             User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+
+  overallRating        Int
+  communicationRating  Int
+  qualityRating        Int
+  timelinessRating     Int
+
+  comment              String
+
+  isVisible            Boolean  @default(true)
+  isFlagged            Boolean  @default(false)
+
+  moderatedBy          String?
+  moderatedAt          DateTime?
+  moderationReason     String?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([orderId, reviewerId])
 }
 
 

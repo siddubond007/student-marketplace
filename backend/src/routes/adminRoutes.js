@@ -21,4 +21,11 @@ router.get('/payouts', adminController.getPayoutRequests);
 router.put('/payouts/:payoutId/approve', adminController.approvePayoutRequest);
 router.put('/payouts/:payoutId/reject', adminController.rejectPayoutRequest);
 
+
+router.put('/reviews/:reviewId/hide', adminController.hideReview);
+router.put('/reviews/:reviewId/show', adminController.showReview);
+router.put('/reviews/:reviewId/flag', adminController.flagReview);
+router.delete('/reviews/:reviewId', adminController.deleteReview);
+
 module.exports = router;
+

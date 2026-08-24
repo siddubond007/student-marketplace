@@ -26,7 +26,7 @@ exports.getFreelancers = async (req, res) => {
         points: true,
         createdAt: true,
         profile: true,
-        reviewsReceived: { select: { rating: true, comment: true } }
+        reviewsReceived: { select: { overallRating: true, comment: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -52,7 +52,7 @@ exports.getUserProfile = async (req, res) => {
       include: {
         profile: true,
         gigs: { include: { packages: true } },
-        reviewsReceived: { include: { author: { select: { fullName: true } } } },
+        reviewsReceived: { include: { reviewer: { select: { fullName: true } } } },
         verification: true,
         ordersAsSeller: {
           select: {

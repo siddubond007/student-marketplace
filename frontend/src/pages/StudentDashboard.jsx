@@ -4,6 +4,15 @@ import { Wallet, Award, ShieldCheck, Zap, PlusCircle, ArrowUpRight, FolderPlus, 
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
+const getReputationLevel = (points = 0) => {
+  if (points >= 1000) return { title: 'Legend', color: 'text-yellow-400' };
+  if (points >= 500) return { title: 'Elite', color: 'text-purple-400' };
+  if (points >= 250) return { title: 'Professional', color: 'text-indigo-400' };
+  if (points >= 100) return { title: 'Trusted', color: 'text-emerald-400' };
+  return { title: 'Rookie', color: 'text-slate-400' };
+};
+
+
 export default function StudentDashboard({ currentUser }) {
   const [orders, setOrders] = useState([]);
   const [gigs, setGigs] = useState([]);
@@ -20,6 +29,17 @@ export default function StudentDashboard({ currentUser }) {
   });
 
   const [withdrawForm, setWithdrawForm] = useState({ upiId: '', amount: '500' });
+
+  const hasReviewedOrder = (order) => {
+    return (order.reviews || []).some(
+      review => review.reviewerId === currentUser?.id
+    );
+  };
+
+  const getReviewCountForOrder = (order) => {
+    return (order.reviews || []).length;
+  };
+
 
   useEffect(() => {
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
@@ -128,6 +148,9 @@ export default function StudentDashboard({ currentUser }) {
             <Award className="w-5 h-5 text-indigo-400" />
           </div>
           <div className="text-3xl font-black text-white">{currentUser?.points ?? 50} Points</div>
+          <div className={`text-sm font-black ${getReputationLevel(currentUser?.points ?? 50).color}`}>
+            {getReputationLevel(currentUser?.points ?? 50).title}
+          </div>
           <p className="text-[11px] text-emerald-400 font-bold">0/3 Strikes • Excellent Standing</p>
         </div>
       </div>

@@ -36,7 +36,17 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+
 const YEARS = Array.from({ length: 30 }, (_, i) => String(2026 - i));
+
+const getReputationLevel = (points = 50) => {
+  if (points >= 1000) return { title: '👑 Campus Legend', color: 'text-yellow-400' };
+  if (points >= 500) return { title: '💎 Elite Freelancer', color: 'text-cyan-400' };
+  if (points >= 250) return { title: '🔥 Trusted Freelancer', color: 'text-pink-400' };
+  if (points >= 100) return { title: '⭐ Rising Freelancer', color: 'text-indigo-400' };
+  return { title: '🌱 New Talent', color: 'text-emerald-400' };
+};
+
 
 const COUNTRIES = [
   'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 
@@ -450,10 +460,44 @@ export default function UserProfilePage({ currentUser }) {
     .reduce((sum, o) => sum + (o.sellerEarnings || (o.totalAmount * 0.94) || 0), 0);
 
   const reviewsList = Array.isArray(profileUser.reviewsReceived) ? profileUser.reviewsReceived : [];
-  const reviewsCount = reviewsList.length;
-  const avgRating = reviewsCount > 0
-    ? (reviewsList.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) / reviewsCount).toFixed(1)
+  const reviewsCount = profileUser.totalReviews || 0;
+
+  const avgRating = profileUser.averageRating
+    ? Number(profileUser.averageRating).toFixed(1)
     : null;
+
+  const communicationAvg = Number(profileUser.communicationAvg || 0).toFixed(1);
+  const qualityAvg = Number(profileUser.qualityAvg || 0).toFixed(1);
+  const timelinessAvg = Number(profileUser.timelinessAvg || 0).toFixed(1);
+
+  const completedProjects = sellerOrders.filter(o => o.status === 'COMPLETED').length;
+  const cancelledProjects = sellerOrders.filter(o => ['CANCELLED_REFUNDED','DISPUTED'].includes(o.status)).length;
+
+  const completionRate =
+    completedProjects + cancelledProjects > 0
+      ? Math.round((completedProjects / (completedProjects + cancelledProjects)) * 100)
+      : 100;
+
+  let freelancerLevel = 'New Freelancer';
+
+  if (completedProjects >= 75 && Number(profileUser.averageRating || 0) >= 4.7) {
+    freelancerLevel = 'Elite Freelancer';
+  } else if (completedProjects >= 30 && Number(profileUser.averageRating || 0) >= 4.5) {
+    freelancerLevel = 'Gold Freelancer';
+  } else if (completedProjects >= 15 && Number(profileUser.averageRating || 0) >= 4.3) {
+    freelancerLevel = 'Silver Freelancer';
+  } else if (completedProjects >= 5 && Number(profileUser.averageRating || 0) >= 4.0) {
+    freelancerLevel = 'Bronze Freelancer';
+  }
+
+  const trustScore = Math.min(
+    100,
+    Math.round(
+      (Number(profileUser.averageRating || 0) * 15) +
+      Math.min(completedProjects, 40) +
+      (profileUser.verification?.status === 'APPROVED' ? 15 : 0)
+    )
+  );
 
   const isMinorStudent = Boolean(profileUser?.isMinor || (profileUser?.age && profileUser.age < 18));
   const activeInstitutionsList = isMinorStudent ? (typeof ALL_SCHOOLS_DATA !== 'undefined' ? ALL_SCHOOLS_DATA : []) : (typeof INDIAN_COLLEGES !== 'undefined' ? INDIAN_COLLEGES : []);
@@ -1073,27 +1117,39 @@ export default function UserProfilePage({ currentUser }) {
                     <h4 className="text-xs font-black uppercase text-slate-400">Quality & Reliability Scorecard</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
-                        <Target className="w-5 h-5 text-indigo-400 mx-auto" />
-                        <div className="text-lg font-black text-white">100%</div>
-                        <div className="text-[10px] uppercase font-bold text-slate-400">On-Time Delivery</div>
+                        <Star className="w-5 h-5 text-amber-400 mx-auto fill-amber-400" />
+                        <div className="text-lg font-black text-white">{avgRating ? `${avgRating} ★` : 'New'}</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Overall Rating</div>
                       </div>
 
                       <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
                         <Award className="w-5 h-5 text-pink-400 mx-auto" />
-                        <div className="text-lg font-black text-white">100%</div>
-                        <div className="text-[10px] uppercase font-bold text-slate-400">On-Budget Delivery</div>
+                        <div className="text-lg font-black text-white">{reviewsCount}</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Total Reviews</div>
                       </div>
 
                       <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
-                        <Star className="w-5 h-5 text-amber-400 mx-auto fill-amber-400" />
-                        <div className="text-lg font-black text-white">{avgRating ? `${avgRating} ★` : '5.0 ★'}</div>
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Quality Rating</div>
+                        <Target className="w-5 h-5 text-indigo-400 mx-auto" />
+                        <div className="text-lg font-black text-white">{communicationAvg} ★</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Communication</div>
                       </div>
 
                       <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
                         <ShieldCheck className="w-5 h-5 text-emerald-400 mx-auto" />
-                        <div className="text-lg font-black text-white">{profileUser.points || 50} pts</div>
-                        <div className="text-[10px] uppercase font-bold text-slate-400">Reputation Points</div>
+                        <div className="text-lg font-black text-white">{qualityAvg} ★</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Quality</div>
+                      </div>
+
+                      <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
+                        <Target className="w-5 h-5 text-cyan-400 mx-auto" />
+                        <div className="text-lg font-black text-white">{timelinessAvg} ★</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Timeliness</div>
+                      </div>
+
+                      <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
+                        <ShieldCheck className="w-5 h-5 text-emerald-400 mx-auto" />
+                        <div className="text-lg font-black text-white">{profileUser.points || 50} pts</div>\n                        <div className={`text-[10px] font-black ${getReputationLevel(profileUser.points || 50).color}`}>{getReputationLevel(profileUser.points || 50).title}</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Reputation</div>
                       </div>
                     </div>
                   </div>
@@ -1104,15 +1160,109 @@ export default function UserProfilePage({ currentUser }) {
 
 
           {activeTab === 'reviews' && (
-            <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-6">
-              <h3 className="text-xl font-black text-white">Client Reviews ({profileUser.reviewsReceived?.length || 0})</h3>
-              {profileUser.reviewsReceived?.length === 0 ? (
-                <p className="text-sm text-slate-500 py-6">No reviews yet. Completed orders will appear here automatically.</p>
+            <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-8">
+
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-white">
+                    Client Reviews ({reviewsCount})
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Verified reviews from completed marketplace orders
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-3xl font-black text-amber-400">
+                    {avgRating || '0.0'} ★
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Overall Rating
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-center">
+                  <div className="text-2xl font-black text-indigo-400">{communicationAvg}</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">Communication</div>
+                </div>
+
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-center">
+                  <div className="text-2xl font-black text-emerald-400">{qualityAvg}</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">Quality</div>
+                </div>
+
+                <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-center">
+                  <div className="text-2xl font-black text-cyan-400">{timelinessAvg}</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold">Timeliness</div>
+                </div>
+              </div>
+
+              {reviewsList.length === 0 ? (
+                <p className="text-sm text-slate-500 py-6">
+                  No reviews yet. Completed orders will appear here automatically.
+                </p>
               ) : (
-                profileUser.reviewsReceived.map((r, i) => (
-                  <div key={i} className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-1.5">
-                    <div className="text-sm font-bold text-white">{r.author?.fullName}</div>
-                    <p className="text-xs text-slate-300">{r.comment}</p>
+                reviewsList.map((r, i) => (
+                  <div
+                    key={i}
+                    className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-white">
+                          {r.reviewer?.fullName}
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-amber-400 font-bold">
+                            {r.overallRating || 0} ★
+                          </span>
+
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">
+                            Verified Order
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-slate-500">
+                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 rounded-xl bg-slate-900">
+                        <div className="text-white font-bold">
+                          {r.communicationRating || 0} ★
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Communication
+                        </div>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-slate-900">
+                        <div className="text-white font-bold">
+                          {r.qualityRating || 0} ★
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Quality
+                        </div>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-slate-900">
+                        <div className="text-white font-bold">
+                          {r.timelinessRating || 0} ★
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Timeliness
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-slate-300">
+                      {r.comment}
+                    </p>
                   </div>
                 ))
               )}
