@@ -473,6 +473,7 @@ exports.getFraudDashboard = async (req, res) => {
     });
 
     const flaggedUsers = [];
+    const flaggedUserDetails = [];
 
     for (const userId of Object.keys(grouped)) {
       const stats = grouped[userId];
@@ -498,6 +499,20 @@ exports.getFraudDashboard = async (req, res) => {
 
       if (isSuspicious) {
         flaggedUsers.push(userId);
+
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true
+          }
+        });
+
+        if (user) {
+          flaggedUserDetails.push(user);
+        }
       }
     }
 
@@ -577,7 +592,8 @@ exports.getFraudDashboard = async (req, res) => {
       highRiskUsers: flaggedUsers.length,
       reviewAbuseCases: suspiciousReviews,
       verificationAbuseCases,
-      disputeAbuseCases: flaggedUsers.length
+      disputeAbuseCases: flaggedUsers.length,
+      flaggedUsers: flaggedUserDetails
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
