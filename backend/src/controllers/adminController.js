@@ -557,15 +557,20 @@ exports.getFraudDashboard = async (req, res) => {
       }
     }
 
-    const verificationAbuseCases = await prisma.verificationRequest.count({
-      where: {
-        OR: [
-          { status: 'REJECTED' },
-          { collegeIdStatus: 'REJECTED' },
-          { govtIdStatus: 'REJECTED' }
-        ]
+    const verificationRecords = await prisma.verificationRequest.findMany();
+
+    let verificationAbuseCases = 0;
+
+    for (const verification of verificationRecords) {
+      const rejectedCount =
+        (verification.status === 'REJECTED' ? 1 : 0) +
+        (verification.collegeIdStatus === 'REJECTED' ? 1 : 0) +
+        (verification.govtIdStatus === 'REJECTED' ? 1 : 0);
+
+      if (rejectedCount >= 2) {
+        verificationAbuseCases += 1;
       }
-    });
+    }
 
     res.json({
       suspiciousAccounts: flaggedUsers.length,
