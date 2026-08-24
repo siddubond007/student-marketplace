@@ -470,6 +470,15 @@ export default function UserProfilePage({ currentUser }) {
   const qualityAvg = Number(profileUser.qualityAvg || 0).toFixed(1);
   const timelinessAvg = Number(profileUser.timelinessAvg || 0).toFixed(1);
 
+  const ratingDistribution = [5,4,3,2,1].map(star => {
+    const count = reviewsList.filter(r => Number(r.overallRating) === star).length;
+    const percentage = reviewsList.length
+      ? Math.round((count / reviewsList.length) * 100)
+      : 0;
+
+    return { star, count, percentage };
+  });
+
   const completedProjects = sellerOrders.filter(o => o.status === 'COMPLETED').length;
   const cancelledProjects = sellerOrders.filter(o => ['CANCELLED_REFUNDED','DISPUTED'].includes(o.status)).length;
 
@@ -1239,6 +1248,32 @@ export default function UserProfilePage({ currentUser }) {
                 <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-center">
                   <div className="text-2xl font-black text-cyan-400">{timelinessAvg}</div>
                   <div className="text-xs text-slate-400 uppercase font-bold">Timeliness</div>
+                </div>
+              </div>
+
+
+              <div className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-black text-white">Rating Distribution</h4>
+                  <span className="text-xs text-slate-400">{reviewsList.length} Reviews</span>
+                </div>
+
+                <div className="space-y-3">
+                  {ratingDistribution.map(({ star, count, percentage }) => (
+                    <div key={star}>
+                      <div className="flex justify-between text-xs font-semibold mb-1">
+                        <span className="text-amber-400">{star} ★</span>
+                        <span className="text-slate-300">{count} ({percentage}%)</span>
+                      </div>
+
+                      <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

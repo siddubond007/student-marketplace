@@ -1,5 +1,34 @@
 const prisma = require('../config/db');
 
+async function recalculateUserReputation(userId) {
+  const reviewStats = await prisma.review.aggregate({
+    where: {
+      revieweeId: userId,
+      isVisible: true
+    },
+    _avg: {
+      overallRating: true,
+      communicationRating: true,
+      qualityRating: true,
+      timelinessRating: true
+    },
+    _count: {
+      id: true
+    }
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      averageRating: Number(reviewStats._avg.overallRating || 0),
+      communicationAvg: Number(reviewStats._avg.communicationRating || 0),
+      qualityAvg: Number(reviewStats._avg.qualityRating || 0),
+      timelinessAvg: Number(reviewStats._avg.timelinessRating || 0),
+      totalReviews: reviewStats._count.id
+    }
+  });
+}
+
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({

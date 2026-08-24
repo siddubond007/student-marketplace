@@ -1,8 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Briefcase, PlusCircle, Trash2 } from 'lucide-react';
+import { Briefcase, PlusCircle, Trash2, Star } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
+
+
+function StarRating({ value, onChange }) {
+  return (
+    <div className="flex gap-2">
+      {[1,2,3,4,5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          className="transition-transform hover:scale-110"
+        >
+          <Star
+            className={`w-7 h-7 ${
+              star <= value
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-slate-600"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function ClientDashboard({ currentUser }) {
   const navigate = useNavigate();
@@ -441,6 +465,83 @@ export default function ClientDashboard({ currentUser }) {
               >
                 Publish Project Brief
               </button>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-lg shadow-2xl">
+            <h3 className="text-xl font-black text-white mb-6">
+              Leave Review
+            </h3>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Overall Rating</label>
+                <StarRating
+                  value={reviewForm.overallRating}
+                  onChange={(v) => setReviewForm({...reviewForm, overallRating: v})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Communication</label>
+                <StarRating
+                  value={reviewForm.communicationRating}
+                  onChange={(v) => setReviewForm({...reviewForm, communicationRating: v})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Quality</label>
+                <StarRating
+                  value={reviewForm.qualityRating}
+                  onChange={(v) => setReviewForm({...reviewForm, qualityRating: v})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">Timeliness</label>
+                <StarRating
+                  value={reviewForm.timelinessRating}
+                  onChange={(v) => setReviewForm({...reviewForm, timelinessRating: v})}
+                />
+              </div>
+
+              <textarea
+                required
+                minLength={10}
+                maxLength={1000}
+                value={reviewForm.comment}
+                onChange={e => setReviewForm({...reviewForm, comment: e.target.value})}
+                placeholder="Describe your experience..."
+                className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white"
+                rows="4"
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setSelectedOrderId(null);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-slate-800 text-white"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black"
+                >
+                  Submit Review
+                </button>
+              </div>
 
             </form>
           </div>

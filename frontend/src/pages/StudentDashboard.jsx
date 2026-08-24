@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet, Award, ShieldCheck, Zap, PlusCircle, ArrowUpRight, FolderPlus, PackageCheck, Upload, FileText } from 'lucide-react';
+import { Wallet, Award, ShieldCheck, Zap, PlusCircle, ArrowUpRight, FolderPlus, PackageCheck, Upload, FileText, Star } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
@@ -13,12 +13,47 @@ const getReputationLevel = (points = 0) => {
 };
 
 
+function StarRating({ value, onChange }) {
+  return (
+    <div className="flex gap-2">
+      {[1,2,3,4,5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          className="transition-transform hover:scale-110"
+        >
+          <Star
+            className={`w-7 h-7 ${
+              star <= value
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-slate-600"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 export default function StudentDashboard({ currentUser }) {
   const [orders, setOrders] = useState([]);
   const [gigs, setGigs] = useState([]);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showCreateGigModal, setShowCreateGigModal] = useState(false);
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  const [reviewForm, setReviewForm] = useState({
+    overallRating: 5,
+    communicationRating: 5,
+    qualityRating: 5,
+    timelinessRating: 5,
+    comment: ""
+  });
 
   const [gigForm, setGigForm] = useState({
     title: '',
@@ -60,6 +95,24 @@ export default function StudentDashboard({ currentUser }) {
       confetti();
     } catch (err) {
       alert(err.response?.data?.error || 'Error publishing gig');
+    }
+  };
+
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    try {
+      await API.post(`/reviews/${selectedOrderId}`, reviewForm);
+
+      alert("Review submitted successfully.");
+
+      setShowReviewModal(false);
+      setSelectedOrderId(null);
+
+      window.location.reload();
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to submit review.");
     }
   };
 
@@ -170,8 +223,31 @@ export default function StudentDashboard({ currentUser }) {
                   <span className="text-xs text-slate-400">Status: {order.status}</span>
                 </div>
                 <div className="flex items-center space-x-4">
+
+                  {order.status === "COMPLETED" && (
+                    hasReviewedOrder(order) ? (
+                      <span className="px-3 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl">
+                        Review Submitted
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedOrderId(order.id);
+                          setShowReviewModal(true);
+                        }}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl"
+                      >
+                        Leave Review
+                      </button>
+                    )
+                  )}
+
                   <div className="text-lg font-black text-emerald-400">₹{order.totalAmount}</div>
-                  <Link to={`/orders/${order.id}`} className="px-4 py-2 neon-airflow-btn text-white text-xs font-black rounded-xl">
+
+                  <Link
+                    to={`/orders/${order.id}`}
+                    className="px-4 py-2 neon-airflow-btn text-white text-xs font-black rounded-xl"
+                  >
                     Open Project Room →
                   </Link>
                 </div>
@@ -210,6 +286,99 @@ export default function StudentDashboard({ currentUser }) {
           </div>
         </div>
       )}
+
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-lg">
+            <h3 className="text-xl font-black text-white mb-5">
+              Leave Review
+            </h3>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+
+                <StarRating
+                  value={reviewForm.overallRating}
+                  onChange={(v) =>
+                    setReviewForm({
+                      ...reviewForm,
+                      overallRating: v
+                    })
+                  }
+                />
+                <p className="text-xs text-amber-400 -mt-2">
+                  ⭐ Rate overall experience with the client
+                </p>
+
+                <StarRating
+                  value={reviewForm.communicationRating}
+                  onChange={(v) =>
+                    setReviewForm({
+                      ...reviewForm,
+                      communicationRating: v
+                    })
+                  }
+                />
+                <p className="text-xs text-cyan-400 -mt-2">
+                  💬 How well did the client communicate?
+                </p>
+
+                <StarRating
+                  value={reviewForm.qualityRating}
+                  onChange={(v) =>
+                    setReviewForm({
+                      ...reviewForm,
+                      qualityRating: v
+                    })
+                  }
+                />
+                <p className="text-xs text-purple-400 -mt-2">
+                  📋 Were requirements clear and detailed?
+                </p>
+
+                <StarRating
+                  value={reviewForm.timelinessRating}
+                  onChange={(v) =>
+                    setReviewForm({
+                      ...reviewForm,
+                      timelinessRating: v
+                    })
+                  }
+                />
+                <p className="text-xs text-emerald-400 -mt-2">
+                  💰 Was payment handled professionally?
+                </p>
+
+                <textarea
+                rows="4"
+                required
+                value={reviewForm.comment}
+                onChange={e => setReviewForm({...reviewForm, comment:e.target.value})}
+                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                placeholder="Write your review..."
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="px-5 py-2 bg-slate-700 text-white rounded-xl"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-600 text-white rounded-xl font-black"
+                >
+                  Submit Review
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

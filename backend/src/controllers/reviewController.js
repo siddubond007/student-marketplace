@@ -128,7 +128,8 @@ exports.createReview = async (req, res) => {
         communicationAvg: Number(reviewStats._avg.communicationRating || 0),
         qualityAvg: Number(reviewStats._avg.qualityRating || 0),
         timelinessAvg: Number(reviewStats._avg.timelinessRating || 0),
-        totalReviews: reviewStats._count.id
+        totalReviews: reviewStats._count.id,
+        points: { increment: 10 }
       }
     });
 
