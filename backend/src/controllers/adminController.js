@@ -557,11 +557,21 @@ exports.getFraudDashboard = async (req, res) => {
       }
     }
 
+    const verificationAbuseCases = await prisma.verificationRequest.count({
+      where: {
+        OR: [
+          { status: 'REJECTED' },
+          { collegeIdStatus: 'REJECTED' },
+          { govtIdStatus: 'REJECTED' }
+        ]
+      }
+    });
+
     res.json({
       suspiciousAccounts: flaggedUsers.length,
       highRiskUsers: flaggedUsers.length,
       reviewAbuseCases: suspiciousReviews,
-      verificationAbuseCases: 0,
+      verificationAbuseCases,
       disputeAbuseCases: flaggedUsers.length
     });
   } catch (err) {
