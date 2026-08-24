@@ -29,10 +29,10 @@ export default function AdminDashboard({ currentUser }) {
   const [payouts, setPayouts] = useState([]);
   const [disputes, setDisputes] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [fraudStats, setFraudStats] = useState({
   const [investigationReport, setInvestigationReport] = useState(null);
   const [investigationLoading, setInvestigationLoading] = useState(false);
   const [selectedInvestigationUser, setSelectedInvestigationUser] = useState(null);
+  const [fraudStats, setFraudStats] = useState({
     suspiciousAccounts: 0,
     highRiskUsers: 0,
     reviewAbuseCases: 0,
