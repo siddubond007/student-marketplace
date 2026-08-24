@@ -1002,6 +1002,46 @@ export default function AdminDashboard({ currentUser }) {
               <div className="text-2xl font-black text-red-400">{fraudStats.disputeAbuseCases || 0}</div>
             </div>
           </div>
+
+          <div className="border-t border-slate-800 pt-6">
+            <h4 className="text-sm font-bold text-white mb-4">
+              Flagged Users For Investigation
+            </h4>
+
+            {(!fraudStats.flaggedUsers || fraudStats.flaggedUsers.length === 0) ? (
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 text-sm">
+                No suspicious users detected.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {fraudStats.flaggedUsers.map(user => (
+                  <div
+                    key={user.id}
+                    className="p-4 rounded-2xl bg-slate-900 border border-red-500/30 flex justify-between items-center"
+                  >
+                    <div>
+                      <div className="font-semibold text-white">
+                        {user.fullName}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {user.email}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300">
+                        {user.role}
+                      </span>
+
+                      <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 font-bold">
+                        INVESTIGATE
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
