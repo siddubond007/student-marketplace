@@ -152,13 +152,13 @@ export default function StudentDashboard({ currentUser }) {
         </div>
 
         <div className="flex gap-3">
-          <button 
-            onClick={() => setShowVerifyModal(true)}
-            className="px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-white rounded-xl text-xs font-black transition flex items-center space-x-2"
-          >
-            <Award className="w-4 h-4 text-indigo-400" />
-            <span>Upload Student ID Card</span>
-          </button>
+          <Link
+              to={`/profile/${currentUser?.id}`}
+              className="px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-white rounded-xl text-xs font-black transition flex items-center space-x-2"
+            >
+              <Award className="w-4 h-4 text-indigo-400" />
+              <span>Manage Verification</span>
+            </Link>
           <button 
             onClick={() => setShowCreateGigModal(true)}
             className="px-5 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black shadow-lg flex items-center space-x-1.5"

@@ -28,6 +28,7 @@ export default function AdminDashboard({ currentUser }) {
   const [verifications, setVerifications] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [disputes, setDisputes] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -43,13 +44,14 @@ export default function AdminDashboard({ currentUser }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes, reviewsRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
         API.get('/admin/moderation-logs'),
         API.get('/admin/verifications'),
         API.get('/admin/payouts'),
-        API.get('/disputes')
+        API.get('/disputes'),
+        API.get('/admin/reviews')
       ]);
 
       setUsers(usersRes.data || []);
@@ -58,6 +60,7 @@ export default function AdminDashboard({ currentUser }) {
       setVerifications(verifRes.data || []);
       setPayouts(payoutsRes.data || []);
       setDisputes(disputesRes.data || []);
+      setReviews(reviewsRes.data || []);
       setIsAdminLoggedIn(true);
     } catch (err) {
       console.error('Fetch Admin Data Error:', err);
@@ -205,6 +208,42 @@ export default function AdminDashboard({ currentUser }) {
       fetchAdminData();
     } catch (err) {
       alert('Failed to resolve dispute: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+
+  const handleHideReview = async (reviewId) => {
+    const reason = window.prompt('Reason for hiding review:', 'Hidden by admin');
+    if (reason === null) return;
+
+    try {
+      await API.put(`/admin/reviews/${reviewId}/hide`, { reason });
+      alert('Review hidden successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
+  const handleShowReview = async (reviewId) => {
+    try {
+      await API.put(`/admin/reviews/${reviewId}/show`);
+      alert('Review restored successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Delete this review permanently?')) return;
+
+    try {
+      await API.delete(`/admin/reviews/${reviewId}`);
+      alert('Review deleted successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
     }
   };
 
@@ -424,6 +463,13 @@ export default function AdminDashboard({ currentUser }) {
         >
           Disputes ({disputes.length})
         </button>
+
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'reviews' ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
+            Reviews ({reviews.length})
+          </button>
       </div>
 
       {/* 1. USERS DIRECTORY */}
@@ -834,6 +880,80 @@ export default function AdminDashboard({ currentUser }) {
           )}
         </div>
       )}
+
+
+        {/* REVIEW MODERATION */}
+        {activeTab === 'reviews' && (
+          <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
+            <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">
+              Review Moderation Center
+            </h3>
+
+            {reviews.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-xs">
+                No reviews found.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map(review => (
+                  <div
+                    key={review.id}
+                    className="p-4 bg-slate-900 border border-slate-800 rounded-2xl"
+                  >
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <div className="text-white font-bold">
+                          {review.reviewer?.fullName || 'Unknown'} → {review.reviewee?.fullName || 'Unknown'}
+                        </div>
+
+                        <div className="text-amber-400 text-sm mt-1">
+                          Rating: {review.rating}/5
+                        </div>
+
+                        <div className="text-slate-300 text-sm mt-2">
+                          {review.comment}
+                        </div>
+
+                        <div className="text-xs text-slate-500 mt-2">
+                          {new Date(review.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${review.isVisible ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {review.isVisible ? 'VISIBLE' : 'HIDDEN'}
+                          </span>
+
+                          {review.isVisible ? (
+                            <button
+                              onClick={() => handleHideReview(review.id)}
+                              className="px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-xs font-bold text-white"
+                            >
+                              Hide
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleShowReview(review.id)}
+                              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white"
+                            >
+                              Restore
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteReview(review.id)}
+                            className="px-3 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold text-white"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
 
 {/* 3. AI CHAT MODERATION LOGS */}
       {activeTab === 'moderation' && (

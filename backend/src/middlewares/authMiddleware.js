@@ -17,7 +17,11 @@ exports.requireAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: { profile: true, wallet: true }
+      include: {
+        profile: true,
+        wallet: true,
+        verification: true
+      }
     });
 
     if (!user) return res.status(401).json({ error: 'User not found.' });

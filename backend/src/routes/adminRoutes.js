@@ -22,6 +22,7 @@ router.put('/payouts/:payoutId/approve', adminController.approvePayoutRequest);
 router.put('/payouts/:payoutId/reject', adminController.rejectPayoutRequest);
 
 
+router.get('/reviews', adminController.getAllReviews);
 router.put('/reviews/:reviewId/hide', adminController.hideReview);
 router.put('/reviews/:reviewId/show', adminController.showReview);
 router.put('/reviews/:reviewId/flag', adminController.flagReview);

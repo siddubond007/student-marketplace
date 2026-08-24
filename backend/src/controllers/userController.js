@@ -52,7 +52,12 @@ exports.getUserProfile = async (req, res) => {
       include: {
         profile: true,
         gigs: { include: { packages: true } },
-        reviewsReceived: { include: { reviewer: { select: { fullName: true } } } },
+        reviewsReceived: {
+            where: { isVisible: true },
+            include: {
+              reviewer: { select: { fullName: true } }
+            }
+          },
         verification: true,
         ordersAsSeller: {
           select: {

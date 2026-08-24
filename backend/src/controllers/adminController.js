@@ -363,6 +363,8 @@ exports.hideReview = async (req, res) => {
       }
     });
 
+    await recalculateUserReputation(review.revieweeId);
+
     res.json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -382,6 +384,8 @@ exports.showReview = async (req, res) => {
         moderationReason: 'Review restored by admin'
       }
     });
+
+    await recalculateUserReputation(review.revieweeId);
 
     res.json(review);
   } catch (err) {
@@ -414,9 +418,17 @@ exports.deleteReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
 
+    const review = await prisma.review.findUnique({
+      where: { id: reviewId }
+    });
+
     await prisma.review.delete({
       where: { id: reviewId }
     });
+
+    if (review) {
+      await recalculateUserReputation(review.revieweeId);
+    }
 
     res.json({ message: 'Review deleted successfully.' });
   } catch (err) {
