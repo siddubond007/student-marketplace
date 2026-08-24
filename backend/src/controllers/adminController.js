@@ -436,3 +436,80 @@ exports.deleteReview = async (req, res) => {
   }
 };
 
+
+exports.getFraudDashboard = async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const disputes = await prisma.dispute.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo
+        }
+      },
+      include: {
+        order: true
+      }
+    });
+
+    const grouped = {};
+
+    disputes.forEach((dispute) => {
+      const userId = dispute.openedById;
+
+      if (!grouped[userId]) {
+        grouped[userId] = {
+          disputes: 0,
+          sellers: new Set()
+        };
+      }
+
+      grouped[userId].disputes += 1;
+
+      if (dispute.order?.sellerId) {
+        grouped[userId].sellers.add(dispute.order.sellerId);
+      }
+    });
+
+    const flaggedUsers = [];
+
+    for (const userId of Object.keys(grouped)) {
+      const stats = grouped[userId];
+
+      const totalOrders = await prisma.order.count({
+        where: {
+          OR: [
+            { clientId: userId },
+            { sellerId: userId }
+          ]
+        }
+      });
+
+      const disputeRate =
+        totalOrders > 0
+          ? (stats.disputes / totalOrders) * 100
+          : 0;
+
+      const isSuspicious =
+        stats.disputes >= 5 ||
+        disputeRate > 50 ||
+        stats.sellers.size >= 3;
+
+      if (isSuspicious) {
+        flaggedUsers.push(userId);
+      }
+    }
+
+    res.json({
+      suspiciousAccounts: flaggedUsers.length,
+      highRiskUsers: flaggedUsers.length,
+      reviewAbuseCases: 0,
+      verificationAbuseCases: 0,
+      disputeAbuseCases: flaggedUsers.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
