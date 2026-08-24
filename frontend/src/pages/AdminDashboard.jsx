@@ -259,6 +259,22 @@ export default function AdminDashboard({ currentUser }) {
     }
   };
 
+
+  const handleInvestigateUser = async (userId) => {
+    try {
+      setSelectedInvestigationUser(userId);
+      setInvestigationLoading(true);
+
+      const response = await API.get(`/admin/fraud-investigation/${userId}`);
+
+      setInvestigationReport(response.data);
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    } finally {
+      setInvestigationLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => {
 
     const matchesSearch = 
@@ -1060,9 +1076,12 @@ export default function AdminDashboard({ currentUser }) {
                         {user.role}
                       </span>
 
-                      <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 font-bold">
+                      <button
+                        onClick={() => handleInvestigateUser(user.id)}
+                        className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 font-bold hover:bg-red-500/30"
+                      >
                         INVESTIGATE
-                      </span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1113,6 +1132,49 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       )}
 
+
+
+
+          {investigationLoading && (
+            <div className="mt-6 p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-blue-300">
+              Loading investigation report...
+            </div>
+          )}
+
+          {investigationReport && !investigationLoading && (
+            <div className="mt-6 p-6 rounded-3xl bg-slate-900 border border-red-500/30 space-y-4">
+              <h4 className="text-lg font-black text-white">
+                Fraud Investigation Report
+              </h4>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Risk Level</div>
+                  <div className="text-xl font-black text-red-400">
+                    {investigationReport.riskLevel || 'LOW'}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Risk Score</div>
+                  <div className="text-xl font-black text-orange-400">
+                    {investigationReport.riskScore || 0}/100
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Account Age</div>
+                  <div className="text-xl font-black text-white">
+                    {investigationReport.accountAgeHours || 0}h
+                  </div>
+                </div>
+              </div>
+
+              <pre className="overflow-auto text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl">
+                {JSON.stringify(investigationReport, null, 2)}
+              </pre>
+            </div>
+          )}
 
 
 {/* 3. AI CHAT MODERATION LOGS */}
