@@ -600,7 +600,14 @@ export default function AdminDashboard({ currentUser }) {
                         >
                           <Ban className="w-3.5 h-3.5" />
                         </button>
-                        <button 
+                        <button
+                            onClick={() => handleInvestigateUser(user.id)}
+                            className="p-2 bg-purple-500/10 hover:bg-purple-500 text-purple-400 hover:text-white rounded-lg transition"
+                            title="Investigate User"
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
                           onClick={() => handleDeleteUser(user.id, user.fullName)}
                           className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition"
                           title="Permanently Delete User"
