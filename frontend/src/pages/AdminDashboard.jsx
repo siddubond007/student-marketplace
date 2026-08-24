@@ -10,7 +10,20 @@ import API from '../services/api';
 
 export default function AdminDashboard({ currentUser }) {
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState({ totalUsers: 0, studentCount: 0, clientCount: 0, totalJobs: 0, totalOrders: 0, moderationLogs: 0 });
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    studentCount: 0,
+    clientCount: 0,
+    totalJobs: 0,
+    totalOrders: 0,
+    moderationLogs: 0,
+    averageRating: 0,
+    totalReviews: 0,
+    totalReputationPoints: 0,
+    verifiedStudents: 0,
+    flaggedReviews: 0,
+    hiddenReviews: 0
+  });
   const [moderationLogs, setModerationLogs] = useState([]);
   const [verifications, setVerifications] = useState([]);
   const [payouts, setPayouts] = useState([]);
@@ -324,6 +337,51 @@ export default function AdminDashboard({ currentUser }) {
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-[11px] font-black uppercase text-red-400">AI Flags</span>
           <div className="text-2xl font-black text-red-400">{moderationLogs.length}</div>
+        </div>
+      </div>
+
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-cyan-400">Avg Rating</span>
+          <div className="text-2xl font-black text-cyan-400">
+            {Number(stats.averageRating || 0).toFixed(1)}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-violet-400">Reviews</span>
+          <div className="text-2xl font-black text-violet-400">
+            {stats.totalReviews || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-pink-400">Reputation</span>
+          <div className="text-2xl font-black text-pink-400">
+            {stats.totalReputationPoints || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-emerald-400">Verified</span>
+          <div className="text-2xl font-black text-emerald-400">
+            {stats.verifiedStudents || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-amber-400">Flagged Reviews</span>
+          <div className="text-2xl font-black text-amber-400">
+            {stats.flaggedReviews || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-red-400">Hidden Reviews</span>
+          <div className="text-2xl font-black text-red-400">
+            {stats.hiddenReviews || 0}
+          </div>
         </div>
       </div>
 

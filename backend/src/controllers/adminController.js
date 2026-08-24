@@ -20,21 +20,59 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getStats = async (req, res) => {
   try {
-    const totalUsers = await prisma.user.count();
-    const studentCount = await prisma.user.count({ where: { role: 'STUDENT_FREELANCER' } });
-    const clientCount = await prisma.user.count({ where: { role: 'CLIENT' } });
-    const totalJobs = await prisma.job.count();
-    const totalOrders = await prisma.order.count();
-    const moderationLogs = await prisma.moderationLog.count();
-
-    res.json({
+    const [
       totalUsers,
       studentCount,
       clientCount,
+      suspendedUsers,
       totalJobs,
+      openJobs,
       totalOrders,
+      completedOrders,
+      disputedOrders,
+      pendingVerifications,
+      approvedVerifications,
       moderationLogs
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: 'STUDENT_FREELANCER' } }),
+      prisma.user.count({ where: { role: 'CLIENT' } }),
+      prisma.user.count({ where: { isSuspended: true } }),
+      prisma.job.count(),
+      prisma.job.count({ where: { isOpen: true } }),
+      prisma.order.count(),
+      prisma.order.count({ where: { status: 'COMPLETED' } }),
+      prisma.order.count({ where: { status: 'DISPUTED' } }),
+      prisma.verificationRequest.count({ where: { status: 'PENDING' } }),
+      prisma.verificationRequest.count({ where: { status: 'APPROVED' } }),
+      prisma.moderationLog.count()
+    ]);
+
+    const reputationStats = await prisma.user.aggregate({
+      _sum: { points: true },
+      _avg: { averageRating: true }
     });
+
+    const stats = {
+      totalUsers,
+      studentCount,
+      clientCount,
+      suspendedUsers,
+      totalJobs,
+      openJobs,
+      totalOrders,
+      completedOrders,
+      disputedOrders,
+      pendingVerifications,
+      approvedVerifications,
+      moderationLogs,
+      totalReputationPoints: reputationStats._sum.points || 0,
+      averagePlatformRating: Number(
+        reputationStats._avg.averageRating || 0
+      ).toFixed(2)
+    };
+
+    res.json(stats);
   } catch (err) {
     console.error("Admin getStats Error:", err);
     res.status(500).json({ error: err.message });
