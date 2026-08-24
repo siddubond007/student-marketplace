@@ -30,6 +30,9 @@ export default function AdminDashboard({ currentUser }) {
   const [disputes, setDisputes] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [fraudStats, setFraudStats] = useState({
+  const [investigationReport, setInvestigationReport] = useState(null);
+  const [investigationLoading, setInvestigationLoading] = useState(false);
+  const [selectedInvestigationUser, setSelectedInvestigationUser] = useState(null);
     suspiciousAccounts: 0,
     highRiskUsers: 0,
     reviewAbuseCases: 0,
@@ -597,7 +600,6 @@ export default function AdminDashboard({ currentUser }) {
           </div>
         </div>
       )}
-
       {/* 2. UNIFIED SINGLE VERIFICATION QUEUE */}
       {activeTab === 'verifications' && (
         <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-6 shadow-2xl">
@@ -1001,6 +1003,19 @@ export default function AdminDashboard({ currentUser }) {
               <div className="text-xs text-slate-400">Dispute Abuse</div>
               <div className="text-2xl font-black text-red-400">{fraudStats.disputeAbuseCases || 0}</div>
             </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-red-500/30">
+              <div className="text-xs text-slate-400">Platform Risk Level</div>
+              <div className="text-2xl font-black text-red-400">
+                {fraudStats.riskLevel || 'LOW'}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                Signals: {fraudStats.totalFraudSignals || 0}
+              </div>
+              <div className="text-[10px] text-orange-400 font-bold mt-1">
+                Risk Score: {fraudStats.riskScore || 0}/100
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-slate-800 pt-6">
@@ -1026,6 +1041,18 @@ export default function AdminDashboard({ currentUser }) {
                       <div className="text-xs text-slate-400">
                         {user.email}
                       </div>
+
+                      <div className="mt-1 flex flex-wrap gap-2 text-[10px]">
+                        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300">
+                          Age: {user.accountAgeHours || 0}h
+                        </span>
+
+                        {user.suspiciousAccount && (
+                          <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-300 font-bold">
+                            NEW ACCOUNT RISK
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1035,6 +1062,47 @@ export default function AdminDashboard({ currentUser }) {
 
                       <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-300 font-bold">
                         INVESTIGATE
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-800 pt-6 mt-6">
+            <h4 className="text-sm font-bold text-white mb-4">
+              Verification Abuse Users
+            </h4>
+
+            {(!fraudStats.verificationAbuseUsers || fraudStats.verificationAbuseUsers.length === 0) ? (
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 text-sm">
+                No verification abuse detected.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {fraudStats.verificationAbuseUsers.map((user, index) => (
+                  <div
+                    key={user.id || index}
+                    className="p-4 rounded-2xl bg-slate-900 border border-orange-500/30 flex justify-between items-center"
+                  >
+                    <div>
+                      <div className="font-semibold text-white">
+                        {user.fullName}
+                      </div>
+
+                      <div className="text-xs text-slate-400">
+                        {user.email}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300">
+                        {user.role}
+                      </span>
+
+                      <span className="text-xs px-3 py-1 rounded-full bg-orange-500/20 text-orange-300 font-bold">
+                        {user.rejectedCount} REJECTIONS
                       </span>
                     </div>
                   </div>

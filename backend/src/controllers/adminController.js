@@ -174,6 +174,7 @@ exports.getVerifications = async (req, res) => {
             username: true,
             age: true,
             role: true,
+            createdAt: true,
             profile: true
           }
         }
@@ -506,11 +507,40 @@ exports.getFraudDashboard = async (req, res) => {
             id: true,
             fullName: true,
             email: true,
-            role: true
+            role: true,
+            createdAt: true,
+            reviewsWritten: {
+              select: { id: true }
+            },
+            ordersAsClient: {
+              select: { id: true }
+            },
+            ordersAsSeller: {
+              select: { id: true }
+            }
           }
         });
 
         if (user) {
+          const accountAgeHours =
+            (Date.now() - new Date(user.createdAt).getTime()) /
+            (1000 * 60 * 60);
+
+          user.accountAgeHours = Math.floor(accountAgeHours);
+
+          const totalOrdersForUser =
+            user.ordersAsClient.length +
+            user.ordersAsSeller.length;
+
+          const suspiciousAccount =
+            accountAgeHours < 24 &&
+            (
+              user.reviewsWritten.length >= 10 ||
+              totalOrdersForUser >= 20
+            );
+
+          user.suspiciousAccount = suspiciousAccount;
+
           flaggedUserDetails.push(user);
         }
       }
@@ -572,9 +602,21 @@ exports.getFraudDashboard = async (req, res) => {
       }
     }
 
-    const verificationRecords = await prisma.verificationRequest.findMany();
+    const verificationRecords = await prisma.verificationRequest.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              role: true
+            }
+          }
+        }
+      });
 
     let verificationAbuseCases = 0;
+    const verificationAbuseUsers = [];
 
     for (const verification of verificationRecords) {
       const rejectedCount =
@@ -584,7 +626,52 @@ exports.getFraudDashboard = async (req, res) => {
 
       if (rejectedCount >= 2) {
         verificationAbuseCases += 1;
+
+        if (verification.user) {
+          verificationAbuseUsers.push({
+            ...verification.user,
+            rejectedCount
+          });
+        }
       }
+    }
+
+    const totalFraudSignals =
+      flaggedUsers.length +
+      suspiciousReviews +
+      verificationAbuseCases;
+
+    let riskScore = 0;
+
+    if (flaggedUsers.length > 0) {
+      riskScore += 25;
+    }
+
+    if (suspiciousReviews > 0) {
+      riskScore += 30;
+    }
+
+    if (verificationAbuseCases > 0) {
+      riskScore += 25;
+    }
+
+    const suspiciousAccountCount =
+      flaggedUserDetails.filter(
+        user => user.suspiciousAccount
+      ).length;
+
+    if (suspiciousAccountCount > 0) {
+      riskScore += 20;
+    }
+
+    let riskLevel = 'LOW';
+
+    if (riskScore >= 81) {
+      riskLevel = 'CRITICAL';
+    } else if (riskScore >= 51) {
+      riskLevel = 'HIGH';
+    } else if (riskScore >= 21) {
+      riskLevel = 'MEDIUM';
     }
 
     res.json({
@@ -592,11 +679,120 @@ exports.getFraudDashboard = async (req, res) => {
       highRiskUsers: flaggedUsers.length,
       reviewAbuseCases: suspiciousReviews,
       verificationAbuseCases,
+      verificationAbuseUsers,
       disputeAbuseCases: flaggedUsers.length,
-      flaggedUsers: flaggedUserDetails
+      flaggedUsers: flaggedUserDetails,
+      totalFraudSignals,
+      riskScore,
+      riskLevel
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+exports.getFraudInvestigationReport = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        verification: true,
+        reviewsWritten: true,
+        reviewsReceived: true,
+        ordersAsClient: true,
+        ordersAsSeller: true,
+        disputesOpened: true,
+        profile: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    const accountAgeHours = Math.floor(
+      (Date.now() - new Date(user.createdAt).getTime()) /
+      (1000 * 60 * 60)
+    );
+
+    const totalOrders =
+      user.ordersAsClient.length +
+      user.ordersAsSeller.length;
+
+    const totalReviews =
+      user.reviewsWritten.length +
+      user.reviewsReceived.length;
+
+    const totalDisputes =
+      user.disputesOpened.length;
+
+    const verificationRejections =
+      (user.verification?.status === 'REJECTED' ? 1 : 0) +
+      (user.verification?.collegeIdStatus === 'REJECTED' ? 1 : 0) +
+      (user.verification?.govtIdStatus === 'REJECTED' ? 1 : 0);
+
+    const riskFactors = [];
+
+    if (accountAgeHours < 24) {
+      riskFactors.push('Very New Account');
+    }
+
+    if (totalDisputes >= 5) {
+      riskFactors.push('Excessive Disputes');
+    }
+
+    if (verificationRejections >= 2) {
+      riskFactors.push('Verification Abuse');
+    }
+
+    if (totalReviews >= 10 && accountAgeHours < 24) {
+      riskFactors.push('Review Burst Activity');
+    }
+
+    let riskLevel = 'LOW';
+
+    if (riskFactors.length >= 4) {
+      riskLevel = 'CRITICAL';
+    } else if (riskFactors.length >= 3) {
+      riskLevel = 'HIGH';
+    } else if (riskFactors.length >= 1) {
+      riskLevel = 'MEDIUM';
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      },
+      profile: user.profile,
+      orders: {
+        asClient: user.ordersAsClient,
+        asSeller: user.ordersAsSeller,
+        total: totalOrders
+      },
+      reviews: {
+        written: user.reviewsWritten,
+        received: user.reviewsReceived,
+        total: totalReviews
+      },
+      disputes: user.disputesOpened,
+      verification: user.verification,
+      riskFactors,
+      riskLevel,
+      accountAgeHours
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
   }
 };
 

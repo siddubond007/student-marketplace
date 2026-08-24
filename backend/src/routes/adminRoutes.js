@@ -23,6 +23,7 @@ router.put('/payouts/:payoutId/reject', adminController.rejectPayoutRequest);
 
 
 router.get('/fraud', adminController.getFraudDashboard);
+router.get('/fraud-investigation/:userId', adminController.getFraudInvestigationReport);
 router.get('/reviews', adminController.getAllReviews);
 router.put('/reviews/:reviewId/hide', adminController.hideReview);
 router.put('/reviews/:reviewId/show', adminController.showReview);
