@@ -501,14 +501,61 @@ exports.getFraudDashboard = async (req, res) => {
       }
     }
 
-    const suspiciousReviews = await prisma.review.count({
-      where: {
-        OR: [
-          { overallRating: 5 },
-          { overallRating: 1 }
-        ]
+    const reviews = await prisma.review.findMany({
+      select: {
+        reviewerId: true,
+        revieweeId: true,
+        overallRating: true
       }
     });
+
+    let suspiciousReviews = 0;
+    const reviewerStats = {};
+
+    for (const review of reviews) {
+      if (!reviewerStats[review.reviewerId]) {
+        reviewerStats[review.reviewerId] = {
+          total: 0,
+          fiveStars: 0,
+          oneStars: 0,
+          targets: new Set()
+        };
+      }
+
+      reviewerStats[review.reviewerId].total += 1;
+      reviewerStats[review.reviewerId].targets.add(review.revieweeId);
+
+      if (review.overallRating === 5) {
+        reviewerStats[review.reviewerId].fiveStars += 1;
+      }
+
+      if (review.overallRating === 1) {
+        reviewerStats[review.reviewerId].oneStars += 1;
+      }
+    }
+
+    for (const reviewerId of Object.keys(reviewerStats)) {
+      const stats = reviewerStats[reviewerId];
+
+      const excessiveFiveStar =
+        stats.total >= 5 &&
+        stats.fiveStars / stats.total >= 0.9;
+
+      const excessiveOneStar =
+        stats.total >= 5 &&
+        stats.oneStars / stats.total >= 0.9;
+
+      const reviewFarmPattern =
+        stats.targets.size >= 10;
+
+      if (
+        excessiveFiveStar ||
+        excessiveOneStar ||
+        reviewFarmPattern
+      ) {
+        suspiciousReviews += 1;
+      }
+    }
 
     res.json({
       suspiciousAccounts: flaggedUsers.length,
