@@ -499,6 +499,35 @@ export default function UserProfilePage({ currentUser }) {
     )
   );
 
+  const earnedBadges = [];
+
+  if (completedProjects >= 5)
+    earnedBadges.push({ icon: '🥉', label: 'Bronze Freelancer' });
+
+  if (completedProjects >= 15)
+    earnedBadges.push({ icon: '🥈', label: 'Silver Freelancer' });
+
+  if (completedProjects >= 30)
+    earnedBadges.push({ icon: '🥇', label: 'Gold Freelancer' });
+
+  if (completedProjects >= 75 && Number(profileUser.averageRating || 0) >= 4.7)
+    earnedBadges.push({ icon: '💎', label: 'Elite Freelancer' });
+
+  if (Number(profileUser.averageRating || 0) >= 4.8 && reviewsCount >= 10)
+    earnedBadges.push({ icon: '⭐', label: 'Top Rated' });
+
+  if (completionRate === 100 && completedProjects >= 5)
+    earnedBadges.push({ icon: '🎯', label: '100% Completion' });
+
+  if (profileUser.verification?.status === 'APPROVED')
+    earnedBadges.push({ icon: '✅', label: 'Verified Student' });
+
+  if ((profileUser.points || 0) >= 250)
+    earnedBadges.push({ icon: '🚀', label: 'Fast Rising' });
+
+  if ((profileUser.points || 0) >= 1000)
+    earnedBadges.push({ icon: '👑', label: 'Campus Legend' });
+
   const isMinorStudent = Boolean(profileUser?.isMinor || (profileUser?.age && profileUser.age < 18));
   const activeInstitutionsList = isMinorStudent ? (typeof ALL_SCHOOLS_DATA !== 'undefined' ? ALL_SCHOOLS_DATA : []) : (typeof INDIAN_COLLEGES !== 'undefined' ? INDIAN_COLLEGES : []);
   const activeProgramsList = isMinorStudent ? (typeof ALL_SCHOOL_PROGRAMS !== 'undefined' ? ALL_SCHOOL_PROGRAMS : []) : (typeof ALL_DEGREES_PROGRAMS !== 'undefined' ? ALL_DEGREES_PROGRAMS : []);
@@ -599,6 +628,20 @@ export default function UserProfilePage({ currentUser }) {
                 <div className="text-sm font-black uppercase text-indigo-400 tracking-wide pt-1">
                   {profileUser.profile?.tagline || 'Student Creator • Ready to Work'}
                 </div>
+
+                {earnedBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {earnedBadges.map((badge, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs font-bold text-white flex items-center gap-1"
+                      >
+                        <span>{badge.icon}</span>
+                        <span>{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="text-sm text-slate-300 pt-1">
                   <span className="text-emerald-400 font-black text-lg">₹{profileUser.profile?.hourlyRate || 499}</span> per hour • Joined {new Date(profileUser.createdAt).toLocaleDateString()}
