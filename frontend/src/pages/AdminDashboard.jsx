@@ -1136,11 +1136,6 @@ export default function AdminDashboard({ currentUser }) {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-
-
 
           {investigationLoading && (
             <div className="mt-6 p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-blue-300">
@@ -1182,6 +1177,13 @@ export default function AdminDashboard({ currentUser }) {
               </pre>
             </div>
           )}
+
+        </div>
+      )}
+
+
+
+
 
 
 {/* 3. AI CHAT MODERATION LOGS */}
