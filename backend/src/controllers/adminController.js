@@ -501,10 +501,19 @@ exports.getFraudDashboard = async (req, res) => {
       }
     }
 
+    const suspiciousReviews = await prisma.review.count({
+      where: {
+        OR: [
+          { overallRating: 5 },
+          { overallRating: 1 }
+        ]
+      }
+    });
+
     res.json({
       suspiciousAccounts: flaggedUsers.length,
       highRiskUsers: flaggedUsers.length,
-      reviewAbuseCases: 0,
+      reviewAbuseCases: suspiciousReviews,
       verificationAbuseCases: 0,
       disputeAbuseCases: flaggedUsers.length
     });
