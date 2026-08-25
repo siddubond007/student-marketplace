@@ -67,6 +67,8 @@ model User {
   strikesCount       Int                  @default(0)
   isSuspended        Boolean              @default(false)
   suspendedUntil     DateTime?
+  isBanned           Boolean              @default(false)
+  bannedAt           DateTime?
   freeBidsRemaining  Int                  @default(15)
 
   averageRating      Float                @default(0)
@@ -93,6 +95,7 @@ model User {
   moderationLogs     ModerationLog[]
   notifications      Notification[]
   disputesOpened     Dispute[]           @relation("DisputesOpened")
+  investigationActions InvestigationAction[]
 }
 
 model Profile {
@@ -381,4 +384,17 @@ model Notification {
   type      String   @default("SYSTEM")
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+
+model InvestigationAction {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  adminId    String
+  actionType String
+  note       String?
+
+  createdAt  DateTime @default(now())
 }

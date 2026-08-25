@@ -24,6 +24,11 @@ router.put('/payouts/:payoutId/reject', adminController.rejectPayoutRequest);
 
 router.get('/fraud', adminController.getFraudDashboard);
 router.get('/fraud-investigation/:userId', adminController.getFraudInvestigationReport);
+
+router.post('/fraud-investigation/:userId/note', adminController.addInvestigationNote);
+router.get('/fraud-investigation/:userId/history', adminController.getInvestigationHistory);
+router.post('/fraud-investigation/:userId/ban', adminController.banUser);
+router.post('/fraud-investigation/:userId/clear', adminController.clearInvestigation);
 router.get('/reviews', adminController.getAllReviews);
 router.put('/reviews/:reviewId/hide', adminController.hideReview);
 router.put('/reviews/:reviewId/show', adminController.showReview);

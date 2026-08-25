@@ -796,3 +796,83 @@ exports.getFraudInvestigationReport = async (req, res) => {
   }
 };
 
+
+
+exports.addInvestigationNote = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { note } = req.body;
+
+    const action = await prisma.investigationAction.create({
+      data: {
+        userId,
+        adminId: req.user.id,
+        actionType: 'NOTE',
+        note: note || ''
+      }
+    });
+
+    res.json(action);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getInvestigationHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const history = await prisma.investigationAction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.banUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isBanned: true,
+        bannedAt: new Date()
+      }
+    });
+
+    await prisma.investigationAction.create({
+      data: {
+        userId,
+        adminId: req.user.id,
+        actionType: 'BAN'
+      }
+    });
+
+    res.json({ message: 'User banned successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.clearInvestigation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await prisma.investigationAction.create({
+      data: {
+        userId,
+        adminId: req.user.id,
+        actionType: 'CLEAR'
+      }
+    });
+
+    res.json({ message: 'Investigation cleared' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -32,6 +32,8 @@ export default function AdminDashboard({ currentUser }) {
   const [investigationReport, setInvestigationReport] = useState(null);
   const [investigationLoading, setInvestigationLoading] = useState(false);
   const [selectedInvestigationUser, setSelectedInvestigationUser] = useState(null);
+  const [investigationHistory, setInvestigationHistory] = useState([]);
+  const [investigationNote, setInvestigationNote] = useState('');
   const [fraudStats, setFraudStats] = useState({
     suspiciousAccounts: 0,
     highRiskUsers: 0,
@@ -268,10 +270,74 @@ export default function AdminDashboard({ currentUser }) {
       const response = await API.get(`/admin/fraud-investigation/${userId}`);
 
       setInvestigationReport(response.data);
+      await loadInvestigationHistory(userId);
     } catch (err) {
       alert(err.response?.data?.error || err.message);
     } finally {
       setInvestigationLoading(false);
+    }
+  };
+
+  const loadInvestigationHistory = async (userId) => {
+    try {
+      const res = await API.get(`/admin/fraud-investigation/${userId}/history`);
+      setInvestigationHistory(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddInvestigationNote = async () => {
+    if (!selectedInvestigationUser) return;
+    if (!investigationNote.trim()) return;
+
+    try {
+      await API.post(
+        `/admin/fraud-investigation/${selectedInvestigationUser}/note`,
+        { note: investigationNote }
+      );
+
+      setInvestigationNote('');
+      await loadInvestigationHistory(selectedInvestigationUser);
+
+      alert('Investigation note added.');
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
+  const handleBanUser = async () => {
+    if (!selectedInvestigationUser) return;
+
+    if (!window.confirm('Ban this user?')) return;
+
+    try {
+      await API.post(
+        `/admin/fraud-investigation/${selectedInvestigationUser}/ban`
+      );
+
+      await loadInvestigationHistory(selectedInvestigationUser);
+
+      alert('User banned successfully.');
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
+  const handleClearInvestigation = async () => {
+    if (!selectedInvestigationUser) return;
+
+    try {
+      await API.post(
+        `/admin/fraud-investigation/${selectedInvestigationUser}/clear`
+      );
+
+      await loadInvestigationHistory(selectedInvestigationUser);
+
+      alert('Investigation cleared.');
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
     }
   };
 
@@ -561,6 +627,14 @@ export default function AdminDashboard({ currentUser }) {
                       <div>
                         <div>{user.fullName}</div>
                         <span className="text-[10px] text-slate-400 font-normal">@{user.username || 'user'}</span>
+
+                        {user.isBanned && (
+                          <div className="mt-1">
+                            <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold">
+                              BANNED
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-300">{user.email}</td>
@@ -1421,6 +1495,81 @@ export default function AdminDashboard({ currentUser }) {
                     </div>
                   </div>
                 )}
+
+
+              <div className="p-5 rounded-2xl bg-slate-800 border border-orange-500/30 mb-4 space-y-4">
+                <h5 className="text-sm font-bold text-white">
+                  Investigation Actions
+                </h5>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={handleBanUser}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm"
+                  >
+                    Ban User
+                  </button>
+
+                  <button
+                    onClick={handleClearInvestigation}
+                    className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm"
+                  >
+                    Clear Investigation
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <textarea
+                    value={investigationNote}
+                    onChange={(e) => setInvestigationNote(e.target.value)}
+                    placeholder="Add investigation note..."
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm"
+                    rows={3}
+                  />
+
+                  <button
+                    onClick={handleAddInvestigationNote}
+                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm"
+                  >
+                    Add Note
+                  </button>
+                </div>
+
+                <div>
+                  <h6 className="text-xs font-bold text-slate-300 mb-2">
+                    Investigation History
+                  </h6>
+
+                  <div className="space-y-2 max-h-64 overflow-auto">
+                    {investigationHistory.length === 0 ? (
+                      <div className="text-xs text-slate-500">
+                        No investigation history yet.
+                      </div>
+                    ) : (
+                      investigationHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-slate-900 border border-slate-700"
+                        >
+                          <div className="text-xs font-bold text-orange-300">
+                            {item.actionType}
+                          </div>
+
+                          {item.note && (
+                            <div className="text-sm text-slate-300 mt-1">
+                              {item.note}
+                            </div>
+                          )}
+
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            {new Date(item.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <pre className="overflow-auto text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl">
                 {JSON.stringify(investigationReport, null, 2)}
