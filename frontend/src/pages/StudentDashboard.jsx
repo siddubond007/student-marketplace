@@ -372,6 +372,41 @@ export default function StudentDashboard({ currentUser }) {
         </div>
       </section>
 
+      {/* REQ22 Profile Snapshot */}
+      <section className="glass-panel rounded-3xl border border-slate-800 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 p-[2px]">
+              <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-xl font-black text-white">
+                {currentUser?.fullName?.charAt(0) || 'S'}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-black text-white">
+                  {currentUser?.fullName}
+                </h3>
+                <span className="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400">
+                  Student Freelancer
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 mt-1">
+                Keep your profile complete and client-ready.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to={`/profile/${currentUser?.id}`}
+            className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-white rounded-xl text-xs font-black transition text-center"
+          >
+            Open My Profile
+          </Link>
+        </div>
+      </section>
+
       {/* REQ22 Action Center */}
       <section className="glass-panel rounded-3xl border border-slate-800 p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
