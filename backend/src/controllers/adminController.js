@@ -97,6 +97,42 @@ exports.getStats = async (req, res) => {
       _avg: { averageRating: true }
     });
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const adminActionsToday = await prisma.auditLog.count({
+      where: {
+        createdAt: {
+          gte: startOfToday
+        }
+      }
+    });
+
+    const failedAdminLogins = await prisma.adminLoginLog.count({
+      where: {
+        loginStatus: {
+          startsWith: 'FAILED'
+        }
+      }
+    });
+
+    const activeAdmins = await prisma.auditLog.groupBy({
+      by: ['adminId']
+    });
+
+    const mostActiveAdminData = await prisma.auditLog.groupBy({
+      by: ['adminId'],
+      _count: {
+        adminId: true
+      },
+      orderBy: {
+        _count: {
+          adminId: 'desc'
+        }
+      },
+      take: 1
+    });
+
     const stats = {
       totalUsers,
       studentCount,
@@ -110,6 +146,10 @@ exports.getStats = async (req, res) => {
       pendingVerifications,
       approvedVerifications,
       moderationLogs,
+      adminActionsToday,
+      failedAdminLogins,
+      activeAdmins: activeAdmins.length,
+      mostActiveAdmin: mostActiveAdminData[0]?.adminId || null,
       totalReputationPoints: reputationStats._sum.points || 0,
       averagePlatformRating: Number(
         reputationStats._avg.averageRating || 0
