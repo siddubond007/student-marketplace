@@ -61,6 +61,7 @@ export default function StudentDashboard({ currentUser }) {
   const [payoutHistory, setPayoutHistory] = useState([]);
   const [walletData, setWalletData] = useState(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [recentNotifications, setRecentNotifications] = useState([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('ALL');
   const [gigs, setGigs] = useState([]);
@@ -136,6 +137,16 @@ export default function StudentDashboard({ currentUser }) {
   useEffect(() => {
     API.get('/notifications/stats')
       .then(res => setUnreadNotificationCount(res.data?.unread || 0))
+      .catch(() => {});
+
+    API.get('/notifications')
+      .then(res => {
+        const notifications = Array.isArray(res.data)
+          ? res.data
+          : (res.data?.notifications || []);
+
+        setRecentNotifications(notifications.slice(0, 3));
+      })
       .catch(() => {});
 
     API.get('/payouts/my')
@@ -605,6 +616,73 @@ export default function StudentDashboard({ currentUser }) {
             <p className="text-xs font-black text-white mt-2">My Profile</p>
           </Link>
         </div>
+      </section>
+
+      {/* REQ23 Recent Activity */}
+      <section className="glass-panel rounded-3xl border border-slate-800 p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+              Recent Activity
+            </p>
+            <h3 className="text-lg font-black text-white mt-1">
+              Latest updates
+            </h3>
+          </div>
+
+          <Link
+            to="/notifications"
+            className="text-xs font-black text-indigo-400 hover:text-indigo-300 transition"
+          >
+            View All →
+          </Link>
+        </div>
+
+        {recentNotifications.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-7 text-center">
+            <MessageSquare className="w-6 h-6 text-slate-600 mx-auto" />
+            <p className="text-xs text-slate-500 mt-3">
+              No recent notifications.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentNotifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`rounded-2xl border px-4 py-3 ${
+                  notification.isRead
+                    ? 'border-slate-800 bg-slate-950/30'
+                    : 'border-indigo-500/30 bg-indigo-500/5'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                      notification.isRead
+                        ? 'bg-slate-700'
+                        : 'bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.7)]'
+                    }`}
+                  />
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-white">
+                      {notification.title}
+                    </p>
+
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                      {notification.message}
+                    </p>
+
+                    <p className="text-[10px] text-slate-600 mt-2">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* REQ23 My Gigs */}
