@@ -29,6 +29,21 @@ async function recalculateUserReputation(userId) {
   });
 }
 
+async function createAuditLog(adminId, actionType, targetId = null, details = null) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        adminId,
+        actionType,
+        targetId,
+        details
+      }
+    });
+  } catch (err) {
+    console.error("Audit Log Error:", err.message);
+  }
+}
+
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -111,6 +126,8 @@ exports.getStats = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
+      await createAuditLog(req.user.id, "DELETE_USER", userId, "Admin deleted user account");
+
     await prisma.user.delete({ where: { id: userId } });
     res.json({ message: 'User deleted successfully.' });
   } catch (err) {
@@ -139,11 +156,23 @@ exports.changeUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { role }
     });
-    res.json({ message: `User role changed to ${role}.`, user: updated });
+
+    await createAuditLog(
+      req.user.id,
+      "CHANGE_ROLE",
+      userId,
+      `Role changed to ${role}`
+    );
+
+    res.json({
+      message: `User role changed to ${role}.`,
+      user: updated
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
