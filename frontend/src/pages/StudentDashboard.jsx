@@ -95,7 +95,20 @@ export default function StudentDashboard({ currentUser }) {
   useEffect(() => {
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
     API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
-    API.get('/jobs').then(res => setRecommendedJobs(res.data || [])).catch(() => {});
+    API.get('/jobs')
+      .then(res => {
+        const jobs = res.data || [];
+        const uniqueJobs = Array.from(
+          new Map(
+            jobs.map(job => [
+              `${job.title}|${job.category}|${job.client?.fullName || ''}|${job.budget}`,
+              job
+            ])
+          ).values()
+        );
+        setRecommendedJobs(uniqueJobs);
+      })
+      .catch(() => {});
   }, []);
 
   const handleCreateGig = async (e) => {
