@@ -374,7 +374,38 @@ export default function StudentDashboard({ currentUser }) {
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <h3 className="text-lg font-black text-white">Active Client Orders ({orders.length})</h3>
         {orders.length === 0 ? (
-          <p className="text-xs text-slate-500 py-4">No active client orders yet. Publish gigs or bid on client jobs to get hired!</p>
+          <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-950/40 px-6 py-10 text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+              <Briefcase className="w-7 h-7 text-indigo-400" />
+            </div>
+
+            <h4 className="text-lg font-black text-white mt-4">
+              Your workspace is ready for its first project
+            </h4>
+
+            <p className="max-w-lg mx-auto text-xs leading-6 text-slate-500 mt-2">
+              Publish a service or explore open client jobs to start building your freelance portfolio.
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowCreateGigModal(true)}
+                className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Publish a Gig
+              </button>
+
+              <Link
+                to="/jobs"
+                className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-white rounded-xl text-xs font-black transition flex items-center gap-2"
+              >
+                Browse Jobs
+                <ArrowUpRight className="w-4 h-4 text-indigo-400" />
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="space-y-4">
             {orders.map(order => (
