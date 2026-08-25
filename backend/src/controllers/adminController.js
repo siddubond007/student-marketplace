@@ -996,6 +996,14 @@ exports.banUser = async (req, res) => {
       }
     });
 
+      await createAuditLog(
+        req.user.id,
+        "BAN_USER",
+        userId,
+        "User banned through fraud investigation"
+      );
+
+
     res.json({ message: 'User banned successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1013,6 +1021,14 @@ exports.clearInvestigation = async (req, res) => {
         actionType: 'CLEAR'
       }
     });
+
+      await createAuditLog(
+        req.user.id,
+        "CLEAR_INVESTIGATION",
+        userId,
+        "Investigation manually cleared"
+      );
+
 
     res.json({ message: 'Investigation cleared' });
   } catch (err) {
