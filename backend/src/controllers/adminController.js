@@ -251,6 +251,14 @@ exports.updateVerificationStatus = async (req, res) => {
       data: dataToUpdate
     });
 
+      await createAuditLog(
+        req.user.id,
+        status === "APPROVED" ? "APPROVE_VERIFICATION" : "REJECT_VERIFICATION",
+        verification.userId,
+        `${type || "ALL"} verification ${status}`
+      );
+
+
     await prisma.notification.create({
       data: {
         userId: verification.userId,
