@@ -715,6 +715,15 @@ exports.getFraudInvestigationReport = async (req, res) => {
       });
     }
 
+    const moderationLogs = await prisma.moderationLog.findMany({
+      where: {
+        senderId: userId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
     const accountAgeHours = Math.floor(
       (Date.now() - new Date(user.createdAt).getTime()) /
       (1000 * 60 * 60)
@@ -784,6 +793,7 @@ exports.getFraudInvestigationReport = async (req, res) => {
         total: totalReviews
       },
       disputes: user.disputesOpened,
+      moderationLogs,
       verification: user.verification,
       riskFactors,
       riskLevel,

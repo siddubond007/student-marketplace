@@ -1497,6 +1497,98 @@ export default function AdminDashboard({ currentUser }) {
                 )}
 
 
+              {(investigationReport.orders?.asClient?.length > 0 ||
+                investigationReport.orders?.asSeller?.length > 0) && (
+                <div className="p-5 rounded-2xl bg-slate-800 border border-cyan-500/30">
+                  <h5 className="text-sm font-bold text-white mb-4">
+                    Order Evidence
+                  </h5>
+
+                  <div className="space-y-3 max-h-72 overflow-auto">
+                    {[...(investigationReport.orders?.asClient || []), ...(investigationReport.orders?.asSeller || [])]
+                      .slice(0, 10)
+                      .map((order, index) => (
+                        <div
+                          key={order.id || index}
+                          className="p-3 rounded-xl bg-slate-900 border border-slate-700"
+                        >
+                          <div className="flex justify-between">
+                            <div className="text-white font-semibold">
+                              {order.status || 'UNKNOWN'}
+                            </div>
+
+                            <div className="text-cyan-400 text-xs">
+                              {order.createdAt
+                                ? new Date(order.createdAt).toLocaleString()
+                                : 'Unknown Date'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {investigationReport.verification && (
+                <div className="p-5 rounded-2xl bg-slate-800 border border-yellow-500/30">
+                  <h5 className="text-sm font-bold text-white mb-4">
+                    Verification Evidence
+                  </h5>
+
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-slate-400">Status</div>
+                      <div className="text-white font-semibold">
+                        {investigationReport.verification.status || 'UNKNOWN'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-slate-400">College ID</div>
+                      <div className="text-white font-semibold">
+                        {investigationReport.verification.collegeIdStatus || 'N/A'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-slate-400">Government ID</div>
+                      <div className="text-white font-semibold">
+                        {investigationReport.verification.govtIdStatus || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {investigationReport.moderationLogs?.length > 0 && (
+                <div className="p-5 rounded-2xl bg-slate-800 border border-red-500/30">
+                  <h5 className="text-sm font-bold text-white mb-4">
+                    Moderation Evidence
+                  </h5>
+
+                  <div className="space-y-3 max-h-72 overflow-auto">
+                    {investigationReport.moderationLogs.map((log, index) => (
+                      <div
+                        key={log.id || index}
+                        className="p-3 rounded-xl bg-slate-900 border border-slate-700"
+                      >
+                        <div className="text-red-300 font-semibold">
+                          {log.violationType}
+                        </div>
+
+                        <div className="text-slate-300 text-sm">
+                          {log.flaggedText}
+                        </div>
+
+                        <div className="mt-2 text-xs text-slate-500">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="p-5 rounded-2xl bg-slate-800 border border-orange-500/30 mb-4 space-y-4">
                 <h5 className="text-sm font-bold text-white">
                   Investigation Actions
@@ -1571,9 +1663,7 @@ export default function AdminDashboard({ currentUser }) {
                 </div>
               </div>
 
-              <pre className="overflow-auto text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl">
-                {JSON.stringify(investigationReport, null, 2)}
-              </pre>
+              
             </div>
           )}
 
