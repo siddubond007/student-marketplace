@@ -1172,6 +1172,213 @@ export default function AdminDashboard({ currentUser }) {
                 </div>
               </div>
 
+              <div className="grid md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Orders</div>
+                  <div className="text-xl font-black text-cyan-400">
+                    {investigationReport.orders?.total || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Reviews</div>
+                  <div className="text-xl font-black text-green-400">
+                    {investigationReport.reviews?.total || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Disputes</div>
+                  <div className="text-xl font-black text-red-400">
+                    {investigationReport.disputes?.length || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800">
+                  <div className="text-xs text-slate-400">Verification</div>
+                  <div className="text-xl font-black text-yellow-400">
+                    {investigationReport.verification ? 'VERIFIED' : 'PENDING'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-800 border border-slate-700">
+                <h5 className="text-sm font-bold text-white mb-4">
+                  User Details
+                </h5>
+
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-slate-400">Name</div>
+                    <div className="text-white font-semibold">
+                      {investigationReport.user?.fullName || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Email</div>
+                    <div className="text-white">
+                      {investigationReport.user?.email || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Role</div>
+                    <div className="text-white">
+                      {investigationReport.user?.role || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Joined</div>
+                    <div className="text-white">
+                      {investigationReport.user?.createdAt
+                        ? new Date(investigationReport.user.createdAt).toLocaleDateString()
+                        : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-800 border border-slate-700">
+                <h5 className="text-sm font-bold text-white mb-4">
+                  Profile Details
+                </h5>
+
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-slate-400">College</div>
+                    <div className="text-white">
+                      {investigationReport.profile?.college || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Category</div>
+                    <div className="text-white">
+                      {investigationReport.profile?.category || 'N/A'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Hourly Rate</div>
+                    <div className="text-white">
+                      ₹{investigationReport.profile?.hourlyRate || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Skills</div>
+                    <div className="text-white">
+                      {investigationReport.profile?.skills?.length || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Badges</div>
+                    <div className="text-white">
+                      {investigationReport.profile?.badges?.length || 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-800 border border-slate-700">
+                <h5 className="text-sm font-bold text-white mb-4">
+                  Marketplace Activity
+                </h5>
+
+                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-slate-400">Orders As Client</div>
+                    <div className="text-white font-semibold">
+                      {investigationReport.orders?.asClient?.length || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Orders As Seller</div>
+                    <div className="text-white font-semibold">
+                      {investigationReport.orders?.asSeller?.length || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Total Orders</div>
+                    <div className="text-white font-semibold">
+                      {investigationReport.orders?.total || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Reviews Written</div>
+                    <div className="text-white">
+                      {investigationReport.reviews?.written?.length || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Reviews Received</div>
+                    <div className="text-white">
+                      {investigationReport.reviews?.received?.length || 0}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400">Total Reviews</div>
+                    <div className="text-white">
+                      {investigationReport.reviews?.total || 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {investigationReport.disputes?.length > 0 && (
+                <div className="p-5 rounded-2xl bg-slate-800 border border-red-500/30">
+                  <h5 className="text-sm font-bold text-white mb-4">
+                    Open Disputes
+                  </h5>
+
+                  <div className="space-y-3">
+                    {investigationReport.disputes.map((dispute, index) => (
+                      <div
+                        key={dispute.id || index}
+                        className="p-3 rounded-xl bg-slate-900 border border-slate-700"
+                      >
+                        <div className="flex justify-between">
+                          <div className="text-white font-semibold">
+                            {dispute.reason || 'Unknown Reason'}
+                          </div>
+
+                          <div className="text-red-400 text-xs font-bold">
+                            {dispute.status || 'OPEN'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {investigationReport.riskFactors?.length > 0 && (
+                <div className="p-5 rounded-2xl bg-slate-800 border border-red-500/30">
+                  <h5 className="text-sm font-bold text-white mb-4">
+                    Risk Factors
+                  </h5>
+
+                  <div className="flex flex-wrap gap-3">
+                    {investigationReport.riskFactors.map((factor, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-2 rounded-full bg-red-500/20 text-red-300 text-xs font-bold"
+                      >
+                        {factor}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <pre className="overflow-auto text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl">
                 {JSON.stringify(investigationReport, null, 2)}
               </pre>
