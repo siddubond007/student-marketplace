@@ -46,6 +46,17 @@ router.post('/admin-login', async (req, res) => {
     });
 
     const token = jwt.sign({ userId: adminUser.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+
+    await prisma.adminLoginLog.create({
+      data: {
+        adminId: adminUser.id,
+        email: adminUser.email,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        loginStatus: 'SUCCESS'
+      }
+    });
+
     res.json({ message: 'Master Admin Access Granted', token, user: adminUser });
   } catch (err) {
     res.status(500).json({ error: err.message });

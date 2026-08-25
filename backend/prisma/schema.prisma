@@ -411,3 +411,18 @@ model AuditLog {
   @@index([actionType])
   @@index([createdAt])
 }
+
+model AdminLoginLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  email       String
+  ipAddress   String?
+  userAgent   String?
+  loginStatus String
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([email])
+  @@index([loginStatus])
+  @@index([createdAt])
+}

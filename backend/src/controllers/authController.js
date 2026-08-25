@@ -2,6 +2,23 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/db');
 
+async function createAdminLoginLog(adminId, email, ipAddress, userAgent, loginStatus) {
+  try {
+    await prisma.adminLoginLog.create({
+      data: {
+        adminId,
+        email,
+        ipAddress,
+        userAgent,
+        loginStatus
+      }
+    });
+  } catch (err) {
+    console.error('AdminLoginLog Error:', err);
+  }
+}
+
+
 exports.register = async (req, res) => {
   try {
     const { email, password, firstName, middleName, lastName, username, role, age, dob } = req.body;
@@ -100,6 +117,17 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+
+    if (user.role === 'ADMIN') {
+      await createAdminLoginLog(
+        user.id,
+        user.email,
+        req.ip,
+        req.headers['user-agent'],
+        'SUCCESS'
+      );
+    }
+
     console.log(`✅ Login successful: ${user.email} -> Role: ${user.role}`);
     res.json({ message: 'Login successful', token, user });
   } catch (err) {
