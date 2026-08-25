@@ -57,6 +57,7 @@ function StarRating({ value, onChange }) {
 export default function StudentDashboard({ currentUser }) {
   const [orders, setOrders] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('ALL');
   const [gigs, setGigs] = useState([]);
@@ -122,6 +123,10 @@ export default function StudentDashboard({ currentUser }) {
 
 
   useEffect(() => {
+    API.get('/notifications/stats')
+      .then(res => setUnreadNotificationCount(res.data?.unread || 0))
+      .catch(() => {});
+
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
     API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
     API.get('/jobs')
@@ -227,9 +232,17 @@ export default function StudentDashboard({ currentUser }) {
               My Orders
             </a>
 
-            <Link to="/notifications" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
-              <MessageSquare className="w-4 h-4 text-slate-500" />
-              Messaging
+            <Link to="/notifications" className="flex items-center justify-between gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <span className="flex items-center gap-3">
+                <MessageSquare className="w-4 h-4 text-slate-500" />
+                Notifications
+              </span>
+
+              {unreadNotificationCount > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                </span>
+              )}
             </Link>
 
             <a href="#wallet" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
