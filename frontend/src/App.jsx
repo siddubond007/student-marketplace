@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentGigsPage from './pages/StudentGigsPage';
 import ClientDashboard from './pages/ClientDashboard';
 import OrderWorkspacePage from './pages/OrderWorkspacePage';
 import CategoryHubPage from './pages/CategoryHubPage';
@@ -91,6 +92,7 @@ export default function App() {
             
             {/* Workspaces */}
             <Route path="/student/portal" element={<StudentDashboard currentUser={currentUser} />} />
+            <Route path="/student/gigs" element={<StudentGigsPage currentUser={currentUser} />} />
             <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
             <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
             <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />

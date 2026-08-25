@@ -232,10 +232,10 @@ export default function StudentDashboard({ currentUser }) {
               Home
             </a>
 
-            <a href="#gigs" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <Link to="/student/gigs" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
               <Briefcase className="w-4 h-4 text-slate-500" />
               My Gigs
-            </a>
+            </Link>
 
             <a href="#orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
               <PackageCheck className="w-4 h-4 text-slate-500" />
@@ -584,6 +584,114 @@ export default function StudentDashboard({ currentUser }) {
             <p className="text-xs font-black text-white mt-2">My Profile</p>
           </Link>
         </div>
+      </section>
+
+      {/* REQ23 My Gigs */}
+      <section id="gigs" className="glass-panel rounded-3xl border border-slate-800 p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              My Gigs
+            </p>
+            <h3 className="text-lg font-black text-white mt-1">
+              Your latest published services
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              to="/student/gigs"
+              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-white text-[11px] font-black transition"
+            >
+              View All Gigs
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setShowCreateGigModal(true)}
+              className="px-3 py-2 rounded-xl neon-airflow-btn text-white text-[11px] font-black"
+            >
+              + Publish Gig
+            </button>
+          </div>
+        </div>
+
+        {gigs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-8 text-center">
+            <Briefcase className="w-6 h-6 text-slate-600 mx-auto" />
+            <p className="text-xs text-slate-500 mt-3">
+              You have not published any gigs yet.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {gigs.slice(0, 2).map((gig) => {
+              const firstPackage = gig.packages?.[0];
+
+              return (
+                <article
+                  key={gig.id}
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-cyan-500/30 transition"
+                >
+                  <div className="h-32 bg-slate-900 overflow-hidden">
+                    <img
+                      src={gig.coverImage}
+                      alt={gig.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                        {gig.category || 'Service'}
+                      </span>
+
+                      <span className="text-[10px] font-black text-slate-500">
+                        {new Date(gig.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-black text-white mt-2 line-clamp-2">
+                      {gig.title}
+                    </h4>
+
+                    <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                      {gig.description}
+                    </p>
+
+                    <div className="flex items-center justify-between gap-3 mt-4">
+                      <div>
+                        <p className="text-[10px] uppercase font-black text-slate-600">
+                          Starting at
+                        </p>
+                        <p className="text-lg font-black text-emerald-400">
+                          ₹{firstPackage?.price ?? 0}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-black text-slate-600">
+                          Delivery
+                        </p>
+                        <p className="text-xs font-black text-white">
+                          {firstPackage?.deliveryDays ?? '-'} days
+                        </p>
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/gigs`}
+                      className="block mt-4 w-full text-center px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-white text-[11px] font-black transition"
+                    >
+                      View My Gigs
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <div id="orders"></div>
