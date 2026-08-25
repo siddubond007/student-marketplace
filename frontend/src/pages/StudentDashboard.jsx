@@ -14,7 +14,9 @@ import {
   Star,
   LayoutDashboard,
   Briefcase,
-  MessageSquare
+  MessageSquare,
+  Search,
+  SlidersHorizontal
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
@@ -55,6 +57,8 @@ function StarRating({ value, onChange }) {
 export default function StudentDashboard({ currentUser }) {
   const [orders, setOrders] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderFilter, setOrderFilter] = useState('ALL');
   const [gigs, setGigs] = useState([]);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -90,6 +94,21 @@ export default function StudentDashboard({ currentUser }) {
   const getReviewCountForOrder = (order) => {
     return (order.reviews || []).length;
   };
+
+  const filteredOrders = orders.filter((order) => {
+    const query = orderSearch.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      order.id?.toLowerCase().includes(query) ||
+      order.client?.fullName?.toLowerCase().includes(query) ||
+      order.status?.toLowerCase().includes(query);
+
+    const matchesFilter =
+      orderFilter === 'ALL' || order.status === orderFilter;
+
+    return matchesSearch && matchesFilter;
+  });
 
 
   useEffect(() => {
@@ -440,7 +459,46 @@ export default function StudentDashboard({ currentUser }) {
 
       {/* Student's Orders */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h3 className="text-lg font-black text-white">Active Client Orders ({orders.length})</h3>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+              Project Workspace
+            </p>
+            <h3 className="text-lg font-black text-white mt-1">
+              Active Client Orders ({orders.length})
+            </h3>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search orders..."
+                className="w-full sm:w-56 pl-9 pr-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white placeholder:text-slate-600 outline-none focus:border-indigo-500/40"
+              />
+            </div>
+
+            <div className="relative">
+              <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+              <select
+                value={orderFilter}
+                onChange={(e) => setOrderFilter(e.target.value)}
+                className="appearance-none w-full sm:w-40 pl-9 pr-8 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500/40"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="ACTIVE">Active</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {orders.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-950/40 px-6 py-10 text-center">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
@@ -476,7 +534,7 @@ export default function StudentDashboard({ currentUser }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map(order => (
+            {filteredOrders.map(order => (
               <div key={order.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <span className="text-xs font-black uppercase text-indigo-400">Order #{order.id.slice(0, 8)}</span>
