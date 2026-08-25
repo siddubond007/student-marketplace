@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet, Award, ShieldCheck, Zap, PlusCircle, ArrowUpRight, FolderPlus, PackageCheck, Upload, FileText, Star } from 'lucide-react';
+import {
+  Wallet,
+  Award,
+  ShieldCheck,
+  Zap,
+  PlusCircle,
+  ArrowUpRight,
+  FolderPlus,
+  PackageCheck,
+  Upload,
+  FileText,
+  Star,
+  LayoutDashboard,
+  Briefcase,
+  MessageSquare
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
@@ -139,7 +154,66 @@ export default function StudentDashboard({ currentUser }) {
   };
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="flex flex-col lg:flex-row gap-6 pb-16">
+      {/* REQ22 Workspace Sidebar */}
+      <aside className="lg:w-60 shrink-0">
+        <div className="glass-panel rounded-3xl border border-slate-800 p-3 lg:sticky lg:top-24">
+          <div className="px-3 py-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+              Workspace
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Your freelance control center
+            </p>
+          </div>
+
+          <nav className="space-y-1">
+            <a href="#overview" className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-white text-xs font-black">
+              <LayoutDashboard className="w-4 h-4 text-indigo-400" />
+              Home
+            </a>
+
+            <a href="#gigs" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <Briefcase className="w-4 h-4 text-slate-500" />
+              My Gigs
+            </a>
+
+            <a href="#orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <PackageCheck className="w-4 h-4 text-slate-500" />
+              My Orders
+            </a>
+
+            <Link to="/notifications" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <MessageSquare className="w-4 h-4 text-slate-500" />
+              Messaging
+            </Link>
+
+            <a href="#wallet" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <Wallet className="w-4 h-4 text-slate-500" />
+              Payments
+            </a>
+
+            <Link to={`/profile/${currentUser?.id}`} className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+              <Award className="w-4 h-4 text-slate-500" />
+              My Profile
+            </Link>
+          </nav>
+
+          <div className="mt-4 pt-4 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={() => setShowCreateGigModal(true)}
+              className="w-full px-3 py-3 rounded-2xl neon-airflow-btn text-white text-xs font-black flex items-center justify-center gap-2"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Publish New Gig
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main id="overview" className="min-w-0 flex-1 space-y-6">
+
       {/* REQ22 Premium Workspace Header */}
       <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
         <div className="p-6 sm:p-8 bg-gradient-to-br from-indigo-500/10 via-transparent to-violet-500/10">
@@ -294,6 +368,8 @@ export default function StudentDashboard({ currentUser }) {
         </div>
       </section>
 
+      <div id="orders"></div>
+
       {/* Student's Orders */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <h3 className="text-lg font-black text-white">Active Client Orders ({orders.length})</h3>
@@ -342,6 +418,8 @@ export default function StudentDashboard({ currentUser }) {
           </div>
         )}
       </div>
+
+      </main>
 
       {/* Modals */}
       {showCreateGigModal && (
