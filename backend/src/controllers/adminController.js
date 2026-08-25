@@ -379,6 +379,14 @@ exports.rejectPayoutRequest = async (req, res) => {
       })
     ]);
 
+
+      await createAuditLog(
+        req.user.id,
+        "REJECT_PAYOUT",
+        payout.userId,
+        `Rejected payout of ${payout.amount}`
+      );
+
     res.json({ message: 'Payout rejected and funds returned to wallet.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
