@@ -383,6 +383,59 @@ export default function StudentDashboard({ currentUser }) {
         </div>
       </section>
 
+      {/* REQ22 Quick Actions */}
+      <section className="glass-panel p-5 rounded-3xl border border-slate-800">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+              Quick Actions
+            </p>
+            <h3 className="text-lg font-black text-white mt-1">
+              Keep your workspace moving
+            </h3>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <button
+            type="button"
+            onClick={() => setShowCreateGigModal(true)}
+            className="text-left rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+          >
+            <PlusCircle className="w-5 h-5 text-indigo-400" />
+            <p className="text-sm font-black text-white mt-3">Publish a Gig</p>
+            <p className="text-[11px] text-slate-500 mt-1">Show clients what you can deliver.</p>
+          </button>
+
+          <Link
+            to="/jobs"
+            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+          >
+            <Briefcase className="w-5 h-5 text-cyan-400" />
+            <p className="text-sm font-black text-white mt-3">Find Work</p>
+            <p className="text-[11px] text-slate-500 mt-1">Browse open client opportunities.</p>
+          </Link>
+
+          <Link
+            to={`/profile/${currentUser?.id}`}
+            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+          >
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <p className="text-sm font-black text-white mt-3">Manage Verification</p>
+            <p className="text-[11px] text-slate-500 mt-1">Keep your professional profile ready.</p>
+          </Link>
+
+          <Link
+            to={`/profile/${currentUser?.id}`}
+            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+          >
+            <Award className="w-5 h-5 text-violet-400" />
+            <p className="text-sm font-black text-white mt-3">View My Profile</p>
+            <p className="text-[11px] text-slate-500 mt-1">Review your public freelancer presence.</p>
+          </Link>
+        </div>
+      </section>
+
       <div id="orders"></div>
 
       {/* Student's Orders */}
