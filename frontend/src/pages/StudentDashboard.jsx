@@ -140,73 +140,159 @@ export default function StudentDashboard({ currentUser }) {
 
   return (
     <div className="space-y-8 pb-16">
-      {/* Student Portal Banner */}
-      <div className="glass-panel p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-xs font-black text-indigo-300 mb-2">
-            <ShieldCheck className="w-4 h-4 text-indigo-400" />
-            <span>Student Freelancer Workspace</span>
+      {/* REQ22 Premium Workspace Header */}
+      <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
+        <div className="p-6 sm:p-8 bg-gradient-to-br from-indigo-500/10 via-transparent to-violet-500/10">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 p-[2px]">
+                <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
+                  <ShieldCheck className="w-8 h-8 text-indigo-300" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+                    Student Freelancer Workspace
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400">
+                    <ShieldCheck className="w-3 h-3" />
+                    Active
+                  </span>
+                </div>
+
+                <h1 className="text-2xl sm:text-3xl font-black text-white mt-2">
+                  Welcome back, {currentUser?.fullName}
+                </h1>
+
+                <p className="text-xs text-slate-400 mt-1">
+                  {currentUser?.email} • {currentUser?.age || 20} Years Old
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to={`/profile/${currentUser?.id}`}
+                className="px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-white rounded-xl text-xs font-black transition flex items-center gap-2"
+              >
+                <Award className="w-4 h-4 text-indigo-400" />
+                Manage Verification
+              </Link>
+
+              <button
+                onClick={() => setShowCreateGigModal(true)}
+                className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black shadow-lg flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Publish New Gig
+              </button>
+            </div>
           </div>
-          <h2 className="text-3xl font-black text-white">{currentUser?.fullName}</h2>
-          <p className="text-xs text-slate-400 mt-1">{currentUser?.email} • Age: {currentUser?.age || 20} Years Old</p>
         </div>
+      </section>
 
-        <div className="flex gap-3">
-          <Link
-              to={`/profile/${currentUser?.id}`}
-              className="px-5 py-2.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-white rounded-xl text-xs font-black transition flex items-center space-x-2"
-            >
-              <Award className="w-4 h-4 text-indigo-400" />
-              <span>Manage Verification</span>
-            </Link>
-          <button 
-            onClick={() => setShowCreateGigModal(true)}
-            className="px-5 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black shadow-lg flex items-center space-x-1.5"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Publish New Gig</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-black uppercase">Cleared Wallet Balance</span>
+      {/* REQ22 Premium KPI Cards */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="glass-panel rounded-3xl border border-slate-800 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Cleared Funds
+            </span>
             <Wallet className="w-5 h-5 text-emerald-400" />
           </div>
-          <div className="text-3xl font-black text-emerald-400">₹{currentUser?.wallet?.availableBalance ?? 939}.00</div>
-          <button 
+
+          <div className="text-3xl font-black text-emerald-400 mt-3">
+            ₹{currentUser?.wallet?.availableBalance ?? 939}.00
+          </div>
+
+          <button
             onClick={() => setShowWithdrawModal(true)}
-            className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5"
+            className="mt-4 w-full py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-xs font-black flex items-center justify-center gap-2"
           >
-            <span>Withdraw via UPI</span>
+            Withdraw via UPI
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-black uppercase">Monthly Proposal Quota</span>
+        <div className="glass-panel rounded-3xl border border-slate-800 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Proposal Quota
+            </span>
             <Zap className="w-5 h-5 text-amber-400" />
           </div>
-          <div className="text-3xl font-black text-amber-400">{currentUser?.freeBidsRemaining ?? 15} Free Bids Left</div>
-          <p className="text-[11px] text-slate-500">Refreshes every 30 days automatically</p>
+
+          <div className="text-3xl font-black text-amber-400 mt-3">
+            {currentUser?.freeBidsRemaining ?? 15}
+          </div>
+
+          <p className="text-xs text-slate-500 mt-1">
+            Free bids remaining
+          </p>
+
+          <div className="mt-4 h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+              style={{
+                width: `${Math.min(((currentUser?.freeBidsRemaining ?? 15) / 20) * 100, 100)}%`
+              }}
+            />
+          </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-black uppercase">Student Reputation</span>
+        <div className="glass-panel rounded-3xl border border-slate-800 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Student Reputation
+            </span>
             <Award className="w-5 h-5 text-indigo-400" />
           </div>
-          <div className="text-3xl font-black text-white">{currentUser?.points ?? 50} Points</div>
-          <div className={`text-sm font-black ${getReputationLevel(currentUser?.points ?? 50).color}`}>
+
+          <div className="text-3xl font-black text-white mt-3">
+            {currentUser?.points ?? 50}
+          </div>
+
+          <div className={`text-xs font-black mt-1 ${getReputationLevel(currentUser?.points ?? 50).color}`}>
             {getReputationLevel(currentUser?.points ?? 50).title}
           </div>
-          <p className="text-[11px] text-emerald-400 font-bold">0/3 Strikes • Excellent Standing</p>
+
+          <p className="text-[10px] text-emerald-400 font-bold mt-4">
+            0/3 Strikes • Excellent Standing
+          </p>
         </div>
-      </div>
+      </section>
+
+      {/* REQ22 Workspace Snapshot */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Active Orders
+          </p>
+          <p className="text-2xl font-black text-white mt-2">
+            {orders.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Published Gigs
+          </p>
+          <p className="text-2xl font-black text-white mt-2">
+            {gigs.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+            Workspace Status
+          </p>
+          <p className="text-sm font-black text-emerald-400 mt-2">
+            Ready for work
+          </p>
+        </div>
+      </section>
 
       {/* Student's Orders */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
