@@ -104,6 +104,16 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
+      if (user.role === 'ADMIN') {
+        await createAdminLoginLog(
+          user.id,
+          user.email,
+          req.ip,
+          req.headers['user-agent'],
+          'FAILED_BAD_PASSWORD'
+        );
+      }
+
       return res.status(400).json({ error: 'Incorrect password. Please try again.' });
     }
 

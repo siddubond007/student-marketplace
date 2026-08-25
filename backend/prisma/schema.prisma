@@ -414,7 +414,7 @@ model AuditLog {
 
 model AdminLoginLog {
   id          String   @id @default(uuid())
-  adminId     String
+  adminId     String?
   email       String
   ipAddress   String?
   userAgent   String?

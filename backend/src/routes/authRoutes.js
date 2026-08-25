@@ -6,6 +6,22 @@ const authController = require('../controllers/authController');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const prisma = require('../config/db');
 
+async function createAdminLoginLog(adminId, email, ipAddress, userAgent, loginStatus) {
+  try {
+    await prisma.adminLoginLog.create({
+      data: {
+        adminId,
+        email,
+        ipAddress,
+        userAgent,
+        loginStatus
+      }
+    });
+  } catch (err) {
+    console.error('AdminLoginLog Error:', err);
+  }
+}
+
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', requireAuth, authController.getMe);
@@ -16,6 +32,14 @@ router.post('/admin-login', async (req, res) => {
     const { masterKey } = req.body;
 
     if (masterKey !== 'admin2026') {
+      await createAdminLoginLog(
+        null,
+        'admin@skilllaunch.com',
+        req.ip,
+        req.headers['user-agent'],
+        'FAILED_MASTER_KEY'
+      );
+
       return res.status(403).json({ error: 'Incorrect Master Admin Key. Access denied.' });
     }
 
