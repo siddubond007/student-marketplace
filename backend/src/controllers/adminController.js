@@ -332,6 +332,14 @@ exports.approvePayoutRequest = async (req, res) => {
       })
     ]);
 
+
+      await createAuditLog(
+        req.user.id,
+        "APPROVE_PAYOUT",
+        payout.userId,
+        `Approved payout of ${payout.amount}`
+      );
+
     res.json({ message: 'Payout approved successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
