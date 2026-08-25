@@ -1379,6 +1379,49 @@ export default function AdminDashboard({ currentUser }) {
                 </div>
               )}
 
+
+                {(investigationReport.reviews?.written?.length > 0 ||
+                  investigationReport.reviews?.received?.length > 0) && (
+                  <div className="p-5 rounded-2xl bg-slate-800 border border-green-500/30">
+                    <h5 className="text-sm font-bold text-white mb-4">
+                      Review Evidence
+                    </h5>
+
+                    <div className="space-y-3 max-h-80 overflow-auto">
+                      {[...(investigationReport.reviews?.written || []), ...(investigationReport.reviews?.received || [])]
+                        .slice(0, 10)
+                        .map((review, index) => (
+                          <div
+                            key={review.id || index}
+                            className="p-3 rounded-xl bg-slate-900 border border-slate-700"
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="text-white font-semibold">
+                                Rating: {review.overallRating || 0}/5
+                              </div>
+
+                              {review.isFlagged && (
+                                <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-bold">
+                                  FLAGGED
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-slate-300 text-sm">
+                              {review.comment || 'No comment'}
+                            </div>
+
+                            <div className="mt-2 text-xs text-slate-500">
+                              {review.createdAt
+                                ? new Date(review.createdAt).toLocaleString()
+                                : 'Unknown Date'}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
               <pre className="overflow-auto text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl">
                 {JSON.stringify(investigationReport, null, 2)}
               </pre>
