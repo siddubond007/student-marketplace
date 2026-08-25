@@ -947,6 +947,14 @@ exports.addInvestigationNote = async (req, res) => {
       }
     });
 
+      await createAuditLog(
+        req.user.id,
+        "INVESTIGATION_NOTE",
+        userId,
+        note || "Investigation note added"
+      );
+
+
     res.json(action);
   } catch (err) {
     res.status(500).json({ error: err.message });
