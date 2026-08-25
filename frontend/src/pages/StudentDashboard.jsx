@@ -261,10 +261,10 @@ export default function StudentDashboard({ currentUser }) {
               My Gigs
             </Link>
 
-            <a href="#orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <Link to="/student/orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
               <PackageCheck className="w-4 h-4 text-slate-500" />
               My Orders
-            </a>
+            </Link>
 
             <Link to="/notifications" className="flex items-center justify-between gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
               <span className="flex items-center gap-3">
