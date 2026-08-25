@@ -30,6 +30,7 @@ export default function AdminDashboard({ currentUser }) {
   const [disputes, setDisputes] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [auditSearch, setAuditSearch] = useState('');
   const [investigationReport, setInvestigationReport] = useState(null);
   const [investigationLoading, setInvestigationLoading] = useState(false);
   const [selectedInvestigationUser, setSelectedInvestigationUser] = useState(null);
@@ -354,6 +355,17 @@ export default function AdminDashboard({ currentUser }) {
 
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     return matchesSearch && matchesRole;
+  });
+
+  const filteredAuditLogs = auditLogs.filter(log => {
+    const q = auditSearch.toLowerCase();
+
+    return (
+      (log.actionType || '').toLowerCase().includes(q) ||
+      (log.adminId || '').toLowerCase().includes(q) ||
+      (log.targetId || '').toLowerCase().includes(q) ||
+      (log.details || '').toLowerCase().includes(q)
+    );
   });
 
   const pendingVerifCount = verifications.filter(v => 
@@ -1757,11 +1769,19 @@ export default function AdminDashboard({ currentUser }) {
           <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">Admin Audit Trail</h3>
 
+            <input
+              type="text"
+              value={auditSearch}
+              onChange={(e) => setAuditSearch(e.target.value)}
+              placeholder="Search action, admin, target or details..."
+              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm"
+            />
+
             {auditLogs.length === 0 ? (
               <div className="p-12 text-center text-slate-500 text-xs">No audit logs found.</div>
             ) : (
               <div className="space-y-3">
-                {auditLogs.map(log => (
+                {filteredAuditLogs.map(log => (
                   <div key={log.id} className="p-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase">
