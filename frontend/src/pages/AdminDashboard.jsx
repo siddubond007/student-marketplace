@@ -345,6 +345,34 @@ export default function AdminDashboard({ currentUser }) {
     }
   };
 
+
+  const handleExportAuditLogs = async () => {
+    try {
+      const response = await API.get(
+        '/admin/audit-logs/export',
+        {
+          responseType: 'blob'
+        }
+      );
+
+      const url = window.URL.createObjectURL(
+        new Blob([response.data])
+      );
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'audit-logs.csv';
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+  };
+
   const filteredUsers = users.filter(u => {
 
     const matchesSearch = 
@@ -1767,7 +1795,18 @@ export default function AdminDashboard({ currentUser }) {
 
         {activeTab === 'audit' && (
           <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">Admin Audit Trail</h3>
+            <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-800">
+  <h3 className="text-base font-black text-white">
+    Admin Audit Trail
+  </h3>
+
+  <button
+    onClick={handleExportAuditLogs}
+    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black transition"
+  >
+    Export Audit Logs
+  </button>
+</div>
 
             <input
               type="text"
