@@ -95,6 +95,16 @@ export default function StudentDashboard({ currentUser }) {
     return (order.reviews || []).length;
   };
 
+  const profileCompletion = [
+    currentUser?.fullName,
+    currentUser?.email,
+    currentUser?.age,
+    currentUser?.wallet,
+    currentUser?.points
+  ].filter(Boolean).length;
+
+  const profileCompletionPercent = Math.round((profileCompletion / 5) * 100);
+
   const filteredOrders = orders.filter((order) => {
     const query = orderSearch.trim().toLowerCase();
 
@@ -395,6 +405,19 @@ export default function StudentDashboard({ currentUser }) {
               <p className="text-xs text-slate-500 mt-1">
                 Keep your profile complete and client-ready.
               </p>
+
+              <div className="mt-3 max-w-xs">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                  <span className="text-slate-500">Profile readiness</span>
+                  <span className="text-indigo-400">{profileCompletionPercent}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                    style={{ width: `${profileCompletionPercent}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
