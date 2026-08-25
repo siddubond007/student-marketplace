@@ -59,6 +59,7 @@ export default function StudentDashboard({ currentUser }) {
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [profileData, setProfileData] = useState(null);
   const [payoutHistory, setPayoutHistory] = useState([]);
+  const [walletData, setWalletData] = useState(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('ALL');
@@ -108,6 +109,14 @@ export default function StudentDashboard({ currentUser }) {
 
   const profileCompletionPercent = Math.round((profileCompletion / 5) * 100);
 
+  const totalWithdrawn = payoutHistory.reduce(
+    (total, payout) =>
+      payout.status === 'APPROVED'
+        ? total + Number(payout.amount || 0)
+        : total,
+    0
+  );
+
   const filteredOrders = orders.filter((order) => {
     const query = orderSearch.trim().toLowerCase();
 
@@ -131,6 +140,10 @@ export default function StudentDashboard({ currentUser }) {
 
     API.get('/payouts/my')
       .then(res => setPayoutHistory(res.data || []))
+      .catch(() => {});
+
+    API.get('/payouts/wallet')
+      .then(res => setWalletData(res.data || null))
       .catch(() => {});
 
     API.get(`/users/${currentUser?.id}`)
@@ -345,8 +358,16 @@ export default function StudentDashboard({ currentUser }) {
           </div>
 
           <div className="text-3xl font-black text-emerald-400 mt-3">
-            ₹{currentUser?.wallet?.availableBalance ?? 939}.00
+            ₹{walletData?.availableBalance ?? 0}.00
           </div>
+
+          <p className="text-xs text-amber-400 mt-2">
+            ₹{walletData?.pendingBalance ?? 0}.00 pending
+          </p>
+
+          <p className="text-xs text-slate-500 mt-1">
+            ₹{totalWithdrawn.toFixed(2)} withdrawn
+          </p>
 
           <button
             onClick={() => setShowWithdrawModal(true)}
