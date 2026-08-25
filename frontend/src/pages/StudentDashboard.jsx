@@ -57,6 +57,8 @@ function StarRating({ value, onChange }) {
 export default function StudentDashboard({ currentUser }) {
   const [orders, setOrders] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [profileData, setProfileData] = useState(null);
+  const [payoutHistory, setPayoutHistory] = useState([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('ALL');
@@ -125,6 +127,14 @@ export default function StudentDashboard({ currentUser }) {
   useEffect(() => {
     API.get('/notifications/stats')
       .then(res => setUnreadNotificationCount(res.data?.unread || 0))
+      .catch(() => {});
+
+    API.get('/payouts/my')
+      .then(res => setPayoutHistory(res.data || []))
+      .catch(() => {});
+
+    API.get(`/users/${currentUser?.id}`)
+      .then(res => setProfileData(res.data || null))
       .catch(() => {});
 
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
@@ -395,13 +405,80 @@ export default function StudentDashboard({ currentUser }) {
         </div>
       </section>
 
+      {/* REQ22 Withdrawal History */}
+      <section id="wallet" className="glass-panel rounded-3xl border border-slate-800 p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">
+              Wallet Activity
+            </p>
+            <h3 className="text-lg font-black text-white mt-1">
+              Withdrawal History
+            </h3>
+          </div>
+
+          <span className="text-[10px] font-black text-slate-500">
+            {payoutHistory.length} request{payoutHistory.length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {payoutHistory.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-8 text-center">
+            <Wallet className="w-6 h-6 text-slate-600 mx-auto" />
+            <p className="text-xs text-slate-500 mt-3">
+              No withdrawal requests yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payoutHistory.slice(0, 5).map((payout) => {
+              const status = payout.status || 'PENDING';
+              const statusClass =
+                status === 'APPROVED'
+                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  : status === 'REJECTED'
+                    ? 'text-red-400 bg-red-500/10 border-red-500/20'
+                    : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+
+              return (
+                <div
+                  key={payout.id}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-black text-white">
+                      ₹{payout.amount}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      {payout.method || 'UPI'} • {new Date(payout.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <span className={`self-start sm:self-auto px-2.5 py-1 rounded-full border text-[10px] font-black ${statusClass}`}>
+                    {status}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* REQ22 Profile Snapshot */}
       <section className="glass-panel rounded-3xl border border-slate-800 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 p-[2px]">
-              <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-xl font-black text-white">
-                {currentUser?.fullName?.charAt(0) || 'S'}
+              <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-xl font-black text-white overflow-hidden">
+                {profileData?.profile?.avatarUrl ? (
+                  <img
+                    src={profileData.profile.avatarUrl}
+                    alt={profileData?.fullName || currentUser?.fullName || 'Profile'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  currentUser?.fullName?.charAt(0) || 'S'
+                )}
               </div>
             </div>
 
