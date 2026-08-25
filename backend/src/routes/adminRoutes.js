@@ -10,6 +10,7 @@ router.use(requireAdmin);
 router.get('/users', adminController.getAllUsers);
 router.get('/stats', adminController.getStats);
 router.get('/moderation-logs', adminController.getModerationLogs);
+router.get('/audit-logs', adminController.getAuditLogs);
 router.delete('/users/:userId', adminController.deleteUser);
 router.put('/users/:userId/suspend', adminController.toggleSuspend);
 router.put('/users/:userId/role', adminController.changeUserRole);

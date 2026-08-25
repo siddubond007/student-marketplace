@@ -1035,3 +1035,19 @@ exports.clearInvestigation = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 200
+    });
+
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
