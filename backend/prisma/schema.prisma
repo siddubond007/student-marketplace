@@ -398,3 +398,16 @@ model InvestigationAction {
 
   createdAt  DateTime @default(now())
 }
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  targetId   String?
+  actionType String
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([actionType])
+  @@index([createdAt])
+}
