@@ -427,6 +427,14 @@ exports.hideReview = async (req, res) => {
 
     await recalculateUserReputation(review.revieweeId);
 
+
+      await createAuditLog(
+        req.user.id,
+        "HIDE_REVIEW",
+        review.revieweeId,
+        reason || "Review hidden by admin"
+      );
+
     res.json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
