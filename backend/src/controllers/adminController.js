@@ -1091,3 +1091,42 @@ exports.getAuditLogs = async (req, res) => {
   }
 };
 
+exports.exportAuditLogs = async (req, res) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 1000
+    });
+
+    const csvRows = [
+      'Timestamp,Admin ID,Action Type,Target ID,Details'
+    ];
+
+    logs.forEach(log => {
+      csvRows.push(
+        [
+          new Date(log.createdAt).toISOString(),
+          log.adminId || '',
+          log.actionType || '',
+          log.targetId || '',
+          `"${(log.details || '').replace(/"/g, '""')}"`
+        ].join(',')
+      );
+    });
+
+    const csv = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="audit-logs.csv"'
+    );
+
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
