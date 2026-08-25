@@ -372,85 +372,68 @@ export default function StudentDashboard({ currentUser }) {
         </div>
       </section>
 
-      {/* REQ22 Workspace Snapshot */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            Active Orders
-          </p>
-          <p className="text-2xl font-black text-white mt-2">
-            {orders.length}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            Published Gigs
-          </p>
-          <p className="text-2xl font-black text-white mt-2">
-            {gigs.length}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            Workspace Status
-          </p>
-          <p className="text-sm font-black text-emerald-400 mt-2">
-            Ready for work
-          </p>
-        </div>
-      </section>
-
-      {/* REQ22 Quick Actions */}
-      <section className="glass-panel p-5 rounded-3xl border border-slate-800">
-        <div className="flex items-center justify-between mb-4">
+      {/* REQ22 Action Center */}
+      <section className="glass-panel rounded-3xl border border-slate-800 p-5">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
-              Quick Actions
+              Action Center
             </p>
             <h3 className="text-lg font-black text-white mt-1">
-              Keep your workspace moving
+              Your workspace at a glance
             </h3>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[92px]">
+              <p className="text-[9px] font-black uppercase text-slate-500">Orders</p>
+              <p className="text-xl font-black text-white mt-1">{orders.length}</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[92px]">
+              <p className="text-[9px] font-black uppercase text-slate-500">Gigs</p>
+              <p className="text-xl font-black text-white mt-1">{gigs.length}</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[120px]">
+              <p className="text-[9px] font-black uppercase text-slate-500">Status</p>
+              <p className="text-xs font-black text-emerald-400 mt-2">Ready</p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-2">
           <button
             type="button"
             onClick={() => setShowCreateGigModal(true)}
-            className="text-left rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+            className="rounded-xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 px-3 py-3 text-left transition"
           >
-            <PlusCircle className="w-5 h-5 text-indigo-400" />
-            <p className="text-sm font-black text-white mt-3">Publish a Gig</p>
-            <p className="text-[11px] text-slate-500 mt-1">Show clients what you can deliver.</p>
+            <PlusCircle className="w-4 h-4 text-indigo-400" />
+            <p className="text-xs font-black text-white mt-2">Publish Gig</p>
           </button>
 
           <Link
             to="/jobs"
-            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+            className="rounded-xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 px-3 py-3 transition"
           >
-            <Briefcase className="w-5 h-5 text-cyan-400" />
-            <p className="text-sm font-black text-white mt-3">Find Work</p>
-            <p className="text-[11px] text-slate-500 mt-1">Browse open client opportunities.</p>
+            <Briefcase className="w-4 h-4 text-cyan-400" />
+            <p className="text-xs font-black text-white mt-2">Find Work</p>
           </Link>
 
           <Link
             to={`/profile/${currentUser?.id}`}
-            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+            className="rounded-xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 px-3 py-3 transition"
           >
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <p className="text-sm font-black text-white mt-3">Manage Verification</p>
-            <p className="text-[11px] text-slate-500 mt-1">Keep your professional profile ready.</p>
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <p className="text-xs font-black text-white mt-2">Verification</p>
           </Link>
 
           <Link
             to={`/profile/${currentUser?.id}`}
-            className="rounded-2xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 p-4 transition"
+            className="rounded-xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 px-3 py-3 transition"
           >
-            <Award className="w-5 h-5 text-violet-400" />
-            <p className="text-sm font-black text-white mt-3">View My Profile</p>
-            <p className="text-[11px] text-slate-500 mt-1">Review your public freelancer presence.</p>
+            <Award className="w-4 h-4 text-violet-400" />
+            <p className="text-xs font-black text-white mt-2">My Profile</p>
           </Link>
         </div>
       </section>
