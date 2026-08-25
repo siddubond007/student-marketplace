@@ -100,15 +100,19 @@ export default function StudentDashboard({ currentUser }) {
     return (order.reviews || []).length;
   };
 
-  const profileCompletion = [
-    currentUser?.fullName,
-    currentUser?.email,
-    currentUser?.age,
-    currentUser?.wallet,
-    currentUser?.points
-  ].filter(Boolean).length;
+  const profileChecklist = [
+    Boolean(profileData?.profile?.avatarUrl),
+    Boolean(profileData?.profile?.tagline?.trim()),
+    Boolean(profileData?.profile?.category?.trim()),
+    Boolean(profileData?.profile?.college?.trim()),
+    Boolean(profileData?.profile?.bio?.trim()),
+    Array.isArray(profileData?.profile?.skills) && profileData.profile.skills.length > 0
+  ];
 
-  const profileCompletionPercent = Math.round((profileCompletion / 5) * 100);
+  const profileCompletion = profileChecklist.filter(Boolean).length;
+  const profileCompletionPercent = Math.round(
+    (profileCompletion / profileChecklist.length) * 100
+  );
 
   const totalWithdrawn = payoutHistory.reduce(
     (total, payout) =>
@@ -157,9 +161,11 @@ export default function StudentDashboard({ currentUser }) {
       .then(res => setWalletData(res.data || null))
       .catch(() => {});
 
-    API.get(`/users/${currentUser?.id}`)
-      .then(res => setProfileData(res.data || null))
-      .catch(() => {});
+    if (currentUser?.id) {
+      API.get(`/users/${currentUser.id}`)
+        .then(res => setProfileData(res.data || null))
+        .catch(() => {});
+    }
 
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
     API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
@@ -177,7 +183,7 @@ export default function StudentDashboard({ currentUser }) {
         setRecommendedJobs(uniqueJobs);
       })
       .catch(() => {});
-  }, []);
+  }, [currentUser?.id]);
 
   const handleCreateGig = async (e) => {
     e.preventDefault();
