@@ -146,6 +146,14 @@ exports.toggleSuspend = async (req, res) => {
       data: { isSuspended: !user.isSuspended }
     });
 
+    await createAuditLog(
+      req.user.id,
+      updated.isSuspended ? "SUSPEND_USER" : "UNSUSPEND_USER",
+      userId,
+      updated.isSuspended ? "User suspended" : "User unsuspended"
+    );
+
+
     res.json({ message: `User status changed to ${updated.isSuspended ? 'SUSPENDED' : 'ACTIVE'}.`, isSuspended: updated.isSuspended });
   } catch (err) {
     res.status(500).json({ error: err.message });
