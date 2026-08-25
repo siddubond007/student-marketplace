@@ -508,6 +508,14 @@ exports.deleteReview = async (req, res) => {
       await recalculateUserReputation(review.revieweeId);
     }
 
+      await createAuditLog(
+        req.user.id,
+        "DELETE_REVIEW",
+        review?.revieweeId,
+        "Review permanently deleted by admin"
+      );
+
+
     res.json({ message: 'Review deleted successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
