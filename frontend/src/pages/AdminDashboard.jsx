@@ -1234,7 +1234,7 @@ export default function AdminDashboard({ currentUser }) {
                 <div className="p-4 rounded-2xl bg-slate-800">
                   <div className="text-xs text-slate-400">Risk Score</div>
                   <div className="text-xl font-black text-orange-400">
-                    {investigationReport.riskScore || 0}/100
+                    {investigationReport.fraudScore || 0}/100
                   </div>
                 </div>
 
@@ -1452,6 +1452,33 @@ export default function AdminDashboard({ currentUser }) {
                   </div>
                 </div>
               )}
+
+              <div className="p-5 rounded-2xl bg-slate-800 border border-orange-500/30 mb-4">
+                <h5 className="text-sm font-bold text-white mb-4">
+                  Fraud Score Breakdown
+                </h5>
+
+                <div className="text-3xl font-black text-orange-400 mb-4">
+                  {investigationReport.fraudScore || 0}/100
+                </div>
+
+                {investigationReport.scoreBreakdown?.length > 0 ? (
+                  <div className="space-y-2">
+                    {investigationReport.scoreBreakdown.map((item, index) => (
+                      <div
+                        key={index}
+                        className="p-2 rounded-lg bg-slate-900 text-slate-300 text-sm"
+                      >
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-green-400 font-semibold">
+                    No fraud indicators detected
+                  </div>
+                )}
+              </div>
 
 
                 {(investigationReport.reviews?.written?.length > 0 ||

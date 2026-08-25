@@ -763,13 +763,51 @@ exports.getFraudInvestigationReport = async (req, res) => {
       riskFactors.push('Review Burst Activity');
     }
 
+    let fraudScore = 0;
+    const scoreBreakdown = [];
+
+    if (accountAgeHours < 24) {
+      fraudScore += 20;
+      scoreBreakdown.push('Very New Account (+20)');
+    }
+
+    if (totalDisputes >= 5) {
+      fraudScore += 20;
+      scoreBreakdown.push('Excessive Disputes (+20)');
+    }
+
+    if (verificationRejections >= 2) {
+      fraudScore += 20;
+      scoreBreakdown.push('Verification Abuse (+20)');
+    }
+
+    if (totalReviews >= 10 && accountAgeHours < 24) {
+      console.log(
+        '[FRAUD]',
+        user.email,
+        'Review Burst Triggered',
+        {
+          totalReviews,
+          accountAgeHours
+        }
+      );
+
+      fraudScore += 25;
+      scoreBreakdown.push('Review Burst Activity (+25)');
+    }
+
+    if (moderationLogs.length > 0) {
+      fraudScore += 15;
+      scoreBreakdown.push('Moderation Violations (+15)');
+    }
+
     let riskLevel = 'LOW';
 
-    if (riskFactors.length >= 4) {
+    if (fraudScore >= 80) {
       riskLevel = 'CRITICAL';
-    } else if (riskFactors.length >= 3) {
+    } else if (fraudScore >= 60) {
       riskLevel = 'HIGH';
-    } else if (riskFactors.length >= 1) {
+    } else if (fraudScore >= 30) {
       riskLevel = 'MEDIUM';
     }
 
@@ -796,6 +834,8 @@ exports.getFraudInvestigationReport = async (req, res) => {
       moderationLogs,
       verification: user.verification,
       riskFactors,
+      fraudScore,
+      scoreBreakdown,
       riskLevel,
       accountAgeHours
     });
