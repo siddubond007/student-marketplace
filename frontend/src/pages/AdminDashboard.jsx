@@ -29,6 +29,7 @@ export default function AdminDashboard({ currentUser }) {
   const [payouts, setPayouts] = useState([]);
   const [disputes, setDisputes] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [investigationReport, setInvestigationReport] = useState(null);
   const [investigationLoading, setInvestigationLoading] = useState(false);
   const [selectedInvestigationUser, setSelectedInvestigationUser] = useState(null);
@@ -56,7 +57,7 @@ export default function AdminDashboard({ currentUser }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes, reviewsRes, fraudRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes, reviewsRes, fraudRes, auditRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
         API.get('/admin/moderation-logs'),
@@ -64,7 +65,8 @@ export default function AdminDashboard({ currentUser }) {
         API.get('/admin/payouts'),
         API.get('/disputes'),
         API.get('/admin/reviews'),
-        API.get('/admin/fraud')
+        API.get('/admin/fraud'),
+        API.get('/admin/audit-logs')
       ]);
 
       setUsers(usersRes.data || []);
@@ -75,6 +77,7 @@ export default function AdminDashboard({ currentUser }) {
       setDisputes(disputesRes.data || []);
       setReviews(reviewsRes.data || []);
       setFraudStats(fraudRes.data || {});
+      setAuditLogs(auditRes.data || []);
       setIsAdminLoggedIn(true);
     } catch (err) {
       console.error('Fetch Admin Data Error:', err);
@@ -571,6 +574,14 @@ export default function AdminDashboard({ currentUser }) {
           >
             Fraud Detection
           </button>
+
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'audit' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+              Audit Trail ({auditLogs.length})
+            </button>
+
       </div>
 
       {/* 1. USERS DIRECTORY */}
@@ -1700,6 +1711,43 @@ export default function AdminDashboard({ currentUser }) {
 
 
 
+
+
+
+        {activeTab === 'audit' && (
+          <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
+            <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">Admin Audit Trail</h3>
+
+            {auditLogs.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-xs">No audit logs found.</div>
+            ) : (
+              <div className="space-y-3">
+                {auditLogs.map(log => (
+                  <div key={log.id} className="p-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase">
+                        {log.actionType}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        Admin: {log.adminId}
+                      </span>
+                    </div>
+
+                    {log.details && (
+                      <div className="mt-2 text-xs text-slate-300">
+                        {log.details}
+                      </div>
+                    )}
+
+                    <div className="mt-2 text-[11px] text-slate-500">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
 
 {/* 3. AI CHAT MODERATION LOGS */}
