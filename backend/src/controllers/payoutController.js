@@ -71,3 +71,27 @@ exports.getMyPayoutRequests = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.getMyWallet = async (req, res) => {
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: {
+        userId: req.user.id
+      },
+      select: {
+        availableBalance: true,
+        pendingBalance: true,
+        upiId: true
+      }
+    });
+
+    if (!wallet) {
+      return res.status(404).json({ error: 'Wallet not found.' });
+    }
+
+    res.json(wallet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
