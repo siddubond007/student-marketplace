@@ -521,6 +521,45 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       </div>
 
+      {/* REQ21 Admin Security Analytics */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-cyan-400">
+            Admin Actions Today
+          </span>
+          <div className="text-2xl font-black text-cyan-400">
+            {stats.adminActionsToday || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-red-400">
+            Failed Admin Logins
+          </span>
+          <div className="text-2xl font-black text-red-400">
+            {stats.failedAdminLogins || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-emerald-400">
+            Active Admins
+          </span>
+          <div className="text-2xl font-black text-emerald-400">
+            {stats.activeAdmins || 0}
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-1">
+          <span className="text-[11px] font-black uppercase text-amber-400">
+            Most Active Admin
+          </span>
+          <div className="text-sm font-black text-amber-400 break-all">
+            {stats.mostActiveAdmin || 'N/A'}
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-3 border-b border-slate-800 pb-3 text-xs font-black">
         <button 
