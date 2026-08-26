@@ -40,34 +40,53 @@ export default function PublicJobDetailsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <div className="flex justify-between items-start gap-4 flex-wrap">
+      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800">
+        <div className="flex justify-between items-start gap-6 flex-wrap">
 
-          <div>
-            <h1 className="text-3xl font-black text-white">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold">
+                {job.category || 'General'}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs">
+                {job.experienceLevel || 'INTERMEDIATE'}
+              </span>
+              {job.timeline && (
+                <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs">
+                  {job.timeline}
+                </span>
+              )}
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-black text-white">
               {job.title}
             </h1>
 
-            <div className="mt-2 text-slate-400">
-              {job.category}
-            </div>
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-slate-900/70 border border-slate-800 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Budget</div>
+                <div className="mt-1 text-xl font-black text-emerald-400">₹{job.budget}</div>
+              </div>
 
-            <div className="mt-2 text-slate-300">
-              Budget: ₹{job.budget}
-            </div>
+              <div className="rounded-2xl bg-slate-900/70 border border-slate-800 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Client</div>
+                <div className="mt-1 text-sm font-semibold text-white">
+                  {job.client?.fullName || 'Client'}
+                </div>
+              </div>
 
-            <div className="mt-2 text-slate-300">
-              Client: {job.client?.fullName || 'Client'}
-            </div>
-
-            <div className="mt-2 text-slate-300">
-              Proposals: {job.bids?.length || 0}
+              <div className="rounded-2xl bg-slate-900/70 border border-slate-800 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Proposals</div>
+                <div className="mt-1 text-xl font-black text-amber-400">
+                  {job.bids?.length || 0}
+                </div>
+              </div>
             </div>
           </div>
 
           <Link
             to="/jobs"
-            className="px-4 py-2 bg-indigo-600 rounded-xl text-white text-sm font-bold"
+            className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-colors"
           >
             Back to Marketplace
           </Link>
