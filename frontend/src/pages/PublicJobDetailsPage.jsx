@@ -95,59 +95,58 @@ export default function PublicJobDetailsPage() {
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <h2 className="text-xl font-bold text-white mb-4">
-          Overview
-        </h2>
-
-        <p className="text-slate-300 whitespace-pre-wrap">
+        <h2 className="text-xl font-bold text-white mb-4">Overview</h2>
+        <p className="text-slate-300 leading-7 whitespace-pre-wrap">
           {job.description || 'No description provided'}
         </p>
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <h2 className="text-xl font-bold text-white mb-4">
-          Deliverables
-        </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+          <h2 className="text-xl font-bold text-white mb-4">Deliverables</h2>
 
-        {Array.isArray(job.deliverables) && job.deliverables.length > 0 ? (
-          <ul className="list-disc pl-5 space-y-1 text-slate-300">
-            {job.deliverables.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-slate-400">
-            No deliverables specified
+          {Array.isArray(job.deliverables) && job.deliverables.length > 0 ? (
+            <div className="space-y-3">
+              {job.deliverables.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 text-slate-300">
+                  <span className="mt-2 w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-slate-400">No deliverables specified</div>
+          )}
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+          <h2 className="text-xl font-bold text-white mb-4">Requirements</h2>
+
+          <div className="text-slate-300 leading-7 whitespace-pre-wrap">
+            {job.requirements || 'No requirements provided'}
           </div>
+        </div>
+      </div>
+
+      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+        <h2 className="text-xl font-bold text-white mb-4">Skills</h2>
+
+        {Array.isArray(job.skills) && job.skills.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {job.skills.map((skill) => (
+              <span
+                key={skill}
+                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="text-slate-400">No skills specified</div>
         )}
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <h2 className="text-xl font-bold text-white mb-4">
-          Requirements
-        </h2>
-
-        <div className="text-slate-300 whitespace-pre-wrap">
-          {job.requirements || 'No requirements provided'}
-        </div>
-      </div>
-
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <h2 className="text-xl font-bold text-white mb-4">
-          Skills
-        </h2>
-
-        <div className="flex flex-wrap gap-2">
-          {(job.skills || []).map((skill) => (
-            <span
-              key={skill}
-              className="px-3 py-1 bg-slate-800 rounded-full text-sm text-slate-200"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
