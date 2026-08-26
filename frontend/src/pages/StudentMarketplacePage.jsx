@@ -221,17 +221,17 @@ export default function StudentMarketplacePage() {
                 </span>
               </div>
 
-              <div className="mt-5 flex gap-3">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <Link
                   to={`/jobs/${job.id}`}
-                  className="px-5 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold"
+                  className="flex-1 text-center px-5 py-3 rounded-xl border border-slate-600 bg-slate-800/80 hover:bg-slate-700 text-white font-semibold transition-colors"
                 >
                   View Details
                 </Link>
 
                 <button
                   onClick={() => setSelectedJob(job)}
-                  className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                  className="flex-1 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-900/20"
                 >
                   Submit Proposal
                 </button>
