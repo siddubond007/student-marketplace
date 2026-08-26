@@ -165,15 +165,48 @@ export default function StudentMarketplacePage() {
               key={job.id}
                 className="group border border-slate-700 hover:border-emerald-500 rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-slate-800 shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-1"
             >
-              <h2 className="text-xl font-semibold text-white">
-                {job.title}
-              </h2>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold">
+                      {job.category || 'General'}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-slate-700/60 text-slate-300 text-xs">
+                      {job.experienceLevel || 'INTERMEDIATE'}
+                    </span>
+                  </div>
 
-              <p className="text-slate-300 mt-2">
-                {job.description}
+                  <h2 className="text-2xl font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    {job.title}
+                  </h2>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Budget</div>
+                  <div className="text-xl font-black text-emerald-400">₹{job.budget}</div>
+                </div>
+              </div>
+
+              <p className="text-slate-300 mt-4 line-clamp-3">
+                {job.description || 'No description provided'}
               </p>
 
-              <div className="mt-4 flex flex-wrap gap-4 text-sm">
+              {Array.isArray(job.skills) && job.skills.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {job.skills.slice(0, 5).map((skill) => (
+                    <span key={skill} className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs">
+                      {skill}
+                    </span>
+                  ))}
+                  {job.skills.length > 5 && (
+                    <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-500 text-xs">
+                      +{job.skills.length - 5} more
+                    </span>
+                  )}
+                </div>
+              )}
+
+<div className="mt-4 flex flex-wrap gap-4 text-sm">
                   <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
                   Budget: ₹{job.budget}
                 </span>
