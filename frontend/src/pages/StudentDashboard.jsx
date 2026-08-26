@@ -247,7 +247,7 @@ export default function StudentDashboard({ currentUser }) {
       {/* REQ22 Workspace Sidebar */}
       <aside className="lg:w-60 shrink-0">
         <div className="glass-panel rounded-3xl border border-slate-800 p-3 lg:sticky lg:top-24">
-          <div className="px-3 py-4">
+          <div className="hidden lg:block px-3 py-4">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
               Workspace
             </p>
@@ -256,7 +256,7 @@ export default function StudentDashboard({ currentUser }) {
             </p>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="mobile-workspace-nav flex lg:block gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
             <a href="#overview" className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-white text-xs font-black">
               <LayoutDashboard className="w-4 h-4 text-indigo-400" />
               Home
