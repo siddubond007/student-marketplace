@@ -12,6 +12,9 @@ export default function StudentMarketplacePage() {
   const [coverLetter, setCoverLetter] = useState('');
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [experienceFilter, setExperienceFilter] = useState("ALL");
+  const [budgetFilter, setBudgetFilter] = useState("ALL");
 
 
 
@@ -103,8 +106,61 @@ export default function StudentMarketplacePage() {
               className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
             />
           </div>
+
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+            >
+              <option value="ALL">All Categories</option>
+              {[...new Set(jobs.map((job) => job.category).filter(Boolean))].map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+
+            <select
+              value={experienceFilter}
+              onChange={(e) => setExperienceFilter(e.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+            >
+              <option value="ALL">All Experience Levels</option>
+              <option value="BEGINNER">Beginner</option>
+              <option value="INTERMEDIATE">Intermediate</option>
+              <option value="EXPERT">Expert</option>
+            </select>
+
+            <select
+              value={budgetFilter}
+              onChange={(e) => setBudgetFilter(e.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+            >
+              <option value="ALL">All Budgets</option>
+              <option value="UNDER_5K">Under ₹5,000</option>
+              <option value="5K_20K">₹5,000 – ₹20,000</option>
+              <option value="OVER_20K">Over ₹20,000</option>
+            </select>
+          </div>
+
         <div className="space-y-4">
-          {jobs.filter((job) => JSON.stringify(job).toLowerCase().includes(searchTerm.toLowerCase())).map((job) => (
+          {jobs.filter((job) => {
+            const matchesSearch =
+              JSON.stringify(job).toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesCategory =
+              categoryFilter === "ALL" || job.category === categoryFilter;
+
+            const matchesExperience =
+              experienceFilter === "ALL" || job.experienceLevel === experienceFilter;
+
+            const matchesBudget =
+              budgetFilter === "ALL" ||
+              (budgetFilter === "UNDER_5K" && Number(job.budget) < 5000) ||
+              (budgetFilter === "5K_20K" && Number(job.budget) >= 5000 && Number(job.budget) <= 20000) ||
+              (budgetFilter === "OVER_20K" && Number(job.budget) > 20000);
+
+            return matchesSearch && matchesCategory && matchesExperience && matchesBudget;
+          }).map((job) => (
             <div
               key={job.id}
                 className="group border border-slate-700 hover:border-emerald-500 rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-slate-800 shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-1"
