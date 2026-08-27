@@ -50,80 +50,82 @@ enum BidStatus {
 }
 
 model User {
-  id                 String               @id @default(uuid())
-  username           String?              @unique
-  email              String               @unique
-  passwordHash       String
-  firstName          String?
-  middleName         String?
-  lastName           String?
-  fullName           String
-  phone              String?
-  role               Role                 @default(STUDENT_FREELANCER)
-  isMinor            Boolean              @default(false)
-  age                Int                  @default(20)
-  dob                DateTime?
-  points             Int                  @default(0)
-  strikesCount       Int                  @default(0)
-  isSuspended        Boolean              @default(false)
-  suspendedUntil     DateTime?
-  isBanned           Boolean              @default(false)
-  bannedAt           DateTime?
-  freeBidsRemaining  Int                  @default(15)
+  id                String    @id @default(uuid())
+  username          String?   @unique
+  email             String    @unique
+  passwordHash      String
+  firstName         String?
+  middleName        String?
+  lastName          String?
+  fullName          String
+  phone             String?
+  role              Role      @default(STUDENT_FREELANCER)
+  isMinor           Boolean   @default(false)
+  age               Int       @default(20)
+  dob               DateTime?
+  points            Int       @default(0)
+  strikesCount      Int       @default(0)
+  isSuspended       Boolean   @default(false)
+  suspendedUntil    DateTime?
+  isBanned          Boolean   @default(false)
+  bannedAt          DateTime?
+  freeBidsRemaining Int       @default(15)
 
-  averageRating      Float                @default(0)
-  communicationAvg   Float                @default(0)
-  qualityAvg         Float                @default(0)
-  timelinessAvg      Float                @default(0)
-  totalReviews       Int                  @default(0)
+  averageRating    Float @default(0)
+  communicationAvg Float @default(0)
+  qualityAvg       Float @default(0)
+  timelinessAvg    Float @default(0)
+  totalReviews     Int   @default(0)
 
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  profile            Profile?
-  verification       VerificationRequest?
-  wallet             Wallet?
-  gigs               Gig[]
-  jobsPosted         Job[]                @relation("ClientJobs")
-  bidsPlaced         Bid[]                @relation("StudentBids")
-  ordersAsClient     Order[]              @relation("ClientOrders")
-  ordersAsSeller     Order[]              @relation("SellerOrders")
-  reviewsWritten     Review[]             @relation("ReviewsWritten")
-  reviewsReceived    Review[]             @relation("ReviewsReceived")
-  messagesSent       Message[]            @relation("Sender")
-  payoutRequests     PayoutRequest[]
-  moderationLogs     ModerationLog[]
-  notifications      Notification[]
-  disputesOpened     Dispute[]           @relation("DisputesOpened")
+  profile              Profile?
+  verification         VerificationRequest?
+  wallet               Wallet?
+  gigs                 Gig[]
+  jobsPosted           Job[]                 @relation("ClientJobs")
+  bidsPlaced           Bid[]                 @relation("StudentBids")
+  ordersAsClient       Order[]               @relation("ClientOrders")
+  ordersAsSeller       Order[]               @relation("SellerOrders")
+  reviewsWritten       Review[]              @relation("ReviewsWritten")
+  reviewsReceived      Review[]              @relation("ReviewsReceived")
+  messagesSent         Message[]             @relation("Sender")
+  payoutRequests       PayoutRequest[]
+  moderationLogs       ModerationLog[]
+  notifications        Notification[]
+  disputesOpened       Dispute[]             @relation("DisputesOpened")
   investigationActions InvestigationAction[]
+  isDeleted            Boolean               @default(false)
+  deletedAt            DateTime?
 }
 
 model Profile {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tagline           String?  @default("Student Creator • Ready to Work")
-  bio               String?  @default("Student Fresher ready to deliver quality work and build a verified portfolio.")
-  avatarUrl         String?
-  coverUrl          String?
-  college           String?  @default("College / University")
-  category          String?  @default("Graphic Design")
-  hourlyRate        Float?   @default(499)
-  githubUrl         String?
-  youtubeUrl        String?
-  drivePortfolio    String?
-  sampleFiles       String[]
-  skills            String[] @default(["Student Talent", "Fast Learner"])
-  badges            String[] @default(["Verified Student"])
-  canUseTieredGigs  Boolean  @default(false)
-  
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagline          String?  @default("Student Creator • Ready to Work")
+  bio              String?  @default("Student Fresher ready to deliver quality work and build a verified portfolio.")
+  avatarUrl        String?
+  coverUrl         String?
+  college          String?  @default("College / University")
+  category         String?  @default("Graphic Design")
+  hourlyRate       Float?   @default(499)
+  githubUrl        String?
+  youtubeUrl       String?
+  drivePortfolio   String?
+  sampleFiles      String[]
+  skills           String[] @default(["Student Talent", "Fast Learner"])
+  badges           String[] @default(["Verified Student"])
+  canUseTieredGigs Boolean  @default(false)
+
   // 5 Student Profile Sections
-  portfolioItems    Json?    @default("[]")
-  experienceList    Json?    @default("[]")
-  educationList     Json?    @default("[]")
-  qualificationList Json?    @default("[]")
-  certificationList Json?    @default("[]")
-  socialLinks       Json?    @default("{}")
+  portfolioItems    Json? @default("[]")
+  experienceList    Json? @default("[]")
+  educationList     Json? @default("[]")
+  qualificationList Json? @default("[]")
+  certificationList Json? @default("[]")
+  socialLinks       Json? @default("{}")
 }
 
 model VerificationRequest {
@@ -151,30 +153,33 @@ model VerificationRequest {
 }
 
 model Gig {
-  id          String       @id @default(uuid())
+  id          String   @id @default(uuid())
   sellerId    String
-  seller      User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  seller      User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   title       String
   category    String
   description String
   coverImage  String
-  isTiered    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  isTiered    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  packages    GigPackage[]
-  orders      Order[]
+  packages  GigPackage[]
+  orders    Order[]
+  isDeleted Boolean      @default(false)
+  deletedAt DateTime?
 }
 
 model GigPackage {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   gigId        String
-  gig          Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  gig          Gig     @relation(fields: [gigId], references: [id], onDelete: Cascade)
   tierName     String
   price        Float
   deliveryDays Int
   revisions    Int
   description  String
+  orders       Order[]
 }
 
 model Job {
@@ -220,49 +225,57 @@ model Job {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @default(now()) @updatedAt
 
-  bids                Bid[]
-  orders              Order[]
+  bids      Bid[]
+  orders    Order[]
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  @@index([status, isOpen])
+  @@index([category])
+  @@index([clientId])
 }
 
 model Bid {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   jobId          String
-  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job            Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   studentId      String
-  student        User     @relation("StudentBids", fields: [studentId], references: [id], onDelete: Cascade)
+  student        User      @relation("StudentBids", fields: [studentId], references: [id], onDelete: Cascade)
   proposedAmount Float
   deliveryDays   Int
   coverLetter    String
   status         BidStatus @default(PENDING)
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   @@unique([jobId, studentId])
 }
 
 model Order {
-  id             String       @id @default(uuid())
+  id             String      @id @default(uuid())
   clientId       String
-  client         User         @relation("ClientOrders", fields: [clientId], references: [id])
+  client         User        @relation("ClientOrders", fields: [clientId], references: [id])
   sellerId       String
-  seller         User         @relation("SellerOrders", fields: [sellerId], references: [id])
+  seller         User        @relation("SellerOrders", fields: [sellerId], references: [id])
   gigId          String?
-  gig            Gig?         @relation(fields: [gigId], references: [id])
+  gig            Gig?        @relation(fields: [gigId], references: [id])
   jobId          String?
-  job            Job?         @relation(fields: [jobId], references: [id])
+  job            Job?        @relation(fields: [jobId], references: [id])
   totalAmount    Float
   platformFee    Float
   sellerEarnings Float
-  status         OrderStatus  @default(FUNDED_IN_ESCROW)
+  status         OrderStatus @default(FUNDED_IN_ESCROW)
   deadline       DateTime
   requirements   String?
   autoApproveAt  DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  deliverables   Deliverable[]
-  messages       Message[]
-  reviews       Review[]
-  dispute        Dispute?
+  deliverables Deliverable[]
+  messages     Message[]
+  reviews      Review[]
+  dispute      Dispute?
+  GigPackage   GigPackage?   @relation(fields: [gigPackageId], references: [id])
+  gigPackageId String?
 }
 
 model Deliverable {
@@ -276,15 +289,15 @@ model Deliverable {
 }
 
 model Wallet {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pendingBalance    Float    @default(0.0)
-  availableBalance  Float    @default(0.0)
+  id                String  @id @default(uuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingBalance    Float   @default(0.0)
+  availableBalance  Float   @default(0.0)
   upiId             String?
   bankAccountNumber String?
   bankIfsc          String?
-  isParentAccount   Boolean  @default(false)
+  isParentAccount   Boolean @default(false)
 }
 
 model PayoutRequest {
@@ -323,56 +336,55 @@ model ModerationLog {
 }
 
 model Review {
-  id                   String   @id @default(uuid())
-  orderId              String
-  order                Order    @relation(fields: [orderId], references: [id])
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
 
-  reviewerId           String
-  reviewer             User     @relation("ReviewsWritten", fields: [reviewerId], references: [id])
+  reviewerId String
+  reviewer   User   @relation("ReviewsWritten", fields: [reviewerId], references: [id])
 
-  revieweeId           String
-  reviewee             User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  revieweeId String
+  reviewee   User   @relation("ReviewsReceived", fields: [revieweeId], references: [id])
 
-  overallRating        Int
-  communicationRating  Int
-  qualityRating        Int
-  timelinessRating     Int
+  overallRating       Int
+  communicationRating Int
+  qualityRating       Int
+  timelinessRating    Int
 
-  comment              String
+  comment String
 
-  isVisible            Boolean  @default(true)
-  isFlagged            Boolean  @default(false)
+  isVisible Boolean @default(true)
+  isFlagged Boolean @default(false)
 
-  moderatedBy          String?
-  moderatedAt          DateTime?
-  moderationReason     String?
+  moderatedBy      String?
+  moderatedAt      DateTime?
+  moderationReason String?
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([orderId, reviewerId])
 }
 
-
 model Dispute {
-  id            String   @id @default(uuid())
-  orderId       String   @unique
-  order         Order    @relation(fields: [orderId], references: [id])
+  id      String @id @default(uuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
 
-  openedById    String
-  openedBy      User     @relation("DisputesOpened", fields: [openedById], references: [id])
+  openedById String
+  openedBy   User   @relation("DisputesOpened", fields: [openedById], references: [id])
 
-  reason         String
-  evidence       String?
+  reason   String
+  evidence String?
 
   sellerReason   String?
   sellerEvidence String?
 
-  adminDecision  String?
-  status        String   @default("OPEN")
+  adminDecision String?
+  status        String  @default("OPEN")
 
-  createdAt     DateTime @default(now())
-  resolvedAt    DateTime?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
 }
 
 model Notification {
@@ -386,17 +398,16 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
-
 model InvestigationAction {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   adminId    String
   actionType String
   note       String?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model AuditLog {

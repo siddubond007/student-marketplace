@@ -15,12 +15,13 @@ exports.requireAuth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    // SECURITY UPGRADE: Prevent database crashing by only fetching essential auth data
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: {
-        profile: true,
-        wallet: true,
-        verification: true
+      select: {
+        id: true,
+        role: true,
+        isSuspended: true
       }
     });
 
