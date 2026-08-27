@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate } from 'lucide-react';
+import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe } from 'lucide-react';
 import API from '../services/api';
 
 export default function PublicJobDetailsPage() {
@@ -156,6 +156,55 @@ export default function PublicJobDetailsPage() {
               </div>
             </div>
           </div>
+
+          {/* Attachments & References */}
+          {(job.attachmentUrls?.length > 0 || job.externalLinks?.length > 0 || job.referenceLinks?.length > 0) && (
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl mt-6">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Paperclip className="text-emerald-400" size={20} /> Attachments & References
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {job.attachmentUrls?.map((url, i) => {
+                  const fileName = url.split('/').pop().split('?')[0] || `Attachment ${i + 1}`;
+                  return (
+                    <a key={`att-${i}`} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 bg-slate-900/50 hover:bg-slate-800/80 border border-white/5 hover:border-emerald-500/30 rounded-2xl transition-all group">
+                      <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl group-hover:scale-110 transition-transform">
+                        <Paperclip size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-gray-200 truncate">{decodeURIComponent(fileName)}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">Click to view/download</div>
+                      </div>
+                    </a>
+                  );
+                })}
+                
+                {job.externalLinks?.map((url, i) => (
+                  <a key={`ext-${i}`} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 bg-slate-900/50 hover:bg-slate-800/80 border border-white/5 hover:border-blue-500/30 rounded-2xl transition-all group">
+                    <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
+                      <ExternalLink size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-200 truncate">{url}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Cloud Drive Link</div>
+                    </div>
+                  </a>
+                ))}
+
+                {job.referenceLinks?.map((url, i) => (
+                  <a key={`ref-${i}`} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 bg-slate-900/50 hover:bg-slate-800/80 border border-white/5 hover:border-purple-500/30 rounded-2xl transition-all group">
+                    <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl group-hover:scale-110 transition-transform">
+                      <Globe size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-200 truncate">{url}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Reference Website</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Place a Bid Form Section */}
           <div id="bid-form" ref={bidFormRef} className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl mt-8 scroll-mt-24">

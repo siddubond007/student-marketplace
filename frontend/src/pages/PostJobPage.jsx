@@ -8,7 +8,7 @@ import {
   Info, TrendingUp, UploadCloud, File, Globe, Shield, CheckCircle, Eye, EyeOff, 
   MapPin, Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
 } from 'lucide-react';
-import { JOB_CATEGORIES_DATA, JOB_CATEGORIES } from '../data/jobsCategoriesData';
+import { JOB_CATEGORIES_DATA, JOB_CATEGORIES, ALL_SKILLS } from '../data/jobsCategoriesData';
 import API from '../services/api';
 
 const STEPS = [
@@ -65,6 +65,10 @@ export default function PostJobPage({ currentUser }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
+  
+  // New refs added for the auto-expanding textareas
+  const descriptionRef = useRef(null);
+  const requirementsRef = useRef(null);
 
   const token = localStorage.getItem('token');
   const isAuthenticated = Boolean(currentUser || token);
@@ -119,6 +123,24 @@ export default function PostJobPage({ currentUser }) {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+
+  // Auto-expanding textbox function
+  const adjustHeight = (ref) => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = ref.current.scrollHeight + 'px';
+    }
+  };
+
+  // Triggers the auto-expand when they open Step 2 or load a draft
+  useEffect(() => {
+    if (currentStep === 2) {
+      setTimeout(() => {
+        adjustHeight(descriptionRef);
+        adjustHeight(requirementsRef);
+      }, 0);
+    }
+  }, [currentStep, formData.description, formData.specificRequirements]);
 
   const showToast = (text, type = 'success') => {
     setToastMessage({ text, type });
@@ -232,123 +254,122 @@ export default function PostJobPage({ currentUser }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  
-const handleFilesSelected = async (filesList) => {
-  setFileError('');
+  const handleFilesSelected = async (filesList) => {
+    setFileError('');
 
-  for (let i = 0; i < filesList.length; i++) {
-    const file = filesList[i];
-    const tempId = `upload_${Date.now()}_${i}`;
+    for (let i = 0; i < filesList.length; i++) {
+      const file = filesList[i];
+      const tempId = `upload_${Date.now()}_${i}`;
 
-    try {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        setFileError(`"${file.name}" exceeds the 500 MB upload limit.`);
-        continue;
-      }
-
-
-      setFormData(prev => ({
-        ...prev,
-        uploadedFiles: [
-          ...prev.uploadedFiles,
-          {
-            id: tempId,
-            name: file.name,
-            size: file.size,
-            type: file.type || 'FILE',
-            status: 'Uploading...',
-            progress: 0
-          }
-        ]
-      }));
-
-      const chunkSize = 5 * 1024 * 1024;
-      const totalChunks = Math.ceil(file.size / chunkSize);
-
-      const initRes = await API.post('/upload/resumable/init', {
-        fileName: file.name,
-        fileSize: file.size,
-        contentType: file.type || 'application/octet-stream',
-        totalChunks
-      });
-
-      const { uploadId } = initRes.data;
-
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-
-        const chunk = file.slice(start, end);
-
-        const r = await fetch(
-          `${API.defaults.baseURL}/upload/resumable/${uploadId}/chunk`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-              'X-Chunk-Index': chunkIndex,
-              'X-Total-Chunks': totalChunks,
-              'Content-Type': 'application/octet-stream'
-            },
-            body: chunk
-          }
-        );
-
-        if (!r.ok) {
-          throw new Error(`Chunk ${chunkIndex} failed`);
+      try {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          setFileError(`"${file.name}" exceeds the 500 MB upload limit.`);
+          continue;
         }
 
-        const progress = Math.round(
-          ((chunkIndex + 1) / totalChunks) * 100
+
+        setFormData(prev => ({
+          ...prev,
+          uploadedFiles: [
+            ...prev.uploadedFiles,
+            {
+              id: tempId,
+              name: file.name,
+              size: file.size,
+              type: file.type || 'FILE',
+              status: 'Uploading...',
+              progress: 0
+            }
+          ]
+        }));
+
+        const chunkSize = 5 * 1024 * 1024;
+        const totalChunks = Math.ceil(file.size / chunkSize);
+
+        const initRes = await API.post('/upload/resumable/init', {
+          fileName: file.name,
+          fileSize: file.size,
+          contentType: file.type || 'application/octet-stream',
+          totalChunks
+        });
+
+        const { uploadId } = initRes.data;
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+          const start = chunkIndex * chunkSize;
+          const end = Math.min(start + chunkSize, file.size);
+
+          const chunk = file.slice(start, end);
+
+          const r = await fetch(
+            `${API.defaults.baseURL}/upload/resumable/${uploadId}/chunk`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                'X-Chunk-Index': chunkIndex,
+                'X-Total-Chunks': totalChunks,
+                'Content-Type': 'application/octet-stream'
+              },
+              body: chunk
+            }
+          );
+
+          if (!r.ok) {
+            throw new Error(`Chunk ${chunkIndex} failed`);
+          }
+
+          const progress = Math.round(
+            ((chunkIndex + 1) / totalChunks) * 100
+          );
+
+          setFormData(prev => ({
+            ...prev,
+            uploadedFiles: prev.uploadedFiles.map(f =>
+              f.id === tempId
+                ? { ...f, progress }
+                : f
+            )
+          }));
+        }
+
+        const completeRes = await API.post(
+          `/upload/resumable/${uploadId}/complete`
         );
+
+        const uploadedUrl =
+          completeRes.data?.secureUrl ||
+          completeRes.data?.url ||
+          '';
 
         setFormData(prev => ({
           ...prev,
           uploadedFiles: prev.uploadedFiles.map(f =>
             f.id === tempId
-              ? { ...f, progress }
+              ? {
+                  ...f,
+                  status: 'Uploaded',
+                  progress: 100,
+                  uploadId,
+                  url: uploadedUrl
+                }
               : f
           )
         }));
+      } catch (err) {
+        console.error(err);
+
+        setFileError(`Failed to upload ${file.name}`);
+
+        setFormData(prev => ({
+          ...prev,
+          uploadedFiles: prev.uploadedFiles.filter(
+            f => f.id !== tempId
+          )
+        }));
       }
-
-      const completeRes = await API.post(
-        `/upload/resumable/${uploadId}/complete`
-      );
-
-      const uploadedUrl =
-        completeRes.data?.secureUrl ||
-        completeRes.data?.url ||
-        '';
-
-      setFormData(prev => ({
-        ...prev,
-        uploadedFiles: prev.uploadedFiles.map(f =>
-          f.id === tempId
-            ? {
-                ...f,
-                status: 'Uploaded',
-                progress: 100,
-                uploadId,
-                url: uploadedUrl
-              }
-            : f
-        )
-      }));
-    } catch (err) {
-      console.error(err);
-
-      setFileError(`Failed to upload ${file.name}`);
-
-      setFormData(prev => ({
-        ...prev,
-        uploadedFiles: prev.uploadedFiles.filter(
-          f => f.id !== tempId
-        )
-      }));
     }
-  }
-};
+  };
 
 
   const handleRemoveFile = (fileId) => {
@@ -828,15 +849,12 @@ const handleFilesSelected = async (filesList) => {
     ? Object.keys(CATEGORIES_DATA[formData.category] || {})
     : [];
 
-  const availableJobSkills =
-    formData.category && formData.subcategory
-      ? CATEGORIES_DATA[formData.category]?.[formData.subcategory] || []
-      : [];
+  
 
-  const filteredSkillSuggestions = availableJobSkills.filter(s =>
+  const filteredSkillSuggestions = ALL_SKILLS.filter(s =>
     s.toLowerCase().includes(skillSearchInput.toLowerCase().trim()) &&
     !formData.requiredSkills.includes(s)
-  ).slice(0, 8);
+  ).slice(0, 15);
 
   const getFormattedBudgetSummary = () => {
     if (formData.budgetType === 'FIXED') {
@@ -1048,13 +1066,22 @@ const handleFilesSelected = async (filesList) => {
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Describe your project <span className="text-pink-500">*</span></label>
                   <span className={`text-[11px] font-semibold ${formData.description.length > 3000 ? 'text-red-400' : 'text-slate-500'}`}>{formData.description.length}/3000</span>
                 </div>
+                {/* 
+                  FIX APPLIED: Added ref={descriptionRef} 
+                  Added adjustHeight function to onChange
+                  Added classes: overflow-hidden resize-none min-h-[120px] 
+                */}
                 <textarea
-                  rows={7}
+                  ref={descriptionRef}
+                  rows={4}
                   maxLength={3000}
                   value={formData.description}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onChange={(e) => {
+                    handleFieldChange('description', e.target.value);
+                    adjustHeight(descriptionRef);
+                  }}
                   placeholder="Tell freelancers what you need, what you are trying to achieve, and what the final result should look like."
-                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-2xl text-sm text-white outline-none transition"
+                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-2xl text-sm text-white outline-none transition overflow-hidden resize-none min-h-[120px]"
                 />
                 {errors.description && <p className="text-xs text-red-400 font-semibold">{errors.description}</p>}
               </div>
@@ -1064,8 +1091,10 @@ const handleFilesSelected = async (filesList) => {
                 <div className="space-y-3">
                   {formData.deliverables.map((deliverable, index) => (
                     <div key={index} className="flex items-center gap-3">
+                      {/* FIX APPLIED: Added maxLength={150} */}
                       <input
                         type="text"
+                        maxLength={150}
                         value={deliverable}
                         onChange={(e) => handleDeliverableChange(index, e.target.value)}
                         placeholder={`e.g. ${index === 0 ? 'Responsive website' : index === 1 ? 'Source code repository' : 'Deployment'}`}
@@ -1082,8 +1111,28 @@ const handleFilesSelected = async (filesList) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Are there any specific requirements? <span className="text-xs text-slate-500 font-medium">(Optional)</span></label>
-                <textarea rows={4} value={formData.specificRequirements} onChange={(e) => handleFieldChange('specificRequirements', e.target.value)} placeholder="Describe technology requirements, technical constraints, design guidelines..." className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500" />
+                <div className="flex justify-between items-end">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-300">Are there any specific requirements? <span className="text-xs text-slate-500 font-medium">(Optional)</span></label>
+                  <span className={`text-[11px] font-semibold ${(formData.specificRequirements || '').length >= 300 ? 'text-red-400' : 'text-slate-500'}`}>{(formData.specificRequirements || '').length}/300</span>
+                </div>
+                {/* 
+                  FIX APPLIED: Added ref={requirementsRef} 
+                  Added adjustHeight function to onChange
+                  Added classes: overflow-hidden resize-none min-h-[90px] 
+                  Updated Placeholder and Max Length
+                */}
+                <textarea 
+                  ref={requirementsRef}
+                  rows={3} 
+                  maxLength={300}
+                  value={formData.specificRequirements} 
+                  onChange={(e) => {
+                    handleFieldChange('specificRequirements', e.target.value);
+                    adjustHeight(requirementsRef);
+                  }} 
+                  placeholder="Describe technology requirements, technical constraints, design guidelines... (Max 300 characters)" 
+                  className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500 overflow-hidden resize-none min-h-[90px]" 
+                />
               </div>
             </div>
           )}
@@ -1125,10 +1174,19 @@ const handleFilesSelected = async (filesList) => {
                     className="w-full pl-11 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-indigo-500"
                   />
                   {showSkillDropdown && skillSearchInput.trim() && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-56 overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
-                      {filteredSkillSuggestions.map(skill => (
-                        <button key={skill} type="button" onClick={() => handleAddSkill(skill)} className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-indigo-600/30 flex justify-between"><span>{skill}</span><Plus className="w-3.5 h-3.5 text-indigo-400" /></button>
-                      ))}
+                    <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-60 overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      {filteredSkillSuggestions.length > 0 ? (
+                        filteredSkillSuggestions.map(skill => (
+                          <button key={skill} type="button" onClick={() => handleAddSkill(skill)} className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-indigo-600/30 flex justify-between items-center gap-3">
+                            <span className="whitespace-normal break-words text-left">{skill}</span>
+                            <Plus className="w-4 h-4 text-indigo-400 shrink-0" />
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3.5 py-3 text-xs text-slate-400 text-center italic">
+                          No skills found for "{skillSearchInput}".
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1574,7 +1632,7 @@ const handleFilesSelected = async (filesList) => {
               </div>
 
               {/* Section 7 Notice */}
-              <div className="p-5 bg-indigo-950/30 border border-indigo-500/20 rounded-2xl flex items-start gap-3">
+              <div className="p-5 bg-indigo-950/30 border border-slate-800 border border-indigo-500/20 rounded-2xl flex items-start gap-3">
                 <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-slate-300 leading-relaxed">
                   <strong className="text-white">Publishing Policy:</strong> Once published, eligible freelancers will be able to view your project brief and submit proposals. You can manage submissions from your Client Portal.

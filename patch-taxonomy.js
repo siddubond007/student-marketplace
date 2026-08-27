@@ -1,4 +1,14 @@
-export const JOB_CATEGORIES = [
+const fs = require('fs');
+const path = require('path');
+
+try {
+  const dataPath = path.join(__dirname, 'frontend', 'src', 'data', 'jobsCategoriesData.js');
+
+  if (!fs.existsSync(dataPath)) {
+    throw new Error("Could not find frontend/src/data/jobsCategoriesData.js. Please run from the root directory.");
+  }
+
+  const taxonomyData = `export const JOB_CATEGORIES = [
   "Web Development",
   "Software, Desktop & Cloud",
   "Mobile App Development",
@@ -145,3 +155,10 @@ export const ALL_SKILLS = Array.from(new Set(
     Object.values(category).flatMap(skills => skills)
   )
 )).sort();
+`;
+
+  fs.writeFileSync(dataPath, taxonomyData, 'utf8');
+  console.log("✅ Successfully patched jobsCategoriesData.js with optimized 19-category taxonomy.");
+} catch (e) {
+  console.error("❌ Patch failed:", e);
+}
