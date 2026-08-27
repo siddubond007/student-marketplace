@@ -68,6 +68,7 @@ export default function StudentDashboard({ currentUser }) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showCreateGigModal, setShowCreateGigModal] = useState(false);
+  const [dbCategories, setDbCategories] = useState([]);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -82,7 +83,10 @@ export default function StudentDashboard({ currentUser }) {
 
   const [gigForm, setGigForm] = useState({
     title: '',
-    category: 'Web Development',
+    category: '',
+    categoryId: '',
+    subcategory: '',
+    subcategoryId: '',
     description: '',
     price: '999',
     deliveryDays: '2'
@@ -169,6 +173,7 @@ export default function StudentDashboard({ currentUser }) {
 
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
     API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
+    API.get('/categories').then(res => setDbCategories(res.data || [])).catch(() => {});
     API.get('/jobs')
       .then(res => {
         const jobs = res.data || [];
@@ -188,9 +193,24 @@ export default function StudentDashboard({ currentUser }) {
   const handleCreateGig = async (e) => {
     e.preventDefault();
     try {
+      let finalCatId = gigForm.categoryId;
+      let finalSubId = gigForm.subcategoryId;
+      if (!finalCatId && gigForm.category) {
+        const c = dbCategories.find(cat => cat.name === gigForm.category);
+        if (c) finalCatId = c.id;
+      }
+      if (!finalSubId && gigForm.subcategory) {
+        const c = dbCategories.find(cat => cat.name === gigForm.category);
+        const s = c?.subcategories?.find(sub => sub.name === gigForm.subcategory);
+        if (s) finalSubId = s.id;
+      }
+
       const res = await API.post('/gigs', {
         title: gigForm.title,
         category: gigForm.category,
+        categoryId: finalCatId || undefined,
+        subcategory: gigForm.subcategory || '',
+        subcategoryId: finalSubId || undefined,
         description: gigForm.description,
         packages: [{ tierName: 'Single', price: Number(gigForm.price), deliveryDays: Number(gigForm.deliveryDays), revisions: 2, description: 'Standard Service' }]
       });
@@ -1016,6 +1036,21 @@ export default function StudentDashboard({ currentUser }) {
             <h3 className="text-xl font-black text-white mb-4">Publish Student Service Gig</h3>
             <form onSubmit={handleCreateGig} className="space-y-4">
               <input required type="text" value={gigForm.title} onChange={e => setGigForm({...gigForm, title: e.target.value})} placeholder="Gig Title (e.g. React Web App)" className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
+              <select required value={gigForm.category} onChange={e => {
+                const catObj = dbCategories.find(c => c.name === e.target.value);
+                setGigForm({...gigForm, category: e.target.value, categoryId: catObj?.id || '', subcategory: '', subcategoryId: ''});
+              }} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white outline-none focus:border-indigo-500">
+                <option value="">Select Category...</option>
+                {dbCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+              </select>
+              <select required value={gigForm.subcategory} disabled={!gigForm.category} onChange={e => {
+                const catObj = dbCategories.find(c => c.name === gigForm.category);
+                const subObj = catObj?.subcategories?.find(s => s.name === e.target.value);
+                setGigForm({...gigForm, subcategory: e.target.value, subcategoryId: subObj?.id || ''});
+              }} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white outline-none focus:border-indigo-500 disabled:opacity-50">
+                <option value="">{gigForm.category ? 'Select Subcategory...' : 'Select Category First'}</option>
+                {dbCategories.find(c => c.name === gigForm.category)?.subcategories?.map(sub => <option key={sub.id} value={sub.name}>{sub.name}</option>)}
+              </select>
               <input required type="number" value={gigForm.price} onChange={e => setGigForm({...gigForm, price: e.target.value})} placeholder="Starting Price in ₹" className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
               <textarea required rows="3" value={gigForm.description} onChange={e => setGigForm({...gigForm, description: e.target.value})} placeholder="Service description..." className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
               <button type="submit" className="w-full py-3.5 neon-airflow-btn text-white text-xs font-black rounded-2xl uppercase">Publish to Marketplace</button>
