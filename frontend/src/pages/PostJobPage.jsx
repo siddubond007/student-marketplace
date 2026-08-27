@@ -8,6 +8,7 @@ import {
   Info, TrendingUp, UploadCloud, File, Globe, Shield, CheckCircle, Eye, EyeOff, 
   MapPin, Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
 } from 'lucide-react';
+import { JOB_CATEGORIES_DATA, JOB_CATEGORIES } from '../data/jobsCategoriesData';
 
 const STEPS = [
   { id: 1, name: 'Basics', label: 'Basic Information', icon: Briefcase, desc: 'Title, category, and project scope' },
@@ -19,36 +20,7 @@ const STEPS = [
   { id: 7, name: 'Review', label: 'Review & Publish', icon: CheckCircle2, desc: 'Final check before posting' }
 ];
 
-const CATEGORIES_DATA = {
-  "Web Development": ["Frontend Development", "Backend Development", "Full Stack Development", "WordPress", "E-commerce", "Landing Page", "Web Application", "Website Maintenance"],
-  "Mobile Development": ["iOS App Development", "Android App Development", "Cross-Platform (Flutter / React Native)", "Mobile UI Implementation", "App Bug Fixes & Updates"],
-  "UI/UX Design": ["Web UI Design", "Mobile App UI Design", "Wireframing & Prototyping", "Design Systems", "User Research & UX Audit"],
-  "Graphic Design": ["Logo & Brand Identity", "Social Media Graphics", "Banner & Poster Design", "Illustrations", "Packaging Design"],
-  "Video & Animation": ["Video Editing", "2D/3D Animation", "Motion Graphics", "YouTube & Social Media Reels", "Explainer Videos"],
-  "Writing & Translation": ["Technical Writing", "Blog & Article Writing", "Copywriting", "Content Creation", "Translation & Proofreading"],
-  "Digital Marketing": ["Social Media Marketing (SMM)", "Search Engine Optimization (SEO)", "Email Marketing", "Content Marketing", "Ads Campaign Management"],
-  "AI & Machine Learning": ["LLM & Chatbot Integration", "Machine Learning Models", "Computer Vision", "Natural Language Processing", "AI Automation & Workflows"],
-  "Data Science": ["Data Analytics & Visualization", "Data Cleaning & Preprocessing", "Python Data Analysis", "Excel & PowerBI Dashboards", "Statistical Modeling"],
-  "Cybersecurity": ["Vulnerability Assessment", "Web Application Security", "Penetration Testing", "Security Audit & Hardening"],
-  "Business": ["Business Plans & Market Research", "Financial Modeling & Pitch Decks", "Virtual Assistance", "Resume & Career Consulting"],
-  "Other": ["General Tech Support", "Custom Scripting & Automation", "Other Specialized Work"]
-};
-
-const ALL_SKILLS_DATABASE = [
-  "React", "Node.js", "Python", "JavaScript", "TypeScript", "Tailwind CSS", "Next.js", 
-  "Express.js", "MongoDB", "PostgreSQL", "HTML5 & CSS3", "Vue.js", "Django", "Flask",
-  "UI/UX Design", "Figma", "Adobe XD", "Wireframing", "User Research", "Prototyping",
-  "Flutter", "React Native", "iOS (Swift)", "Android (Kotlin)", "Mobile UI",
-  "Graphic Design", "Logo Design", "Adobe Photoshop", "Adobe Illustrator", "Canva",
-  "Video Editing", "Adobe Premiere Pro", "After Effects", "DaVinci Resolve", "CapCut", "Motion Graphics",
-  "Content Writing", "Copywriting", "SEO Writing", "Technical Writing", "Proofreading",
-  "Digital Marketing", "SEO", "Google Ads", "Social Media Marketing", "Meta Ads", "Email Marketing",
-  "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "NLP", "Computer Vision", "LLM & OpenAI API",
-  "Data Analysis", "Pandas & NumPy", "PowerBI", "Tableau", "Excel / Spreadsheets", "SQL",
-  "Cybersecurity", "Penetration Testing", "Ethical Hacking", "Network Security", "Vulnerability Assessment",
-  "Business Analysis", "Financial Modeling", "Market Research", "Pitch Deck Creation", "Virtual Assistance",
-  "Git & GitHub", "Docker", "AWS", "Firebase", "Linux", "REST APIs", "GraphQL"
-];
+const CATEGORIES_DATA = JOB_CATEGORIES_DATA;
 
 const EXPERIENCE_LEVELS = [
   { id: 'BEGINNER', title: 'Beginner', badge: 'Rising Star', desc: 'Suitable for simple projects or clients comfortable with some guidance.', icon: Sparkle },
@@ -754,8 +726,16 @@ export default function PostJobPage({ currentUser }) {
     );
   }
 
-  const availableSubcategories = formData.category ? CATEGORIES_DATA[formData.category] || [] : [];
-  const filteredSkillSuggestions = ALL_SKILLS_DATABASE.filter(s => 
+  const availableSubcategories = formData.category
+    ? Object.keys(CATEGORIES_DATA[formData.category] || {})
+    : [];
+
+  const availableJobSkills =
+    formData.category && formData.subcategory
+      ? CATEGORIES_DATA[formData.category]?.[formData.subcategory] || []
+      : [];
+
+  const filteredSkillSuggestions = availableJobSkills.filter(s =>
     s.toLowerCase().includes(skillSearchInput.toLowerCase().trim()) &&
     !formData.requiredSkills.includes(s)
   ).slice(0, 8);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
+import { JOB_CATEGORIES_DATA, JOB_CATEGORIES } from '../data/jobsCategoriesData';
 
 export default function StudentMarketplacePage() {
   const [jobs, setJobs] = useState([]);
@@ -13,6 +14,7 @@ export default function StudentMarketplacePage() {
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("ALL");
   const [experienceFilter, setExperienceFilter] = useState("ALL");
   const [budgetFilter, setBudgetFilter] = useState("ALL");
 
@@ -107,40 +109,58 @@ export default function StudentMarketplacePage() {
             />
           </div>
 
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
-            >
-              <option value="ALL">All Categories</option>
-              {[...new Set(jobs.map((job) => job.category).filter(Boolean))].map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setSubcategoryFilter("ALL");
+                }}
+                className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+              >
+                <option value="ALL">All Categories</option>
+                {JOB_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
 
-            <select
-              value={experienceFilter}
-              onChange={(e) => setExperienceFilter(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
-            >
-              <option value="ALL">All Experience Levels</option>
-              <option value="BEGINNER">Beginner</option>
-              <option value="INTERMEDIATE">Intermediate</option>
-              <option value="EXPERT">Expert</option>
-            </select>
+              <select
+                value={subcategoryFilter}
+                onChange={(e) => setSubcategoryFilter(e.target.value)}
+                disabled={categoryFilter === "ALL"}
+                className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="ALL">All Subcategories</option>
+                {(categoryFilter !== "ALL"
+                  ? Object.keys(JOB_CATEGORIES_DATA[categoryFilter] || {})
+                  : []
+                ).map((subcategory) => (
+                  <option key={subcategory} value={subcategory}>{subcategory}</option>
+                ))}
+              </select>
 
-            <select
-              value={budgetFilter}
-              onChange={(e) => setBudgetFilter(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
-            >
-              <option value="ALL">All Budgets</option>
-              <option value="UNDER_5K">Under ₹5,000</option>
-              <option value="5K_20K">₹5,000 – ₹20,000</option>
-              <option value="OVER_20K">Over ₹20,000</option>
-            </select>
-          </div>
+              <select
+                value={experienceFilter}
+                onChange={(e) => setExperienceFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+              >
+                <option value="ALL">All Experience Levels</option>
+                <option value="BEGINNER">Beginner</option>
+                <option value="INTERMEDIATE">Intermediate</option>
+                <option value="EXPERT">Expert</option>
+              </select>
+
+              <select
+                value={budgetFilter}
+                onChange={(e) => setBudgetFilter(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-white"
+              >
+                <option value="ALL">All Budgets</option>
+                <option value="UNDER_5K">Under ₹5,000</option>
+                <option value="5K_20K">₹5,000 – ₹20,000</option>
+                <option value="OVER_20K">Over ₹20,000</option>
+              </select>
+            </div>
 
         <div className="space-y-4">
           {jobs.filter((job) => {
@@ -149,6 +169,10 @@ export default function StudentMarketplacePage() {
 
             const matchesCategory =
               categoryFilter === "ALL" || job.category === categoryFilter;
+
+              const matchesSubcategory =
+                subcategoryFilter === "ALL" || job.subcategory === subcategoryFilter;
+
 
             const matchesExperience =
               experienceFilter === "ALL" || job.experienceLevel === experienceFilter;
@@ -159,7 +183,7 @@ export default function StudentMarketplacePage() {
               (budgetFilter === "5K_20K" && Number(job.budget) >= 5000 && Number(job.budget) <= 20000) ||
               (budgetFilter === "OVER_20K" && Number(job.budget) > 20000);
 
-            return matchesSearch && matchesCategory && matchesExperience && matchesBudget;
+              return matchesSearch && matchesCategory && matchesSubcategory && matchesExperience && matchesBudget;
           }).map((job) => (
             <div
               key={job.id}
