@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from 'react';
+const fs = require('fs');
+
+const targetPath = 'frontend/src/pages/StudentMarketplacePage.jsx';
+
+const newComponentCode = `import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
 import { Search, Filter, DollarSign, Clock, Briefcase, ChevronLeft, ChevronRight, X, CheckCircle2, AlertCircle, Globe, Languages, Sparkles } from 'lucide-react';
@@ -100,7 +104,7 @@ export default function StudentMarketplacePage() {
       query.append('page', page);
       query.append('limit', 20);
 
-      const res = await API.get(`/jobs?${query.toString()}`);
+      const res = await API.get(\`/jobs?\${query.toString()}\`);
       if (res.data.jobs) {
         setJobs(res.data.jobs);
         setPagination(res.data.pagination);
@@ -138,7 +142,7 @@ export default function StudentMarketplacePage() {
   const submitProposal = async () => {
     setMessage(null);
     try {
-      const res = await API.post(`/jobs/${selectedJob.id}/bid`, {
+      const res = await API.post(\`/jobs/\${selectedJob.id}/bid\`, {
         proposedAmount,
         deliveryDays,
         coverLetter
@@ -336,7 +340,7 @@ export default function StudentMarketplacePage() {
           
           <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center text-sm shadow-lg mb-6">
             <div className="font-medium text-slate-400">
-              <span className="text-white font-bold">{jobs.length > 0 ? `1-${jobs.length}` : '0'}</span> of {pagination.total > 1000 ? '1K+' : pagination.total} projects found
+              <span className="text-white font-bold">{jobs.length > 0 ? \`1-\${jobs.length}\` : '0'}</span> of {pagination.total > 1000 ? '1K+' : pagination.total} projects found
             </div>
             <div className="flex items-center gap-3 mt-4 sm:mt-0">
               <span className="text-slate-500">Sort by:</span>
@@ -373,12 +377,12 @@ export default function StudentMarketplacePage() {
 
                   <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
                     <div className="flex-1">
-                      <Link to={`/jobs/${job.id}`} className="text-2xl font-extrabold text-white group-hover:text-emerald-400 transition-colors block leading-tight mb-3">
+                      <Link to={\`/jobs/\${job.id}\`} className="text-2xl font-extrabold text-white group-hover:text-emerald-400 transition-colors block leading-tight mb-3">
                         {job.title}
                       </Link>
                       
                       <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mb-4">
-                        <span className={`px-3 py-1 rounded-full border ${job.projectType === 'HOURLY' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>
+                        <span className={\`px-3 py-1 rounded-full border \${job.projectType === 'HOURLY' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}\`}>
                           {job.projectType === 'HOURLY' ? 'Hourly Rate' : 'Fixed Price'}
                         </span>
                         <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
@@ -484,7 +488,7 @@ export default function StudentMarketplacePage() {
               </div>
 
               {message && (
-                <div className={`mb-8 p-4 rounded-xl flex items-center gap-3 text-sm font-bold ${message.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                <div className={\`mb-8 p-4 rounded-xl flex items-center gap-3 text-sm font-bold \${message.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}\`}>
                   {message.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                   {message.text}
                 </div>
@@ -554,3 +558,7 @@ export default function StudentMarketplacePage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync(targetPath, newComponentCode);
+console.log('✅ UI successfully upgraded! Every single skill from all lists has been injected and deduplicated.');

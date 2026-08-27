@@ -238,8 +238,7 @@ model Job {
   categoryId    String?
   Subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
   subcategoryId String?
-  Skill         Skill?       @relation(fields: [skillId], references: [id])
-  skillId       String?
+  taxonomySkills Skill[] @relation("JobTaxonomySkills")
 
   @@index([status, isOpen])
   @@index([category])
@@ -467,7 +466,7 @@ model Subcategory {
   slug       String   @unique
   skills     Skill[]
   gigs       Gig[]
-  jobs       Job[]
+  jobs          Job[]
 }
 
 model Skill {
@@ -477,5 +476,5 @@ model Skill {
   name          String
   slug          String      @unique
   gigs          Gig[]
-  jobs          Job[]
+  jobs        Job[] @relation("JobTaxonomySkills")
 }
