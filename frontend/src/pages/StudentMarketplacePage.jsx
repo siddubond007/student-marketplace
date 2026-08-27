@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
-import { Search, Filter, DollarSign, Clock, Briefcase, ChevronLeft, ChevronRight, X, CheckCircle2, AlertCircle, Globe, Languages, Sparkles } from 'lucide-react';
+import { Search, Filter, DollarSign, Briefcase, ChevronLeft, ChevronRight, Globe, Languages, Sparkles } from 'lucide-react';
 
 export default function StudentMarketplacePage() {
   const [jobs, setJobs] = useState([]);
@@ -57,12 +57,6 @@ export default function StudentMarketplacePage() {
   
   // Dedupes array to prevent any duplicate mapping keys
   const EXHAUSTIVE_SKILLS = Array.from(new Set(RAW_SKILLS));
-
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [proposedAmount, setProposedAmount] = useState('');
-  const [deliveryDays, setDeliveryDays] = useState('');
-  const [coverLetter, setCoverLetter] = useState('');
-  const [message, setMessage] = useState(null);
 
   const timeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -133,28 +127,6 @@ export default function StudentMarketplacePage() {
       ...prev,
       skills: prev.skills.includes(val) ? prev.skills.filter(s => s !== val) : [...prev.skills, val]
     }));
-  };
-
-  const submitProposal = async () => {
-    setMessage(null);
-    try {
-      const res = await API.post(`/jobs/${selectedJob.id}/bid`, {
-        proposedAmount,
-        deliveryDays,
-        coverLetter
-      });
-      setMessage({ type: 'success', text: res.data?.message || 'Proposal submitted successfully!' });
-      setTimeout(() => {
-        setSelectedJob(null);
-        setMessage(null);
-        setProposedAmount('');
-        setDeliveryDays('');
-        setCoverLetter('');
-        fetchJobs();
-      }, 1500);
-    } catch (err) {
-      setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to submit proposal' });
-    }
   };
 
   let sortedJobs = [...jobs];
@@ -419,12 +391,13 @@ export default function StudentMarketplacePage() {
                         </p>
                       </div>
                       
-                      <button
-                        onClick={() => setSelectedJob(job)}
-                        className="w-full bg-slate-800 group-hover:bg-emerald-600 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all duration-300 transform active:scale-95 shadow-none group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                      {/* Changed to Link that redirects straight to the form anchor */}
+                      <Link
+                        to={`/jobs/${job.id}#bid-form`}
+                        className="w-full text-center block bg-slate-800 group-hover:bg-emerald-600 text-white text-sm font-bold py-3.5 px-8 rounded-xl transition-all duration-300 transform active:scale-95 shadow-none group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
                       >
-                        Submit Proposal
-                      </button>
+                        Bid on this project
+                      </Link>
                       <p className="text-xs text-slate-500 mt-3 font-medium">Posted {timeAgo(job.createdAt)}</p>
                     </div>
                   </div>
@@ -456,101 +429,6 @@ export default function StudentMarketplacePage() {
           )}
         </div>
       </div>
-
-      {selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setSelectedJob(null)}></div>
-          
-          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
-            
-            <div className="flex items-center justify-between px-8 py-6 border-b border-slate-800 bg-slate-900/50">
-              <h2 className="text-2xl font-extrabold text-white flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                  <Briefcase className="w-5 h-5 text-emerald-400" />
-                </div>
-                Submit Proposal
-              </h2>
-              <button onClick={() => setSelectedJob(null)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-full hover:bg-slate-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-8">
-              <div className="mb-8 p-5 bg-slate-950 border border-slate-800 rounded-2xl">
-                <h3 className="text-xl font-bold text-white mb-2 leading-tight">{selectedJob.title}</h3>
-                <p className="text-emerald-400 text-sm font-bold flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" /> Client Budget: ₹{selectedJob.budget}
-                </p>
-              </div>
-
-              {message && (
-                <div className={`mb-8 p-4 rounded-xl flex items-center gap-3 text-sm font-bold ${message.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-                  {message.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
-                  {message.text}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-3">Your Bid Amount (₹)</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-slate-500 font-bold group-focus-within:text-emerald-400 transition-colors">₹</span>
-                    </div>
-                    <input
-                      type="number"
-                      value={proposedAmount}
-                      onChange={(e) => setProposedAmount(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3.5 pl-10 pr-4 text-white font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                      placeholder="5000"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-3">Delivery Time (Days)</label>
-                  <div className="relative group">
-                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
-                    <input
-                      type="number"
-                      value={deliveryDays}
-                      onChange={(e) => setDeliveryDays(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3.5 pl-11 pr-4 text-white font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                      placeholder="e.g. 5"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-3">Cover Letter</label>
-                <textarea
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  rows="5"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-white font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none transition-all"
-                  placeholder="Detail your approach and explain why you are the best fit for this project..."
-                />
-              </div>
-            </div>
-
-            <div className="px-8 py-5 border-t border-slate-800 bg-slate-900/80 flex justify-end gap-4">
-              <button
-                onClick={() => setSelectedJob(null)}
-                className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitProposal}
-                disabled={!proposedAmount || !deliveryDays || !coverLetter}
-                className="px-8 py-3 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] transform hover:-translate-y-0.5"
-              >
-                Send Proposal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
