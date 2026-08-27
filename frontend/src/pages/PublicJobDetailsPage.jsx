@@ -84,12 +84,21 @@ export default function PublicJobDetailsPage() {
             </div>
           </div>
 
-          <Link
-            to="/jobs"
-            className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-colors"
-          >
-            Back to Marketplace
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/jobs"
+              className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold transition-colors text-center"
+            >
+              Back to Marketplace
+            </Link>
+
+            <Link
+              to="/jobs"
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors text-center"
+            >
+              Submit Proposal
+            </Link>
+          </div>
 
         </div>
       </div>
