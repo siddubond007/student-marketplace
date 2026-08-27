@@ -24,3 +24,6 @@ API.interceptors.request.use((config) => {
 });
 
 export default API;
+
+// Category API
+export const fetchCategories = () => API.get('/categories');
