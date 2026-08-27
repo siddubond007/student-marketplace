@@ -9,6 +9,7 @@ import {
   MapPin, Languages, MessageSquare, FileCheck, Edit3, Send, ArrowUpRight
 } from 'lucide-react';
 import { JOB_CATEGORIES_DATA, JOB_CATEGORIES } from '../data/jobsCategoriesData';
+import API from '../services/api';
 
 const STEPS = [
   { id: 1, name: 'Basics', label: 'Basic Information', icon: Briefcase, desc: 'Title, category, and project scope' },
@@ -231,27 +232,124 @@ export default function PostJobPage({ currentUser }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleFilesSelected = (filesList) => {
-    setFileError('');
-    const newFiles = [];
-    for (let i = 0; i < filesList.length; i++) {
-      const file = filesList[i];
+  
+const handleFilesSelected = async (filesList) => {
+  setFileError('');
+
+  for (let i = 0; i < filesList.length; i++) {
+    const file = filesList[i];
+    const tempId = `upload_${Date.now()}_${i}`;
+
+    try {
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setFileError(`"${file.name}" exceeds the 500 MB upload limit. Please use a cloud drive link for larger files.`);
+        setFileError(`"${file.name}" exceeds the 500 MB upload limit.`);
         continue;
       }
-      newFiles.push({
-        id: `${Date.now()}_${i}_${Math.random().toString(36).substr(2, 5)}`,
-        name: file.name,
-        size: file.size,
-        type: file.type || file.name.split('.').pop()?.toUpperCase() || 'FILE',
-        status: 'Uploaded'
+
+
+      setFormData(prev => ({
+        ...prev,
+        uploadedFiles: [
+          ...prev.uploadedFiles,
+          {
+            id: tempId,
+            name: file.name,
+            size: file.size,
+            type: file.type || 'FILE',
+            status: 'Uploading...',
+            progress: 0
+          }
+        ]
+      }));
+
+      const chunkSize = 5 * 1024 * 1024;
+      const totalChunks = Math.ceil(file.size / chunkSize);
+
+      const initRes = await API.post('/upload/resumable/init', {
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type || 'application/octet-stream',
+        totalChunks
       });
+
+      const { uploadId } = initRes.data;
+
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+
+        const chunk = file.slice(start, end);
+
+        const r = await fetch(
+          `${API.defaults.baseURL}/upload/resumable/${uploadId}/chunk`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'X-Chunk-Index': chunkIndex,
+              'X-Total-Chunks': totalChunks,
+              'Content-Type': 'application/octet-stream'
+            },
+            body: chunk
+          }
+        );
+
+        if (!r.ok) {
+          throw new Error(`Chunk ${chunkIndex} failed`);
+        }
+
+        const progress = Math.round(
+          ((chunkIndex + 1) / totalChunks) * 100
+        );
+
+        setFormData(prev => ({
+          ...prev,
+          uploadedFiles: prev.uploadedFiles.map(f =>
+            f.id === tempId
+              ? { ...f, progress }
+              : f
+          )
+        }));
+      }
+
+      const completeRes = await API.post(
+        `/upload/resumable/${uploadId}/complete`
+      );
+
+      const uploadedUrl =
+        completeRes.data?.secureUrl ||
+        completeRes.data?.url ||
+        '';
+
+      setFormData(prev => ({
+        ...prev,
+        uploadedFiles: prev.uploadedFiles.map(f =>
+          f.id === tempId
+            ? {
+                ...f,
+                status: 'Uploaded',
+                progress: 100,
+                uploadId,
+                url: uploadedUrl
+              }
+            : f
+        )
+      }));
+    } catch (err) {
+      console.error(err);
+
+      setFileError(`Failed to upload ${file.name}`);
+
+      setFormData(prev => ({
+        ...prev,
+        uploadedFiles: prev.uploadedFiles.filter(
+          f => f.id !== tempId
+        )
+      }));
     }
-    if (newFiles.length > 0) {
-      setFormData(prev => ({ ...prev, uploadedFiles: [...prev.uploadedFiles, ...newFiles] }));
-    }
-  };
+  }
+};
+
 
   const handleRemoveFile = (fileId) => {
     setFormData(prev => ({ ...prev, uploadedFiles: prev.uploadedFiles.filter(f => f.id !== fileId) }));
@@ -451,7 +549,7 @@ export default function PostJobPage({ currentUser }) {
           ? (parseFloat(formData.fixedBudget) || 0) 
           : (parseFloat(formData.maximumBudget) || parseFloat(formData.minimumBudget) || 0),
         timeline: formData.deadlineType || '1_MONTH',
-        attachmentUrls: (formData.uploadedFiles || []).map(f => f.name),
+        attachmentUrls: (formData.uploadedFiles || []).map(f => f.url).filter(Boolean),
         externalLinks: (formData.cloudDriveLinks || []).filter(l => (l || '').trim().length > 0),
         referenceLinks: (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0),
         visibility: formData.visibility || 'PUBLIC',
@@ -559,7 +657,7 @@ export default function PostJobPage({ currentUser }) {
           ? (parseFloat(formData.fixedBudget) || 0) 
           : (parseFloat(formData.maximumBudget) || parseFloat(formData.minimumBudget) || 0),
         timeline: formData.deadlineType || '1_MONTH',
-        attachmentUrls: (formData.uploadedFiles || []).map(f => f.name),
+        attachmentUrls: (formData.uploadedFiles || []).map(f => f.url).filter(Boolean),
         externalLinks: (formData.cloudDriveLinks || []).filter(l => (l || '').trim().length > 0),
         referenceLinks: (formData.referenceWebsites || []).filter(w => (w || '').trim().length > 0),
         visibility: formData.visibility || 'PUBLIC',
