@@ -1,26 +1,28 @@
-import PostJobPage from './pages/PostJobPage';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import StudentDashboard from './pages/StudentDashboard';
-import StudentOrdersPage from './pages/StudentOrdersPage';
-import StudentGigsPage from './pages/StudentGigsPage';
-import ClientDashboard from './pages/ClientDashboard';
-import OrderWorkspacePage from './pages/OrderWorkspacePage';
-import CategoryHubPage from './pages/CategoryHubPage';
-import HireCategoryPage from './pages/HireCategoryPage';
-import UserProfilePage from './pages/UserProfilePage';
-import SkillSearchPage from './pages/SkillSearchPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ClientProjectDetailsPage from './pages/ClientProjectDetailsPage';
-import ClientProposalsPage from './pages/ClientProposalsPage';
-import StudentMarketplacePage from './pages/StudentMarketplacePage';
-import PublicJobDetailsPage from './pages/PublicJobDetailsPage';
-import NotificationPage from './pages/NotificationPage';
 import API from './services/api';
+
+// --- Lazy Loaded Pages ---
+const PostJobPage = lazy(() => import('./pages/PostJobPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentOrdersPage = lazy(() => import('./pages/StudentOrdersPage'));
+const StudentGigsPage = lazy(() => import('./pages/StudentGigsPage'));
+const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const OrderWorkspacePage = lazy(() => import('./pages/OrderWorkspacePage'));
+const CategoryHubPage = lazy(() => import('./pages/CategoryHubPage'));
+const HireCategoryPage = lazy(() => import('./pages/HireCategoryPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const SkillSearchPage = lazy(() => import('./pages/SkillSearchPage'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ClientProjectDetailsPage = lazy(() => import('./pages/ClientProjectDetailsPage'));
+const ClientProposalsPage = lazy(() => import('./pages/ClientProposalsPage'));
+const StudentMarketplacePage = lazy(() => import('./pages/StudentMarketplacePage'));
+const PublicJobDetailsPage = lazy(() => import('./pages/PublicJobDetailsPage'));
+const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -39,6 +41,16 @@ export default function App() {
     setCurrentUser(null);
   };
 
+  // A subtle loading fallback that matches your dark theme
+  const PageLoader = () => (
+    <div className="flex items-center justify-center h-[50vh] text-indigo-400/70">
+      <div className="animate-pulse flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+        <p className="text-sm tracking-widest uppercase">Loading</p>
+      </div>
+    </div>
+  );
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-sans relative overflow-x-hidden selection:bg-indigo-500 selection:text-white w-full">
@@ -50,59 +62,61 @@ export default function App() {
           <div className="absolute bottom-10 left-1/3 w-[700px] h-[700px] bg-emerald-600/10 rounded-full blur-[180px]" />
         </div>
 
-        {/* Global Navbar */}
+        {/* Global Navbar - NOT lazy loaded so it appears instantly */}
         <Navbar currentUser={currentUser} onLogout={handleLogout} />
 
         {/* Main Content Area */}
         <main className="flex-1 w-full px-6 sm:px-8 lg:px-10 py-8 z-10">
-          <Routes>
-        <Route path="/post-job" element={<PostJobPage currentUser={currentUser} />} />
-            <Route path="/" element={<HomePage currentUser={currentUser} />} />
-            
-            {/* 1. Dedicated Admin Console */}
-            <Route path="/admin" element={<AdminDashboard currentUser={currentUser} />} />
-            
-            {/* 2. Dedicated Skill Search Directory */}
-            <Route path="/skills" element={<SkillSearchPage currentUser={currentUser} />} />
-            <Route path="/browse-skills" element={<SkillSearchPage currentUser={currentUser} />} />
-            <Route path="/talent-search" element={<SkillSearchPage currentUser={currentUser} />} />
-            
-            {/* 3. Direct Category URLs */}
-            <Route path="/webdeveloper" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/web-development" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/editing" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/video-editing" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/graphic-design" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/python-scripting" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/mobile-apps" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/3d-artists" element={<CategoryHubPage currentUser={currentUser} />} />
-            
-            <Route path="/hire/:categorySlug" element={<HireCategoryPage currentUser={currentUser} />} />
-            <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
-            <Route path="/jobs" element={<StudentMarketplacePage />} />
-            <Route path="/jobs/:jobId" element={<PublicJobDetailsPage />} />
-            <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
-            
-            {/* User Profiles */}
-            <Route path="/u/:username" element={<UserProfilePage currentUser={currentUser} />} />
-            <Route path="/profile/:username" element={<UserProfilePage currentUser={currentUser} />} />
-            
-            {/* Auth Routes */}
-            <Route path="/login" element={<LoginPage onLoginSuccess={setCurrentUser} />} />
-            <Route path="/register" element={<RegisterPage onLoginSuccess={setCurrentUser} />} />
-            
-            {/* Workspaces */}
-            <Route path="/student/portal" element={<StudentDashboard currentUser={currentUser} />} />
-            <Route path="/student/orders" element={<StudentOrdersPage currentUser={currentUser} />} />
-            <Route path="/student/gigs" element={<StudentGigsPage currentUser={currentUser} />} />
-            <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
-            <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
-            <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />
-            <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
-            <Route path="/notifications" element={<NotificationPage />} />
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/post-job" element={<PostJobPage currentUser={currentUser} />} />
+              <Route path="/" element={<HomePage currentUser={currentUser} />} />
+              
+              {/* 1. Dedicated Admin Console */}
+              <Route path="/admin" element={<AdminDashboard currentUser={currentUser} />} />
+              
+              {/* 2. Dedicated Skill Search Directory */}
+              <Route path="/skills" element={<SkillSearchPage currentUser={currentUser} />} />
+              <Route path="/browse-skills" element={<SkillSearchPage currentUser={currentUser} />} />
+              <Route path="/talent-search" element={<SkillSearchPage currentUser={currentUser} />} />
+              
+              {/* 3. Direct Category URLs */}
+              <Route path="/webdeveloper" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/web-development" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/editing" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/video-editing" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/graphic-design" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/python-scripting" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/mobile-apps" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/3d-artists" element={<CategoryHubPage currentUser={currentUser} />} />
+              
+              <Route path="/hire/:categorySlug" element={<HireCategoryPage currentUser={currentUser} />} />
+              <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
+              <Route path="/jobs" element={<StudentMarketplacePage />} />
+              <Route path="/jobs/:jobId" element={<PublicJobDetailsPage />} />
+              <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
+              
+              {/* User Profiles */}
+              <Route path="/u/:username" element={<UserProfilePage currentUser={currentUser} />} />
+              <Route path="/profile/:username" element={<UserProfilePage currentUser={currentUser} />} />
+              
+              {/* Auth Routes */}
+              <Route path="/login" element={<LoginPage onLoginSuccess={setCurrentUser} />} />
+              <Route path="/register" element={<RegisterPage onLoginSuccess={setCurrentUser} />} />
+              
+              {/* Workspaces */}
+              <Route path="/student/portal" element={<StudentDashboard currentUser={currentUser} />} />
+              <Route path="/student/orders" element={<StudentOrdersPage currentUser={currentUser} />} />
+              <Route path="/student/gigs" element={<StudentGigsPage currentUser={currentUser} />} />
+              <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
+              <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
+              <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />
+              <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
+              <Route path="/notifications" element={<NotificationPage />} />
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </BrowserRouter>
