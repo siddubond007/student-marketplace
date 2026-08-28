@@ -40,6 +40,12 @@ exports.register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const parsedAge = parseInt(age, 10) || 18;
     const isMinor = parsedAge < 18;
+
+    // Indian Contract Act Sec 11 Safeguard
+    const requestedRole = isOwnerAdmin ? 'ADMIN' : (role || 'STUDENT_FREELANCER');
+    if (isMinor && requestedRole === 'CLIENT') {
+      return res.status(403).json({ error: 'Legal Capacity Error: Users under 18 cannot legally enter into employment contracts or act as a Client.' });
+    }
     const fullName = middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`;
 
     const user = await prisma.user.create({

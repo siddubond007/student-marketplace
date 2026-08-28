@@ -21,12 +21,16 @@ exports.requireAuth = async (req, res, next) => {
       select: {
         id: true,
         role: true,
-        isSuspended: true
+        isSuspended: true,
+        suspendedUntil: true
       }
     });
 
     if (!user) return res.status(401).json({ error: 'User not found.' });
-    if (user.isSuspended) return res.status(403).json({ error: 'Your account has been suspended.' });
+    if (user.isSuspended) return res.status(403).json({ error: 'Your account has been permanently suspended.' });
+    if (user.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
+      return res.status(403).json({ error: `Account suspended due to platform violations until ${new Date(user.suspendedUntil).toLocaleString()}` });
+    }
 
     req.user = user;
     next();
