@@ -178,6 +178,10 @@ model Gig {
   subcategoryId  String?
   subcategoryRef Subcategory? @relation(fields: [subcategoryId], references: [id])
   skills         Skill[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([subcategoryId])
 }
 
 model GigPackage {
@@ -190,6 +194,8 @@ model GigPackage {
   revisions    Int
   description  String
   orders       Order[]
+
+  @@index([gigId])
 }
 
 model Job {
@@ -294,6 +300,9 @@ model Order {
   dispute      Dispute?
   GigPackage   GigPackage?   @relation(fields: [gigPackageId], references: [id])
   gigPackageId String?
+
+  @@index([status])
+  @@index([jobId])
 }
 
 model Deliverable {
@@ -304,6 +313,8 @@ model Deliverable {
   driveLinks  String[]
   message     String
   submittedAt DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model Wallet {
@@ -328,6 +339,8 @@ model PayoutRequest {
   status      PayoutStatus @default(REQUESTED)
   createdAt   DateTime     @default(now())
   processedAt DateTime?
+
+  @@index([userId])
 }
 
 model Message {
@@ -341,6 +354,9 @@ model Message {
   fileUrl     String?
   isBlocked   Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
 }
 
 model ModerationLog {
@@ -382,6 +398,8 @@ model Review {
   updatedAt DateTime @updatedAt
 
   @@unique([orderId, reviewerId])
+  @@index([reviewerId])
+  @@index([revieweeId])
 }
 
 model Dispute {
