@@ -46,8 +46,11 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15, // Strict limit for login/registration attempts
-  message: { error: 'Too many authentication attempts, please try again later.' }
+  max: 15, // Limit repeated failed authentication attempts
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many failed authentication attempts. Please try again later.' }
 });
 
 // Apply rate limiters

@@ -20,7 +20,7 @@ exports.createDispute = async (req, res) => {
     }
 
     if (
-      ['COMPLETED', 'CANCELLED_REFUNDED']
+      ['PENDING_PAYMENT', 'COMPLETED', 'CANCELLED_REFUNDED']
         .includes(order.status)
     ) {
       return res.status(400).json({
@@ -148,6 +148,16 @@ exports.resolveDispute = async (req, res) => {
           data: { status: 'COMPLETED' }
         }),
 
+        ...(dispute.order.jobId ? [
+          prisma.job.update({
+            where: { id: dispute.order.jobId },
+            data: {
+              status: 'COMPLETED',
+              isOpen: false
+            }
+          })
+        ] : []),
+
         prisma.wallet.upsert({
           where: { userId: dispute.order.sellerId },
           create: {
@@ -180,6 +190,16 @@ exports.resolveDispute = async (req, res) => {
             status: 'CANCELLED_REFUNDED'
           }
         }),
+
+        ...(dispute.order.jobId ? [
+          prisma.job.update({
+            where: { id: dispute.order.jobId },
+            data: {
+              status: 'CANCELLED',
+              isOpen: false
+            }
+          })
+        ] : []),
 
         prisma.dispute.update({
           where: { id },

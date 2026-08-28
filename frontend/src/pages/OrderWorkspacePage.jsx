@@ -21,6 +21,9 @@ export default function OrderWorkspacePage({ currentUser }) {
 
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
+  const isFunded = ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED', 'IN_REVIEW', 'DISPUTED', 'COMPLETED'].includes(order?.status);
+  const canDeliver = isSeller && ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED', 'IN_REVIEW'].includes(order?.status);
+  const canApprove = isClient && ['DELIVERED', 'IN_REVIEW'].includes(order?.status);
 
   useEffect(() => {
     API.get('/orders').then(res => {
@@ -130,13 +133,18 @@ export default function OrderWorkspacePage({ currentUser }) {
             <span className="text-xs font-black uppercase text-indigo-400">Dedicated Order Workspace</span>
             <h2 className="text-2xl font-black text-white mt-1">Order #{orderId?.slice(0, 8)}</h2>
           </div>
-          <div className="text-3xl font-black text-emerald-400">₹{order?.totalAmount ?? 999} Held in Escrow</div>
+          <div className="text-right">
+            <div className="text-xs font-black uppercase text-slate-400">Order Status</div>
+            <div className={`text-3xl font-black ${isFunded ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {order?.totalAmount ? `₹${order.totalAmount} ${isFunded ? 'Held in Escrow' : 'Payment Pending'}` : 'Loading order...'}
+            </div>
+          </div>
         </div>
 
         {/* Deliver Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            {isSeller && (
+            {canDeliver && (
             <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
               <h3 className="text-sm font-black text-white">Submit Project Deliverables</h3>
               <form onSubmit={handleDeliver} className="space-y-3">
@@ -149,7 +157,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
             {(isClient || isSeller) && (
             <>
-            {isClient && (
+            {canApprove && (
             <button onClick={handleApprove} className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-2xl shadow-xl flex items-center justify-center space-x-2">
               <CheckCircle2 className="w-5 h-5" />
               <span>Approve Deliverables & Release Payout</span>

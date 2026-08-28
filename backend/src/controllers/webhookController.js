@@ -40,14 +40,49 @@ exports.handleRazorpayWebhook = async (req, res) => {
       const razorpayPaymentId = paymentEntity.id;
 
       if (razorpayOrderId) {
-        await prisma.order.updateMany({
-          where: { razorpayOrderId },
-          data: {
-            status: 'FUNDED_IN_ESCROW',
-            razorpayPaymentId
-          }
+        const order = await prisma.order.findFirst({
+          where: { razorpayOrderId }
         });
-        console.log(`✅ Escrow securely funded for Razorpay Order: ${razorpayOrderId}`);
+
+        if (order) {
+          if (order.status === 'PENDING_PAYMENT') {
+            await prisma.$transaction(async (tx) => {
+              await tx.order.update({
+                where: { id: order.id },
+                data: {
+                  status: 'FUNDED_IN_ESCROW',
+                  razorpayPaymentId
+                }
+              });
+
+              if (order.jobId) {
+                await tx.job.update({
+                  where: { id: order.jobId },
+                  data: {
+                    status: 'IN_PROGRESS',
+                    isOpen: false
+                  }
+                });
+
+                await tx.bid.updateMany({
+                  where: {
+                    jobId: order.jobId,
+                    studentId: order.sellerId
+                  },
+                  data: {
+                    status: 'HIRED'
+                  }
+                });
+              }
+            });
+
+            console.log(`✅ Payment verified. Order funded and Job activated: ${razorpayOrderId}`);
+          } else {
+            console.log(`ℹ️ Payment webhook received for Order ${order.id} already in status ${order.status}`);
+          }
+        } else {
+          console.warn(`⚠️ No local order found for Razorpay Order: ${razorpayOrderId}`);
+        }
       }
     }
 

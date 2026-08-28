@@ -140,6 +140,8 @@ export default function ClientDashboard({ currentUser }) {
         return 'Draft';
       case 'OPEN':
         return 'Published';
+      case 'PENDING_PAYMENT':
+        return 'Payment Pending';
       case 'IN_PROGRESS':
         return 'In Progress';
       case 'COMPLETED':
@@ -335,7 +337,7 @@ export default function ClientDashboard({ currentUser }) {
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <h3 className="text-lg font-black text-white">
-          Hired Student Projects & Escrow ({orders.length})
+          Hired Student Projects & Escrow ({orders.filter(o => o.status !== 'CANCELLED_REFUNDED').length})
         </h3>
 
         {orders.length === 0 ? (
@@ -344,7 +346,9 @@ export default function ClientDashboard({ currentUser }) {
           </p>
         ) : (
           <div className="space-y-3">
-            {orders.map(o => (
+            {orders
+              .filter(o => o.status !== 'CANCELLED_REFUNDED')
+              .map(o => (
               <div
                 key={o.id}
                 className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex justify-between items-center"
@@ -359,7 +363,7 @@ export default function ClientDashboard({ currentUser }) {
                   </h4>
 
                   <span className="text-xs text-slate-400">
-                    Escrow Status: {o.status}
+                    Escrow Status: {o.status === 'PENDING_PAYMENT' ? 'Payment Pending' : o.status}
                   </span>
                 </div>
 

@@ -10,6 +10,14 @@ const razorpay = new Razorpay({
 exports.createOrder = async (req, res) => {
   try {
     const { sellerId, gigId, jobId, totalAmount, deliveryDays, requirements } = req.body;
+
+    // Job hiring must go through the atomic acceptBid flow so the
+    // Job/Bid/Order state machine cannot be bypassed.
+    if (jobId) {
+      return res.status(409).json({
+        error: 'Job orders must be created through the hiring workflow.'
+      });
+    }
     
     // 1. Financial Math
     const amount = parseFloat(totalAmount);
@@ -76,14 +84,185 @@ exports.createOrder = async (req, res) => {
   }
 }
 
+// Verify Razorpay Checkout payment and activate the hiring state.
+exports.verifyPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const {
+      razorpay_order_id: razorpayOrderId,
+      razorpay_payment_id: razorpayPaymentId,
+      razorpay_signature: razorpaySignature
+    } = req.body;
+
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({
+        error: 'Incomplete Razorpay payment verification data.'
+      });
+    }
+
+    const localOrder = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!localOrder) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    if (
+      localOrder.clientId !== req.user.id &&
+      req.user.role !== 'ADMIN'
+    ) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    if (localOrder.razorpayOrderId !== razorpayOrderId) {
+      return res.status(400).json({
+        error: 'Razorpay order does not match the local hiring order.'
+      });
+    }
+
+    const expectedSignature = require('crypto')
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'dummy_secret')
+      .update(razorpayOrderId + '|' + razorpayPaymentId)
+      .digest('hex');
+
+    if (expectedSignature !== razorpaySignature) {
+      return res.status(400).json({
+        error: 'Invalid Razorpay payment signature.'
+      });
+    }
+
+    const payment = await razorpay.payments.fetch(razorpayPaymentId);
+
+    if (payment.order_id !== razorpayOrderId) {
+      return res.status(400).json({
+        error: 'Payment does not belong to the expected Razorpay order.'
+      });
+    }
+
+    if (Number(payment.amount) !== Math.round(localOrder.totalAmount * 100)) {
+      return res.status(400).json({
+        error: 'Payment amount does not match the hiring order amount.'
+      });
+    }
+
+    if (payment.status !== 'captured') {
+      return res.status(409).json({
+        error: 'Payment has not been captured yet. Hiring will activate after capture.'
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const lockedOrders = await tx.$queryRaw`
+        SELECT * FROM "Order"
+        WHERE id = ${orderId}
+        FOR UPDATE
+      `;
+
+      if (!lockedOrders || lockedOrders.length === 0) {
+        throw new Error('NOT_FOUND: Order not found');
+      }
+
+      const lockedOrder = lockedOrders[0];
+
+      if (
+        lockedOrder.clientId !== req.user.id &&
+        req.user.role !== 'ADMIN'
+      ) {
+        throw new Error('FORBIDDEN: Access denied');
+      }
+
+      if (lockedOrder.razorpayOrderId !== razorpayOrderId) {
+        throw new Error('BAD_REQUEST: Razorpay order mismatch');
+      }
+
+      if (lockedOrder.status === 'FUNDED_IN_ESCROW' || lockedOrder.status === 'IN_PROGRESS') {
+        return { alreadyFunded: true, order: lockedOrder };
+      }
+
+      if (lockedOrder.status !== 'PENDING_PAYMENT') {
+        throw new Error('BAD_REQUEST: Order is no longer awaiting payment.');
+      }
+
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'FUNDED_IN_ESCROW',
+          razorpayPaymentId
+        }
+      });
+
+      if (lockedOrder.jobId) {
+        await tx.job.update({
+          where: { id: lockedOrder.jobId },
+          data: {
+            status: 'IN_PROGRESS',
+            isOpen: false
+          }
+        });
+
+        await tx.bid.updateMany({
+          where: {
+            jobId: lockedOrder.jobId,
+            studentId: lockedOrder.sellerId
+          },
+          data: {
+            status: 'HIRED'
+          }
+        });
+      }
+
+      return { alreadyFunded: false, order: updatedOrder };
+    });
+
+    return res.json({
+      success: true,
+      alreadyFunded: result.alreadyFunded,
+      message: result.alreadyFunded
+        ? 'Payment was already verified and the freelancer is hired.'
+        : 'Payment verified successfully. Escrow funded and the freelancer is now hired.',
+      order: result.order
+    });
+  } catch (err) {
+    console.error('Verify Payment Error:', err);
+
+    if (err.message.startsWith('NOT_FOUND:')) {
+      return res.status(404).json({
+        error: err.message.replace('NOT_FOUND: ', '')
+      });
+    }
+
+    if (err.message.startsWith('FORBIDDEN:')) {
+      return res.status(403).json({
+        error: err.message.replace('FORBIDDEN: ', '')
+      });
+    }
+
+    if (err.message.startsWith('BAD_REQUEST:')) {
+      return res.status(400).json({
+        error: err.message.replace('BAD_REQUEST: ', '')
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Unable to verify Razorpay payment.'
+    });
+  }
+};
+
 // Get User's Active Orders
 exports.getMyOrders = async (req, res) => {
   try {
+    const isStudent = req.user.role === 'STUDENT_FREELANCER';
+
     const orders = await prisma.order.findMany({
       where: {
         OR: [
           { clientId: req.user.id },
-          { sellerId: req.user.id }
+          {
+            sellerId: req.user.id,
+            ...(isStudent ? { status: { not: 'PENDING_PAYMENT' } } : {})
+          }
         ]
       },
       include: {
@@ -120,6 +299,12 @@ exports.submitDeliverable = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         error: 'Order not found or unauthorized'
+      });
+    }
+
+    if (!['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED', 'IN_REVIEW'].includes(order.status)) {
+      return res.status(409).json({
+        error: 'Deliverables can only be submitted after payment has been verified and the project is active.'
       });
     }
 
@@ -177,11 +362,25 @@ exports.approveOrder = async (req, res) => {
         throw new Error("BAD_REQUEST: Order is already completed.");
       }
 
+      if (!['DELIVERED', 'IN_REVIEW'].includes(order.status)) {
+        throw new Error("BAD_REQUEST: Order cannot be approved before deliverables are submitted.");
+      }
+
       // 2. Perform safe, locked state transitions
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: { status: 'COMPLETED' }
       });
+
+      if (order.jobId) {
+        await tx.job.update({
+          where: { id: order.jobId },
+          data: {
+            status: 'COMPLETED',
+            isOpen: false
+          }
+        });
+      }
 
       const updatedWallet = await tx.wallet.upsert({
         where: { userId: order.sellerId },

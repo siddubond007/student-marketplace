@@ -898,7 +898,9 @@ export default function StudentDashboard({ currentUser }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map(order => (
+            {filteredOrders
+              .filter(order => !['PENDING_PAYMENT', 'CANCELLED_REFUNDED'].includes(order.status))
+              .map(order => (
               <div key={order.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <span className="text-xs font-black uppercase text-indigo-400">Order #{order.id.slice(0, 8)}</span>

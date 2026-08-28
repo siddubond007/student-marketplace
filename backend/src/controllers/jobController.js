@@ -620,11 +620,20 @@ exports.acceptBid = async (req, res) => {
         );
       }
 
-      const existingActiveOrder = await tx.order.findFirst({
+      const existingFundedOrder = await tx.order.findFirst({
         where: {
           jobId,
           status: {
-            not: 'CANCELLED_REFUNDED'
+            in: [
+              'FUNDED_IN_ESCROW',
+              'REQUIREMENTS_SUBMITTED',
+              'IN_PROGRESS',
+              'DELIVERED',
+              'REVISION_REQUESTED',
+              'IN_REVIEW',
+              'COMPLETED',
+              'DISPUTED'
+            ]
           }
         },
         select: {
@@ -634,11 +643,23 @@ exports.acceptBid = async (req, res) => {
         }
       });
 
-      if (existingActiveOrder) {
+      if (existingFundedOrder) {
         throw new Error(
           'ALREADY_LOCKED: This project already has an active hiring/order process.'
         );
       }
+
+      // A previous checkout attempt that never reached verified payment
+      // must not block a fresh hiring attempt.
+      await tx.order.updateMany({
+        where: {
+          jobId,
+          status: 'PENDING_PAYMENT'
+        },
+        data: {
+          status: 'CANCELLED_REFUNDED'
+        }
+      });
 
       const lockedBid = await tx.bid.findUnique({
         where: { id: bidId }
@@ -668,25 +689,12 @@ exports.acceptBid = async (req, res) => {
         }
       });
 
-      await tx.bid.update({
-        where: { id: lockedBid.id },
-        data: { status: 'HIRED' }
-      });
-
-      await tx.job.update({
-        where: { id: lockedJob.id },
-        data: {
-          status: 'PENDING_PAYMENT',
-          isOpen: false
-        }
-      });
-
       return { order };
     });
 
     return res.json({
       message:
-        'Freelancer selected. Public hiring is now locked. Complete Razorpay checkout to fund escrow.',
+        'Payment required to complete hiring. The freelancer will be hired only after payment is successfully verified.',
       checkoutRequired: true,
       order: {
         id: result.order.id,
@@ -773,35 +781,14 @@ exports.cancelHiring = async (req, res) => {
         data: { status: 'CANCELLED_REFUNDED' }
       });
 
-      // Restore only the bid that belonged to the cancelled
-      // pending order. Order.id and Bid.id are different entities.
-      await tx.bid.updateMany({
-        where: {
-          jobId,
-          studentId: pendingOrder.sellerId,
-          status: 'HIRED'
-        },
-        data: {
-          status: 'PENDING'
-        }
-      });
-
-      const reopenedJob = await tx.job.update({
-        where: { id: jobId },
-        data: {
-          status: 'OPEN',
-          isOpen: true
-        }
-      });
-
       return {
-        job: reopenedJob
+        job: job
       };
     });
 
     return res.json({
       success: true,
-      message: 'Pending hiring cancelled and project reopened.',
+      message: 'Pending payment reservation cancelled. The project remains available for hiring.',
       job: result.job
     });
   } catch (err) {
