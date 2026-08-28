@@ -8,6 +8,17 @@ export default function ClientProposalsPage() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+
   useEffect(() => {
     API.get(`/jobs/${projectId}`)
       .then(res => {
@@ -37,21 +48,55 @@ export default function ClientProposalsPage() {
     }
   };
 
-  const hireStudent = async (bidId) => {
+  const hireStudent = async (bidId, amount) => {
     try {
-      const res = await API.post(
-        `/jobs/${projectId}/accept-bid/${bidId}`
-      );
+      const confirmHire = window.confirm(`You are about to hire this freelancer for ₹${amount}. This will redirect you to secure the funds in escrow. Proceed?`);
+      if (!confirmHire) return;
 
-      alert(res.data?.message || 'Student hired successfully');
+      const res = await API.post(`/jobs/${projectId}/accept-bid/${bidId}`);
+      
+      if (res.data?.checkoutRequired && res.data?.order?.razorpayOrderId) {
+        const isLoaded = await loadRazorpay();
+        if (!isLoaded) {
+          alert('Failed to load payment gateway. Please check your connection.');
+          return;
+        }
 
-      const refreshed = await API.get(`/jobs/${projectId}`);
-      setJob(refreshed.data);
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key', // Ensure this is in frontend/.env
+          amount: Math.round(res.data.order.totalAmount * 100), // convert to paise
+          currency: 'INR',
+          name: 'SkillLaunch Escrow',
+          description: `Project Funding: ${job?.title || 'Deliverables'}`,
+          order_id: res.data.order.razorpayOrderId,
+          handler: function (response) {
+             // Webhook handles backend status, frontend just updates UI
+             alert('Escrow funded successfully! The freelancer has been hired.');
+             API.get(`/jobs/${projectId}`).then(refreshed => setJob(refreshed.data));
+          },
+          prefill: {
+            name: 'Client Account',
+            email: 'client@skilllaunch.com'
+          },
+          theme: {
+            color: '#4f46e5' // Indigo
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response){
+           alert('Payment Failed: ' + response.error.description);
+        });
+        rzp.open();
+      } else {
+         // Fallback if no checkout required (e.g., zero amount or testing)
+         alert(res.data?.message || 'Student hired successfully');
+         const refreshed = await API.get(`/jobs/${projectId}`);
+         setJob(refreshed.data);
+      }
     } catch (err) {
-      alert(
-        err?.response?.data?.error ||
-        'Failed to hire student'
-      );
+      console.error('Checkout error:', err);
+      alert(err?.response?.data?.error || 'Failed to initialize escrow funding');
     }
   };
 
@@ -163,7 +208,7 @@ export default function ClientProposalsPage() {
               </button>
 
               <button
-                onClick={() => hireStudent(bid.id)}
+                onClick={() => hireStudent(bid.id, bid.proposedAmount)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white text-sm font-bold"
               >
                 Hire Student
