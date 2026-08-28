@@ -516,18 +516,29 @@ exports.acceptBid = async (req, res) => {
 
     const bid = await prisma.bid.findUnique({ where: { id: bidId } });
     if (!bid || bid.jobId !== jobId) return res.status(404).json({ error: 'Bid not found for this job' });
-    if (!job.isOpen) return res.status(400).json({ error: 'This project already has an active hired freelancer.' });
 
     if (bid.proposedAmount <= 0) return res.status(400).json({ error: 'Invalid bid amount.' });
 
     // 10% platform fee calculation
     const platformFee = Number((bid.proposedAmount * 0.10).toFixed(2));
     const sellerEarnings = Number((bid.proposedAmount - platformFee).toFixed(2));
-
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + bid.deliveryDays);
 
-    // FIX: Status set to PENDING_PAYMENT. Order transitions to FUNDED_IN_ESCROW only after Razorpay Webhook capture.
+    // 1. GENERATE RAZORPAY ORDER FIRST
+    const Razorpay = require('razorpay');
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+
+    const rzpOrder = await razorpay.orders.create({
+      amount: Math.round(bid.proposedAmount * 100), // Convert to paise
+      currency: 'INR',
+      receipt: `bid_${bid.id}`
+    });
+
+    // 2. CREATE DATABASE TRANSACTION
     const [order] = await prisma.$transaction([
       prisma.order.create({
         data: {
@@ -538,6 +549,7 @@ exports.acceptBid = async (req, res) => {
           platformFee,
           sellerEarnings,
           status: 'PENDING_PAYMENT',
+          razorpayOrderId: rzpOrder.id, // Save securely
           deadline
         }
       }),
@@ -547,19 +559,23 @@ exports.acceptBid = async (req, res) => {
       })
     ]);
 
+    // 3. RETURN REQUIRED FLAGS TO FRONTEND
     return res.json({
-      success: true,
       message: 'Freelancer selected! Please complete Razorpay checkout to fund escrow and lock hiring.',
-      order,
-      checkoutRequired: true
+      checkoutRequired: true,
+      order: {
+        id: order.id,
+        razorpayOrderId: rzpOrder.id,
+        totalAmount: bid.proposedAmount
+      }
     });
+
   } catch (err) {
-    console.error('Error in acceptBid:', err);
-    return res.status(500).json({ error: err.message });
+    console.error("Accept Bid Error:", err);
+    return res.status(500).json({ error: 'Failed to accept bid and initiate escrow.' });
   }
 };
 
-// 11. SHORTLIST BID (POST /api/jobs/:jobId/bids/:bidId/shortlist)
 exports.shortlistBid = async (req, res) => {
   try {
     const { jobId, bidId } = req.params;
