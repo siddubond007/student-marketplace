@@ -30,6 +30,7 @@ enum OrderStatus {
   IN_PROGRESS
   DELIVERED
   REVISION_REQUESTED
+  IN_REVIEW
   COMPLETED
   DISPUTED
   CANCELLED_REFUNDED
@@ -80,24 +81,27 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile              Profile?
-  verification         VerificationRequest?
-  wallet               Wallet?
-  gigs                 Gig[]
-  jobsPosted           Job[]                 @relation("ClientJobs")
-  bidsPlaced           Bid[]                 @relation("StudentBids")
-  ordersAsClient       Order[]               @relation("ClientOrders")
-  ordersAsSeller       Order[]               @relation("SellerOrders")
-  reviewsWritten       Review[]              @relation("ReviewsWritten")
-  reviewsReceived      Review[]              @relation("ReviewsReceived")
-  messagesSent         Message[]             @relation("Sender")
-  payoutRequests       PayoutRequest[]
-  moderationLogs       ModerationLog[]
-  notifications        Notification[]
-  disputesOpened       Dispute[]             @relation("DisputesOpened")
-  investigationActions InvestigationAction[]
-  isDeleted            Boolean               @default(false)
-  deletedAt            DateTime?
+  profile                  Profile?
+  verification             VerificationRequest?
+  wallet                   Wallet?
+  gigs                     Gig[]
+  jobsPosted               Job[]                 @relation("ClientJobs")
+  bidsPlaced               Bid[]                 @relation("StudentBids")
+  ordersAsClient           Order[]               @relation("ClientOrders")
+  ordersAsSeller           Order[]               @relation("SellerOrders")
+  reviewsWritten           Review[]              @relation("ReviewsWritten")
+  reviewsReceived          Review[]              @relation("ReviewsReceived")
+  messagesSent             Message[]             @relation("Sender")
+  payoutRequests           PayoutRequest[]
+  moderationLogs           ModerationLog[]
+  notifications            Notification[]
+  disputesOpened           Dispute[]             @relation("DisputesOpened")
+  investigationActions     InvestigationAction[]
+  parentConsentDeclaration Boolean               @default(false)
+  razorpayAccountId        String?
+  strikeLogs               StrikeLog[]
+  isDeleted                Boolean               @default(false)
+  deletedAt                DateTime?
 }
 
 model Profile {
@@ -230,15 +234,15 @@ model Job {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @default(now()) @updatedAt
 
-  bids          Bid[]
-  orders        Order[]
-  isDeleted     Boolean      @default(false)
-  deletedAt     DateTime?
-  Category      Category?    @relation(fields: [categoryId], references: [id])
-  categoryId    String?
-  Subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
-  subcategoryId String?
-  taxonomySkills Skill[] @relation("JobTaxonomySkills")
+  bids           Bid[]
+  orders         Order[]
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  Category       Category?    @relation(fields: [categoryId], references: [id])
+  categoryId     String?
+  Subcategory    Subcategory? @relation(fields: [subcategoryId], references: [id])
+  subcategoryId  String?
+  taxonomySkills Skill[]      @relation("JobTaxonomySkills")
 
   @@index([status, isOpen])
   @@index([category])
@@ -261,24 +265,27 @@ model Bid {
 }
 
 model Order {
-  id             String      @id @default(uuid())
-  clientId       String
-  client         User        @relation("ClientOrders", fields: [clientId], references: [id])
-  sellerId       String
-  seller         User        @relation("SellerOrders", fields: [sellerId], references: [id])
-  gigId          String?
-  gig            Gig?        @relation(fields: [gigId], references: [id])
-  jobId          String?
-  job            Job?        @relation(fields: [jobId], references: [id])
-  totalAmount    Float
-  platformFee    Float
-  sellerEarnings Float
-  status         OrderStatus @default(FUNDED_IN_ESCROW)
-  deadline       DateTime
-  requirements   String?
-  autoApproveAt  DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                String      @id @default(uuid())
+  clientId          String
+  client            User        @relation("ClientOrders", fields: [clientId], references: [id])
+  sellerId          String
+  seller            User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  gigId             String?
+  gig               Gig?        @relation(fields: [gigId], references: [id])
+  jobId             String?
+  job               Job?        @relation(fields: [jobId], references: [id])
+  totalAmount       Float
+  platformFee       Float
+  sellerEarnings    Float
+  status            OrderStatus @default(FUNDED_IN_ESCROW)
+  deadline          DateTime
+  requirements      String?
+  autoApproveAt     DateTime?
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  transfer          Transfer?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   deliverables Deliverable[]
   messages     Message[]
@@ -466,7 +473,7 @@ model Subcategory {
   slug       String   @unique
   skills     Skill[]
   gigs       Gig[]
-  jobs          Job[]
+  jobs       Job[]
 }
 
 model Skill {
@@ -476,5 +483,33 @@ model Skill {
   name          String
   slug          String      @unique
   gigs          Gig[]
-  jobs        Job[] @relation("JobTaxonomySkills")
+  jobs          Job[]       @relation("JobTaxonomySkills")
+}
+
+model Transfer {
+  id                 String   @id @default(uuid())
+  orderId            String   @unique
+  order              Order    @relation(fields: [orderId], references: [id])
+  razorpayTransferId String?  @unique
+  amount             Float
+  onHold             Boolean  @default(true)
+  status             String   @default("PENDING")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model WebhookLog {
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  eventType   String
+  processedAt DateTime @default(now())
+}
+
+model StrikeLog {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId  String?
+  reason   String
+  issuedAt DateTime @default(now())
 }
