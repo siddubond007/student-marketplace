@@ -47,15 +47,27 @@ export default function PublicJobDetailsPage() {
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting bid:', { bidAmount, deliveryDays, proposalText, portfolioLink });
-      alert('Bid prepared! (Backend integration pending in next step)');
+      const response = await API.post(`/jobs/${jobId}/bid`, {
+        proposedAmount: Number(bidAmount),
+        deliveryDays: Number(deliveryDays),
+        coverLetter: proposalText + (portfolioLink ? `\n\nPortfolio: ${portfolioLink}` : '')
+      });
+
+      alert(response.data?.message || 'Bid submitted successfully!');
+      
+      // Clear form on success
       setProposalText('');
       setBidAmount('');
       setDeliveryDays('');
       setPortfolioLink('');
+      
+      // Refresh the job data so the proposal count updates
+      const refreshedJob = await API.get(`/jobs/public/${jobId}`);
+      setJob(refreshedJob.data);
+      
     } catch (error) {
-      console.error(error);
-      alert('Error submitting bid');
+      console.error('Bid Error:', error);
+      alert(error.response?.data?.error || 'Failed to submit bid. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
