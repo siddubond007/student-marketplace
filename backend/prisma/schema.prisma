@@ -25,6 +25,7 @@ enum EducationType {
 }
 
 enum OrderStatus {
+  PENDING_PAYMENT
   FUNDED_IN_ESCROW
   REQUIREMENTS_SUBMITTED
   IN_PROGRESS

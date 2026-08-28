@@ -19,6 +19,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
+const webhookRoutes = require('./routes/webhookRoutes');
 const { moderateMessage } = require('./services/moderationService');
 
 const app = express();
@@ -35,6 +36,9 @@ app.use((req, res, next) => {
   console.log('🔐 AUTH:', req.headers.authorization ? 'Bearer token present' : 'NO AUTH TOKEN');
   next();
 });
+// 🛡️ CRITICAL: Webhooks must use raw buffer to mathematically verify Razorpay signatures
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 

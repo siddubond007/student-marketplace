@@ -1,17 +1,54 @@
 const prisma = require('../config/db');
+const Razorpay = require('razorpay');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_for_dev',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_secret'
+});
 
 // Create Order & Fund Escrow
 exports.createOrder = async (req, res) => {
   try {
     const { sellerId, gigId, jobId, totalAmount, deliveryDays, requirements } = req.body;
+    
+    // 1. Financial Math
     const amount = parseFloat(totalAmount);
-    const platformFee = Number((amount * 0.06).toFixed(2)); // 6% fee
-    const sellerEarnings = Number((amount * 0.94).toFixed(2)); // 94% net
+    if (isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    
+    const platformFee = Number((amount * 0.06).toFixed(2));
+    const sellerEarnings = Number((amount * 0.94).toFixed(2));
     const days = parseInt(deliveryDays, 10) || 3;
-
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + days);
 
+    // 2. Fetch Freelancer to get their Razorpay Linked Account ID
+    const seller = await prisma.user.findUnique({ where: { id: sellerId } });
+    if (!seller) return res.status(404).json({ error: 'Freelancer not found' });
+    
+    // Fallback account logic for development. In production, fail if not linked.
+    const linkedAccountId = seller.razorpayAccountId || process.env.DEV_LINKED_ACCOUNT_ID;
+
+    // 3. Construct Compliant Escrow Transfers Array (on_hold: true)
+    let transfers = [];
+    if (linkedAccountId) {
+      transfers.push({
+        account: linkedAccountId,
+        amount: Math.round(sellerEarnings * 100), // Razorpay expects paise
+        currency: "INR",
+        notes: { purpose: "Escrow for Project Delivery" },
+        on_hold: true // RBI Mandate: Funds sit in nodal account until explicit release
+      });
+    }
+
+    // 4. Create Gateway Order
+    const rpOrder = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `rcpt_${Date.now()}`,
+      transfers: transfers.length > 0 ? transfers : undefined
+    });
+
+    // 5. Create Local Database State (Status: PENDING_PAYMENT)
     const order = await prisma.order.create({
       data: {
         clientId: req.user.id,
@@ -21,21 +58,23 @@ exports.createOrder = async (req, res) => {
         totalAmount: amount,
         platformFee,
         sellerEarnings,
-        status: 'FUNDED_IN_ESCROW',
+        status: 'PENDING_PAYMENT',
+        razorpayOrderId: rpOrder.id,
         deadline,
         requirements: requirements || 'Standard project deliverables.'
-      },
-      include: {
-        client: { select: { id: true, fullName: true, email: true } },
-        seller: { select: { id: true, fullName: true, email: true } }
       }
     });
 
-    res.status(201).json({ message: 'Order created and escrow funded successfully.', order });
+    res.status(201).json({ 
+      message: 'Gateway order generated successfully.', 
+      order,
+      razorpayOrderId: rpOrder.id
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Escrow Gateway Error:', err);
+    res.status(500).json({ error: 'Escrow gateway failure: ' + err.message });
   }
-};
+}
 
 // Get User's Active Orders
 exports.getMyOrders = async (req, res) => {

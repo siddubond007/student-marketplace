@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const { Prisma } = require('@prisma/client');
 
 // 1. CREATE OR SAVE DRAFT (POST /api/jobs)
 exports.createJob = async (req, res) => {
@@ -172,9 +173,9 @@ exports.updateJob = async (req, res) => {
       data: {
         title: title !== undefined ? title : existingJob.title,
         category: category !== undefined ? category : existingJob.category,
-          categoryId: categoryId !== undefined ? categoryId : existingJob.categoryId,
+        categoryId: categoryId !== undefined ? categoryId : existingJob.categoryId,
         subcategory: subcategory !== undefined ? subcategory : existingJob.subcategory,
-          subcategoryId: subcategoryId !== undefined ? subcategoryId : existingJob.subcategoryId,
+        subcategoryId: subcategoryId !== undefined ? subcategoryId : existingJob.subcategoryId,
         projectType: projectType !== undefined ? projectType : existingJob.projectType,
         description: description !== undefined ? description : existingJob.description,
         deliverables: deliverables !== undefined ? deliverables : existingJob.deliverables,
@@ -248,12 +249,12 @@ exports.getJobs = async (req, res) => {
 
     // Location Matching
     if (location) {
-      where.preferredLocation = location;
+      where.locationPreferences = { contains: location, mode: 'insensitive' };
     }
 
     // Language Matching
     if (language) {
-      where.preferredLanguages = { hasSome: [language] };
+      where.languagePreferences = { contains: language, mode: 'insensitive' };
     }
 
     // Pagination calculations
@@ -266,7 +267,7 @@ exports.getJobs = async (req, res) => {
       prisma.job.findMany({
         where,
         include: {
-          client: { select: { id: true, fullName: true, profile: true } },
+          client: { select: { id: true, fullName: true, email: true } },
           bids: { select: { id: true } }
         },
         orderBy: { createdAt: 'desc' },
@@ -307,7 +308,6 @@ exports.getMyDrafts = async (req, res) => {
   }
 };
 
-
 // 5. GET ALL PROJECTS FOR LOGGED-IN CLIENT (GET /api/jobs/my-projects)
 exports.getMyProjects = async (req, res) => {
   try {
@@ -319,38 +319,41 @@ exports.getMyProjects = async (req, res) => {
         client: {
           select: {
             id: true,
-            fullName: true
+            fullName: true,
+            email: true
           }
         },
         bids: {
           select: {
             id: true,
-            studentId: true
+            studentId: true,
+            proposedAmount: true,
+            deliveryDays: true,
+            status: true,
+            createdAt: true
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
-
     res.json(projects);
   } catch (err) {
+    console.error('Error in getMyProjects:', err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// 5. GET SINGLE JOB / DRAFT BY ID (GET /api/jobs/:jobId)
+// 6. GET JOB BY ID (AUTHORIZATION PROTECTED) (GET /api/jobs/:jobId)
 exports.getJobById = async (req, res) => {
   try {
     const { jobId } = req.params;
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: {
-        client: { select: { id: true, fullName: true } },
+        client: { select: { id: true, fullName: true, email: true } },
         bids: {
           include: {
-            student: { select: { id: true, fullName: true, profile: true } }
+            student: { select: { id: true, fullName: true, email: true, freeBidsRemaining: true } }
           }
         }
       }
@@ -360,18 +363,41 @@ exports.getJobById = async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Security: Only owner/admin can access the private client project page
     if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Access Denied: You cannot view this project.' });
+      return res.status(403).json({ error: 'Access Denied: You cannot view this internal project workspace.' });
     }
 
     res.json(job);
   } catch (err) {
+    console.error('Error in getJobById:', err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// 6. DELETE JOB / DRAFT (DELETE /api/jobs/:jobId)
+// 7. GET PUBLIC JOB BY ID (GET /api/jobs/public/:jobId)
+exports.getPublicJobById = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        client: { select: { id: true, fullName: true } },
+        bids: { select: { id: true } }
+      }
+    });
+
+    if (!job || job.status === 'DRAFT' || !job.isOpen) {
+      return res.status(404).json({ error: 'Job not available or private.' });
+    }
+
+    return res.json(job);
+  } catch (err) {
+    console.error('Error in getPublicJobById:', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+// 8. DELETE JOB / DRAFT (DELETE /api/jobs/:jobId)
 exports.deleteJob = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -382,17 +408,19 @@ exports.deleteJob = async (req, res) => {
     }
 
     if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'You do not have permission to delete this job.' });
+      return res.status(403).json({ error: 'You do not have permission to delete this project.' });
     }
 
     await prisma.job.delete({ where: { id: jobId } });
     res.json({ message: 'Job deleted successfully' });
   } catch (err) {
+    console.error('Error in deleteJob:', err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// 7. SUBMIT BID (Preserves proposal submission logic)
+// 9. HARDENED SUBMIT BID (POST /api/jobs/:jobId/bids)
+// Solves: Concurrency quota race conditions & Sec 11 Indian Contract Act minor checks
 exports.submitBid = async (req, res) => {
   try {
     if (req.user.role !== 'STUDENT_FREELANCER' && req.user.role !== 'ADMIN') {
@@ -402,103 +430,104 @@ exports.submitBid = async (req, res) => {
     const { proposedAmount, deliveryDays, coverLetter } = req.body;
     const jobId = req.params.jobId;
 
-    const targetJob = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!targetJob || targetJob.status === 'DRAFT' || !targetJob.isOpen) {
-      return res.status(400).json({ error: 'This job is not accepting public proposals.' });
+    if (!proposedAmount || parseFloat(proposedAmount) <= 0) {
+      return res.status(400).json({ error: 'Proposed amount must be greater than zero.' });
     }
 
-    if (req.user.freeBidsRemaining <= 0) {
-      return res.status(403).json({ error: 'No free bids remaining this month.' });
-    }
-
-    const existingBid = await prisma.bid.findUnique({
-      where: { jobId_studentId: { jobId, studentId: req.user.id } }
-    });
-    if (existingBid) {
-      return res.status(400).json({ error: 'You have already submitted a proposal for this job. Only 1 bid per applicant is permitted.' });
-    }
-
-    const [bid, updatedUser] = await prisma.$transaction([
-      prisma.bid.create({
-        data: {
-          jobId,
-          studentId: req.user.id,
-          proposedAmount: parseFloat(proposedAmount),
-          deliveryDays: parseInt(deliveryDays, 10),
-          coverLetter: coverLetter || 'Looking forward to working on this project!'
+    // Interactive Transaction with Serializable Isolation Level to prevent race condition quota exploits
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // 1. Fetch target job inside transaction lock
+        const targetJob = await tx.job.findUnique({ where: { id: jobId } });
+        if (!targetJob || targetJob.status === 'DRAFT' || !targetJob.isOpen) {
+          throw new Error('This job is not accepting public proposals.');
         }
-      }),
-      prisma.user.update({
-        where: { id: req.user.id },
-        data: { freeBidsRemaining: { decrement: 1 } }
-      })
-    ]);
 
-    res.status(201).json({ message: 'Proposal submitted successfully', bid, remainingBids: updatedUser.freeBidsRemaining });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// PUBLIC JOB DETAILS (GET /api/jobs/public/:jobId)
-exports.getPublicJobById = async (req, res) => {
-  try {
-    const { jobId } = req.params;
-
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      include: {
-        client: {
-          select: {
-            id: true,
-            fullName: true
-          }
-        },
-        bids: {
-          select: {
-            id: true
-          }
+        // 2. Fetch fresh user state inside transaction
+        const freshUser = await tx.user.findUnique({ where: { id: req.user.id } });
+        if (!freshUser) {
+          throw new Error('User account not found.');
         }
+
+        if (freshUser.freeBidsRemaining <= 0) {
+          throw new Error('No free bids remaining this month.');
+        }
+
+        // 3. Indian Contract Act Sec 11 Legal Safeguard for Minor Freelancers (<18 yrs)
+        if (freshUser.age && freshUser.age < 18 && !freshUser.parentConsentDeclared) {
+          throw new Error(
+            'Sec 11 Compliance: Minor freelancers must have guardian consent affirmed to enter legally binding project bids.'
+          );
+        }
+
+        // 4. Ensure 1 proposal limit per student per job
+        const existingBid = await tx.bid.findUnique({
+          where: { jobId_studentId: { jobId, studentId: req.user.id } }
+        });
+        if (existingBid) {
+          throw new Error('You have already submitted a proposal for this job. Only 1 bid per applicant is permitted.');
+        }
+
+        // 5. Create bid and decrement bid quota atomically
+        const bid = await tx.bid.create({
+          data: {
+            jobId,
+            studentId: req.user.id,
+            proposedAmount: parseFloat(proposedAmount),
+            deliveryDays: parseInt(deliveryDays, 10) || 3,
+            coverLetter: coverLetter || 'Looking forward to working on this project!'
+          }
+        });
+
+        const updatedUser = await tx.user.update({
+          where: { id: req.user.id },
+          data: { freeBidsRemaining: { decrement: 1 } }
+        });
+
+        return { bid, remainingBids: updatedUser.freeBidsRemaining };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable
       }
+    );
+
+    return res.status(201).json({
+      message: 'Proposal submitted successfully',
+      bid: result.bid,
+      remainingBids: result.remainingBids
     });
-
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
-
-    if (job.status === 'DRAFT' || !job.isOpen) {
-      return res.status(404).json({ error: 'Job not available' });
-    }
-
-    return res.json(job);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('Error in submitBid:', err);
+    return res.status(400).json({ error: err.message });
   }
 };
 
-// ACCEPT BID / HIRE STUDENT
+// 10. HARDENED ACCEPT BID (POST /api/jobs/:jobId/bids/:bidId/accept)
+// Solves: Fake escrow funding exploit by setting order status to PENDING_PAYMENT
 exports.acceptBid = async (req, res) => {
   try {
     const { jobId, bidId } = req.params;
 
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) return res.status(404).json({ error: 'Job not found' });
-    if (job.clientId !== req.user.id) return res.status(403).json({ error: 'Only project owner can hire.' });
+    if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only the project owner can hire freelancers.' });
+    }
 
     const bid = await prisma.bid.findUnique({ where: { id: bidId } });
-    if (!bid || bid.jobId !== jobId) return res.status(404).json({ error: 'Bid not found' });
-    if (!job.isOpen) return res.status(400).json({ error: 'This project already has a hired student.' });
+    if (!bid || bid.jobId !== jobId) return res.status(404).json({ error: 'Bid not found for this job' });
+    if (!job.isOpen) return res.status(400).json({ error: 'This project already has an active hired freelancer.' });
 
-    // SECURITY UPGRADE: Prevent negative money exploits
     if (bid.proposedAmount <= 0) return res.status(400).json({ error: 'Invalid bid amount.' });
 
-    const platformFee = bid.proposedAmount * 0.10;
-    const sellerEarnings = bid.proposedAmount - platformFee;
+    // 10% platform fee calculation
+    const platformFee = Number((bid.proposedAmount * 0.10).toFixed(2));
+    const sellerEarnings = Number((bid.proposedAmount - platformFee).toFixed(2));
 
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + bid.deliveryDays);
 
-    // ARCHITECTURE UPGRADE: Execute as a single atomic transaction
+    // FIX: Status set to PENDING_PAYMENT. Order transitions to FUNDED_IN_ESCROW only after Razorpay Webhook capture.
     const [order] = await prisma.$transaction([
       prisma.order.create({
         data: {
@@ -508,124 +537,63 @@ exports.acceptBid = async (req, res) => {
           totalAmount: bid.proposedAmount,
           platformFee,
           sellerEarnings,
-          status: 'FUNDED_IN_ESCROW', // Fixed Escrow Bypass
+          status: 'PENDING_PAYMENT',
           deadline
         }
       }),
       prisma.bid.update({
         where: { id: bid.id },
-        data: { status: 'HIRED' }
-      }),
-      prisma.notification.create({
-        data: {
-          userId: bid.studentId,
-          title: "You Have Been Hired",
-          message: "Congratulations! The client has funded the escrow. You can now start working.",
-          type: "BID_HIRED"
-        }
-      }),
-      prisma.job.update({
-        where: { id: job.id },
-        data: { status: 'IN_PROGRESS', isOpen: false }
+        data: { status: 'SHORTLISTED' }
       })
     ]);
 
     return res.json({
       success: true,
-      message: 'Student hired successfully and funds secured in escrow',
-      order
+      message: 'Freelancer selected! Please complete Razorpay checkout to fund escrow and lock hiring.',
+      order,
+      checkoutRequired: true
     });
   } catch (err) {
+    console.error('Error in acceptBid:', err);
     return res.status(500).json({ error: err.message });
   }
 };
 
+// 11. SHORTLIST BID (POST /api/jobs/:jobId/bids/:bidId/shortlist)
 exports.shortlistBid = async (req, res) => {
   try {
     const { jobId, bidId } = req.params;
-
-    const job = await prisma.job.findUnique({
-      where: { id: jobId }
-    });
-
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
-
-    if (job.clientId !== req.user.id) {
-      return res.status(403).json({ error: 'Only project owner can manage proposals.' });
-    }
-
-    const bid = await prisma.bid.findUnique({
-      where: { id: bidId }
-    });
-
-    if (!bid || bid.jobId !== jobId) {
-      return res.status(404).json({ error: 'Bid not found' });
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job || (job.clientId !== req.user.id && req.user.role !== 'ADMIN')) {
+      return res.status(403).json({ error: 'Unauthorized to manage bids for this job.' });
     }
 
     const updatedBid = await prisma.bid.update({
       where: { id: bidId },
-      data: {
-        status: 'SHORTLISTED'
-      }
+      data: { status: 'SHORTLISTED' }
     });
 
-    await prisma.notification.create({
-      data: {
-        userId: bid.studentId,
-        title: "Proposal Shortlisted",
-        message: "Good news! Your proposal has been shortlisted by a client. You are one step closer to being hired.",
-        type: "PROPOSAL_SHORTLISTED"
-      }
-    });
-
-    return res.json({
-      success: true,
-      message: 'Proposal shortlisted',
-      bid: updatedBid
-    });
+    return res.json({ success: true, message: 'Proposal shortlisted', bid: updatedBid });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 };
 
+// 12. REJECT BID (POST /api/jobs/:jobId/bids/:bidId/reject)
 exports.rejectBid = async (req, res) => {
   try {
     const { jobId, bidId } = req.params;
-
-    const job = await prisma.job.findUnique({
-      where: { id: jobId }
-    });
-
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
-
-    if (job.clientId !== req.user.id) {
-      return res.status(403).json({ error: 'Only project owner can manage proposals.' });
-    }
-
-    const bid = await prisma.bid.findUnique({
-      where: { id: bidId }
-    });
-
-    if (!bid || bid.jobId !== jobId) {
-      return res.status(404).json({ error: 'Bid not found' });
+    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job || (job.clientId !== req.user.id && req.user.role !== 'ADMIN')) {
+      return res.status(403).json({ error: 'Unauthorized to manage bids for this job.' });
     }
 
     const updatedBid = await prisma.bid.update({
       where: { id: bidId },
-      data: {
-        status: 'REJECTED'
-      }
+      data: { status: 'REJECTED' }
     });
 
-    return res.json({
-      success: true,
-      message: 'Proposal rejected',
-      bid: updatedBid
-    });
+    return res.json({ success: true, message: 'Proposal rejected', bid: updatedBid });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
