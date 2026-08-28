@@ -158,44 +158,58 @@ exports.submitDeliverable = async (req, res) => {
 exports.approveOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only the client can approve this order.' });
-    }
+    
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Acquire pessimistic lock on the exact row
+      const lockedOrders = await tx.$queryRaw`SELECT * FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
+      if (!lockedOrders || lockedOrders.length === 0) throw new Error("Order not found");
+      
+      const order = lockedOrders[0];
 
-    // Complete order and credit student wallet
-    const [updatedOrder, updatedWallet] = await prisma.$transaction([
-      prisma.order.update({
+      if (order.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+        throw new Error("FORBIDDEN: Only the client can approve this order.");
+      }
+      if (order.status === 'COMPLETED') {
+        throw new Error("BAD_REQUEST: Order is already completed.");
+      }
+
+      // 2. Perform safe, locked state transitions
+      const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: { status: 'COMPLETED' }
-      }),
-      prisma.wallet.upsert({
+      });
+
+      const updatedWallet = await tx.wallet.upsert({
         where: { userId: order.sellerId },
-        create: {
-          userId: order.sellerId,
-          availableBalance: order.sellerEarnings
-        },
-        update: {
-          availableBalance: { increment: order.sellerEarnings }
-        }
-      }),
-      prisma.user.update({
+        create: { userId: order.sellerId, availableBalance: order.sellerEarnings },
+        update: { availableBalance: { increment: order.sellerEarnings } }
+      });
+
+      await tx.user.update({
         where: { id: order.sellerId },
-        data: { points: { increment: 50 } } // +50 student reputation points
-      }),
-      prisma.notification.create({
+        data: { points: { increment: 50 } }
+      });
+
+      await tx.notification.create({
         data: {
           userId: order.sellerId,
           title: "Order Approved",
           message: `Your order has been approved and ₹${order.sellerEarnings} has been added to your wallet.`,
           type: "ORDER_APPROVED"
         }
-      })
-    ]);
+      });
 
-    res.json({ message: 'Order approved! ₹' + order.sellerEarnings + ' released to student wallet.', order: updatedOrder, wallet: updatedWallet });
+      return { updatedOrder, updatedWallet, sellerEarnings: order.sellerEarnings };
+    }, { maxWait: 2000, timeout: 5000 });
+
+    res.json({ 
+      message: 'Order approved! ₹' + result.sellerEarnings + ' released to student wallet.', 
+      order: result.updatedOrder, 
+      wallet: result.updatedWallet 
+    });
   } catch (err) {
+    if (err.message.includes('FORBIDDEN')) return res.status(403).json({ error: err.message.replace('FORBIDDEN: ', '') });
+    if (err.message.includes('BAD_REQUEST')) return res.status(400).json({ error: err.message.replace('BAD_REQUEST: ', '') });
     res.status(500).json({ error: err.message });
   }
 };
