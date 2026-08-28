@@ -14,6 +14,7 @@ router.delete('/:jobId', requireAuth, jobController.deleteJob);
 router.post('/:jobId/bid', requireAuth, jobController.submitBid);
 
 router.post('/:jobId/accept-bid/:bidId', requireAuth, jobController.acceptBid);
+router.post('/:jobId/cancel-hiring', requireAuth, jobController.cancelHiring);
 router.post('/:jobId/shortlist-bid/:bidId', requireAuth, jobController.shortlistBid);
 router.post('/:jobId/reject-bid/:bidId', requireAuth, jobController.rejectBid);
 module.exports = router;

@@ -139,6 +139,12 @@ exports.updateJob = async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to edit this job.' });
     }
 
+    if (!['DRAFT', 'OPEN'].includes((existingJob.status || '').toUpperCase())) {
+      return res.status(409).json({
+        error: 'This project can no longer be edited because hiring or project processing has started.'
+      });
+    }
+
     const {
       title,
       category,
@@ -411,6 +417,22 @@ exports.deleteJob = async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to delete this project.' });
     }
 
+    const activeOrder = await prisma.order.findFirst({
+      where: {
+        jobId,
+        status: {
+          not: 'CANCELLED_REFUNDED'
+        }
+      },
+      select: { id: true, status: true }
+    });
+
+    if (activeOrder) {
+      return res.status(409).json({
+        error: 'This project cannot be deleted because a hiring/order process already exists.'
+      });
+    }
+
     await prisma.job.delete({ where: { id: jobId } });
     res.json({ message: 'Job deleted successfully' });
   } catch (err) {
@@ -502,77 +524,310 @@ exports.submitBid = async (req, res) => {
   }
 };
 
-// 10. HARDENED ACCEPT BID (POST /api/jobs/:jobId/bids/:bidId/accept)
-// Solves: Fake escrow funding exploit by setting order status to PENDING_PAYMENT
+// 10. ATOMIC ACCEPT BID / HIRING RESERVATION
+// Rules:
+// - One job can have only one non-cancelled order.
+// - Hiring immediately closes the public listing.
+// - Selected proposal becomes HIRED.
+// - Job remains PENDING_PAYMENT until Razorpay confirms payment.
+// - Concurrent hire requests are serialized with a row lock.
 exports.acceptBid = async (req, res) => {
   try {
     const { jobId, bidId } = req.params;
 
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) return res.status(404).json({ error: 'Job not found' });
-    if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only the project owner can hire freelancers.' });
+    const job = await prisma.job.findUnique({
+      where: { id: jobId }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
     }
 
-    const bid = await prisma.bid.findUnique({ where: { id: bidId } });
-    if (!bid || bid.jobId !== jobId) return res.status(404).json({ error: 'Bid not found for this job' });
+    if (job.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'Only the project owner can hire freelancers.'
+      });
+    }
 
-    if (bid.proposedAmount <= 0) return res.status(400).json({ error: 'Invalid bid amount.' });
+    const bid = await prisma.bid.findUnique({
+      where: { id: bidId }
+    });
 
-    // 10% platform fee calculation
+    if (!bid || bid.jobId !== jobId) {
+      return res.status(404).json({
+        error: 'Bid not found for this job'
+      });
+    }
+
+    if (bid.proposedAmount <= 0) {
+      return res.status(400).json({
+        error: 'Invalid bid amount.'
+      });
+    }
+
     const platformFee = Number((bid.proposedAmount * 0.10).toFixed(2));
-    const sellerEarnings = Number((bid.proposedAmount - platformFee).toFixed(2));
+    const sellerEarnings = Number(
+      (bid.proposedAmount - platformFee).toFixed(2)
+    );
+
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + bid.deliveryDays);
 
-    // 1. GENERATE RAZORPAY ORDER FIRST
     const Razorpay = require('razorpay');
+
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET
     });
 
+    // Generate the external gateway order before DB reservation.
     const rzpOrder = await razorpay.orders.create({
-      amount: Math.round(bid.proposedAmount * 100), // Convert to paise
+      amount: Math.round(bid.proposedAmount * 100),
       currency: 'INR',
       receipt: `bid_${bid.id}`
     });
 
-    // 2. CREATE DATABASE TRANSACTION
-    const [order] = await prisma.$transaction([
-      prisma.order.create({
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock the Job row so two simultaneous hire requests
+      // cannot both reserve the same project.
+      const lockedJobs = await tx.$queryRaw`
+        SELECT * FROM "Job"
+        WHERE id = ${jobId}
+        FOR UPDATE
+      `;
+
+      if (!lockedJobs || lockedJobs.length === 0) {
+        throw new Error('NOT_FOUND: Job not found');
+      }
+
+      const lockedJob = lockedJobs[0];
+
+      if (
+        lockedJob.clientId !== req.user.id &&
+        req.user.role !== 'ADMIN'
+      ) {
+        throw new Error(
+          'FORBIDDEN: Only the project owner can hire freelancers.'
+        );
+      }
+
+      if (
+        String(lockedJob.status).toUpperCase() !== 'OPEN' ||
+        lockedJob.isOpen !== true
+      ) {
+        throw new Error(
+          'ALREADY_LOCKED: This project is already in hiring or processing and cannot accept another student.'
+        );
+      }
+
+      const existingActiveOrder = await tx.order.findFirst({
+        where: {
+          jobId,
+          status: {
+            not: 'CANCELLED_REFUNDED'
+          }
+        },
+        select: {
+          id: true,
+          status: true,
+          sellerId: true
+        }
+      });
+
+      if (existingActiveOrder) {
+        throw new Error(
+          'ALREADY_LOCKED: This project already has an active hiring/order process.'
+        );
+      }
+
+      const lockedBid = await tx.bid.findUnique({
+        where: { id: bidId }
+      });
+
+      if (!lockedBid || lockedBid.jobId !== jobId) {
+        throw new Error('NOT_FOUND: Bid not found for this job');
+      }
+
+      if (lockedBid.status === 'HIRED') {
+        throw new Error(
+          'ALREADY_LOCKED: This student has already been selected for the project.'
+        );
+      }
+
+      const order = await tx.order.create({
         data: {
-          clientId: job.clientId,
-          sellerId: bid.studentId,
-          jobId: job.id,
-          totalAmount: bid.proposedAmount,
+          clientId: lockedJob.clientId,
+          sellerId: lockedBid.studentId,
+          jobId: lockedJob.id,
+          totalAmount: lockedBid.proposedAmount,
           platformFee,
           sellerEarnings,
           status: 'PENDING_PAYMENT',
-          razorpayOrderId: rzpOrder.id, // Save securely
+          razorpayOrderId: rzpOrder.id,
           deadline
         }
-      }),
-      prisma.bid.update({
-        where: { id: bid.id },
-        data: { status: 'SHORTLISTED' }
-      })
-    ]);
+      });
 
-    // 3. RETURN REQUIRED FLAGS TO FRONTEND
+      await tx.bid.update({
+        where: { id: lockedBid.id },
+        data: { status: 'HIRED' }
+      });
+
+      await tx.job.update({
+        where: { id: lockedJob.id },
+        data: {
+          status: 'PENDING_PAYMENT',
+          isOpen: false
+        }
+      });
+
+      return { order };
+    });
+
     return res.json({
-      message: 'Freelancer selected! Please complete Razorpay checkout to fund escrow and lock hiring.',
+      message:
+        'Freelancer selected. Public hiring is now locked. Complete Razorpay checkout to fund escrow.',
       checkoutRequired: true,
       order: {
-        id: order.id,
+        id: result.order.id,
         razorpayOrderId: rzpOrder.id,
         totalAmount: bid.proposedAmount
       }
     });
-
   } catch (err) {
-    console.error("Accept Bid Error:", err);
-    return res.status(500).json({ error: 'Failed to accept bid and initiate escrow.' });
+    console.error('Accept Bid Error:', err);
+
+    if (err.message.startsWith('NOT_FOUND:')) {
+      return res.status(404).json({
+        error: err.message.replace('NOT_FOUND: ', '')
+      });
+    }
+
+    if (err.message.startsWith('FORBIDDEN:')) {
+      return res.status(403).json({
+        error: err.message.replace('FORBIDDEN: ', '')
+      });
+    }
+
+    if (err.message.startsWith('ALREADY_LOCKED:')) {
+      return res.status(409).json({
+        error: err.message.replace('ALREADY_LOCKED: ', '')
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to accept bid and initiate escrow.'
+    });
+  }
+};
+
+
+/**
+ * Cancel an unpaid hiring reservation and reopen the job.
+ * Safe only while the associated order is still PENDING_PAYMENT.
+ */
+exports.cancelHiring = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const lockedJobs = await tx.$queryRaw`
+        SELECT * FROM "Job"
+        WHERE id = ${jobId}
+        FOR UPDATE
+      `;
+
+      if (!lockedJobs || lockedJobs.length === 0) {
+        throw new Error('NOT_FOUND: Job not found');
+      }
+
+      const job = lockedJobs[0];
+
+      if (
+        job.clientId !== req.user.id &&
+        req.user.role !== 'ADMIN'
+      ) {
+        throw new Error(
+          'FORBIDDEN: Only the project owner can cancel the pending hire.'
+        );
+      }
+
+      const pendingOrder = await tx.order.findFirst({
+        where: {
+          jobId,
+          status: 'PENDING_PAYMENT'
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      if (!pendingOrder) {
+        throw new Error(
+          'BAD_REQUEST: No cancellable pending hiring reservation exists.'
+        );
+      }
+
+      await tx.order.update({
+        where: { id: pendingOrder.id },
+        data: { status: 'CANCELLED_REFUNDED' }
+      });
+
+      // Restore only the bid that belonged to the cancelled
+      // pending order. Order.id and Bid.id are different entities.
+      await tx.bid.updateMany({
+        where: {
+          jobId,
+          studentId: pendingOrder.sellerId,
+          status: 'HIRED'
+        },
+        data: {
+          status: 'PENDING'
+        }
+      });
+
+      const reopenedJob = await tx.job.update({
+        where: { id: jobId },
+        data: {
+          status: 'OPEN',
+          isOpen: true
+        }
+      });
+
+      return {
+        job: reopenedJob
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: 'Pending hiring cancelled and project reopened.',
+      job: result.job
+    });
+  } catch (err) {
+    console.error('Cancel Hiring Error:', err);
+
+    if (err.message.startsWith('NOT_FOUND:')) {
+      return res.status(404).json({
+        error: err.message.replace('NOT_FOUND: ', '')
+      });
+    }
+
+    if (err.message.startsWith('FORBIDDEN:')) {
+      return res.status(403).json({
+        error: err.message.replace('FORBIDDEN: ', '')
+      });
+    }
+
+    if (err.message.startsWith('BAD_REQUEST:')) {
+      return res.status(400).json({
+        error: err.message.replace('BAD_REQUEST: ', '')
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Failed to cancel pending hiring.'
+    });
   }
 };
 
@@ -582,6 +837,12 @@ exports.shortlistBid = async (req, res) => {
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job || (job.clientId !== req.user.id && req.user.role !== 'ADMIN')) {
       return res.status(403).json({ error: 'Unauthorized to manage bids for this job.' });
+    }
+
+    if (String(job.status || '').toUpperCase() !== 'OPEN' || job.isOpen !== true) {
+      return res.status(409).json({
+        error: 'This project is locked because hiring or payment processing has already started.'
+      });
     }
 
     const updatedBid = await prisma.bid.update({
@@ -602,6 +863,12 @@ exports.rejectBid = async (req, res) => {
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job || (job.clientId !== req.user.id && req.user.role !== 'ADMIN')) {
       return res.status(403).json({ error: 'Unauthorized to manage bids for this job.' });
+    }
+
+    if (String(job.status || '').toUpperCase() !== 'OPEN' || job.isOpen !== true) {
+      return res.status(409).json({
+        error: 'This project is locked because hiring or payment processing has already started.'
+      });
     }
 
     const updatedBid = await prisma.bid.update({

@@ -113,10 +113,14 @@ exports.submitDeliverable = async (req, res) => {
     const { orderId } = req.params;
     const { fileUrls, driveLinks, message } = req.body;
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.sellerId !== req.user.id) {
-      return res.status(403).json({ error: 'Only the assigned student freelancer can submit deliverables.' });
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, sellerId: req.user.id }
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Order not found or unauthorized'
+      });
     }
 
     const autoApproveAt = new Date();
@@ -219,9 +223,13 @@ exports.getMessages = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId }
-    });
+    const authBoundary = req.user?.role === 'admin' 
+    ? { id: orderId } 
+    : { id: orderId, OR: [{ clientId: req.user.id }, { sellerId: req.user.id }] };
+
+  const order = await prisma.order.findFirst({
+    where: authBoundary
+  });
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -266,9 +274,13 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'Message required' });
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId }
-    });
+    const authBoundary = req.user?.role === 'admin' 
+    ? { id: orderId } 
+    : { id: orderId, OR: [{ clientId: req.user.id }, { sellerId: req.user.id }] };
+
+  const order = await prisma.order.findFirst({
+    where: authBoundary
+  });
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });

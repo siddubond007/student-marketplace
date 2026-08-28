@@ -4,6 +4,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const prisma = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -25,10 +27,33 @@ const { moderateMessage } = require('./services/moderationService');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:5173', methods: ['GET', 'POST'], credentials: true }
 });
 
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+
+// 🛡️ OWASP Security Headers (crossOriginResourcePolicy: false allows serving static upload images)
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+// 🛡️ OWASP Rate Limiting to prevent Brute Force & DDoS
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 250, // Limit each IP to 250 requests per window
+  message: { error: 'Too many requests from this IP, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // Strict limit for login/registration attempts
+  message: { error: 'Too many authentication attempts, please try again later.' }
+});
+
+// Apply rate limiters
+app.use('/api', globalLimiter);
+app.use('/api/auth', authLimiter);
+
 
 // TEMP REQUEST DEBUG LOGGER
 app.use((req, res, next) => {
