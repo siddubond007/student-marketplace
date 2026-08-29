@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe, Clock3, MapPin, Languages, ShieldCheck, Bookmark, Share2 } from 'lucide-react';
 import API from '../services/api';
 
-export default function PublicJobDetailsPage() {
+export default function PublicJobDetailsPage({ currentUser }) {
   const { jobId } = useParams();
   const location = useLocation();
 
@@ -435,159 +435,217 @@ const expectedCompletionDate = Number(deliveryDays) > 0
 
           {/* Place a Bid Form Section */}
           <div id="bid-form" ref={bidFormRef} className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl mt-8 scroll-mt-24">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+            {currentUser && (job.clientId === currentUser.id || job.client?.id === currentUser.id) ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
+                <User className="text-blue-400" size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">This is your project</h2>
+              <p className="text-slate-400 max-w-md mx-auto mb-6">You are viewing the public listing for your own project.</p>
+            </div>
+          ) : job.viewerBid ? (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4">
+              <CheckCircle2 className="text-emerald-400" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">You've already applied</h2>
+            <p className="text-slate-400 max-w-md mx-auto mb-6">You submitted a proposal for this project on {formatDate(job.viewerBid.createdAt)}.</p>
+            <div className="inline-block text-left bg-slate-900/50 border border-white/5 rounded-2xl p-6 max-w-lg w-full">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs uppercase tracking-wider text-slate-500 font-bold">Your Bid Amount</span>
+                <span className="text-lg font-bold text-emerald-400">₹{Number(job.viewerBid.proposedAmount).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs uppercase tracking-wider text-slate-500 font-bold">Delivery Time</span>
+                <span className="text-sm font-semibold text-slate-200">{job.viewerBid.deliveryDays} Days</span>
+              </div>
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">Application</div>
-                <h2 className="text-xl font-bold text-white">Place a bid on this project</h2>
-                <p className="text-sm text-gray-400 mt-2">You will be able to edit your bid until the project is awarded to someone.</p>
-              </div>
-              <div className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 font-semibold shrink-0">
-                One proposal per applicant
+                <span className="text-xs uppercase tracking-wider text-slate-500 font-bold block mb-2">Cover Letter</span>
+                <p className="text-sm text-slate-300 line-clamp-3 whitespace-pre-wrap">{job.viewerBid.coverLetter}</p>
               </div>
             </div>
-
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="text-xs font-bold text-white">Be specific</div>
-                <div className="text-[11px] text-slate-500 mt-1">Explain exactly how you will solve the client's problem.</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="text-xs font-bold text-white">Show relevance</div>
-                <div className="text-[11px] text-slate-500 mt-1">Mention experience that directly matches this project.</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="text-xs font-bold text-white">Set expectations</div>
-                <div className="text-[11px] text-slate-500 mt-1">Give a realistic delivery estimate and clear scope.</div>
-              </div>
+          </div>
+        ) : (!job.isOpen || job.status !== 'OPEN') ? (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 mb-4">
+              <ShieldCheck className="text-red-400" size={32} />
             </div>
-
-            {toastMessage && (
-              <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                toastMessage.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-                  : 'bg-red-500/10 border-red-500/20 text-red-300'
-              }`}>
-                {toastMessage.text}
-              </div>
-            )}
-
-            <form onSubmit={handleBidSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Client budget</div>
-                  <div className="text-base font-bold text-white">{budgetSummary}</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Project type</div>
-                  <div className="text-base font-semibold text-slate-200">{projectTypeLabel}</div>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Proposals</div>
-                  <div className="text-base font-semibold text-amber-300">{job.bids?.length || 0}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Bid Amount */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Bid Amount</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₹</span>
-                    <input
-                      type="number"
-                      required
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value)}
-                      className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                {/* Delivery Time */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">This project will be delivered in</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      required
-                      value={deliveryDays}
-                      onChange={(e) => setDeliveryDays(e.target.value)}
-                      className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 pl-4 pr-16 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
-                      placeholder="7"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Days</span>
-                  </div>
-                </div>
-              </div>
-
-              {Number.isFinite(parsedBidAmount) && parsedBidAmount > 0 && (
-                <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/15 p-4">
-                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-3">Your bid preview</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Bid amount</div>
-                      <div className="text-base font-bold text-white mt-1">₹{parsedBidAmount.toLocaleString('en-IN')}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated platform fee</div>
-                      <div className="text-base font-semibold text-slate-300 mt-1">₹{estimatedPlatformFee.toLocaleString('en-IN')}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated earnings</div>
-                      <div className="text-base font-bold text-emerald-300 mt-1">₹{estimatedEarnings.toLocaleString('en-IN')}</div>
-                    </div>
-                  </div>
-                  {expectedCompletionDate && (
-                    <div className="mt-4 pt-3 border-t border-white/5 text-xs text-slate-400">
-                      Expected completion: <span className="text-slate-200 font-semibold">{expectedCompletionDate}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Proposal Description */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Describe your proposal</label>
-                  <span className={`text-xs ${proposalText.length < 100 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {proposalText.length}/2000 (Min 100)
-                  </span>
-                </div>
-                <textarea
-                  required
-                  value={proposalText}
-                  onChange={(e) => setProposalText(e.target.value)}
-                  maxLength={2000}
-                  rows={6}
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600 resize-y"
-                  placeholder="Introduce yourself, mention relevant experience, explain your approach, and tell the client why you are a strong fit..."
-                />
-              </div>
-
-              {/* Portfolio Link */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Portfolio / Previous Works Link</label>
-                <input
-                  type="url"
-                  value={portfolioLink}
-                  onChange={(e) => setPortfolioLink(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
-                  placeholder="https://your-portfolio.com or Google Drive link"
-                />
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || proposalText.length < 100}
-                  className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Place Bid'}
-                </button>
-              </div>
-            </form>
+            <h2 className="text-2xl font-bold text-white mb-2">Applications Closed</h2>
+            <p className="text-slate-400 max-w-md mx-auto">This project is no longer accepting new proposals.</p>
+          </div>
+        ) : !currentUser ? (
+          <div className="text-center py-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Sign in to apply</h2>
+            <p className="text-slate-400 max-w-md mx-auto mb-6">You need an account to submit a proposal for this project.</p>
+            <Link to="/login" className="inline-flex items-center justify-center py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+              Sign In / Register
+            </Link>
+          </div>
+        ) : currentUser.role !== 'STUDENT_FREELANCER' ? (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 mb-4">
+              <ShieldCheck className="text-amber-400" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Freelancer Account Required</h2>
+            <p className="text-slate-400 max-w-md mx-auto">Only student freelancer accounts can submit proposals on projects.</p>
+          </div>
+        ) : (
+          <>
+<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                          <div>
+                            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">Application</div>
+                            <h2 className="text-xl font-bold text-white">Place a bid on this project</h2>
+                            <p className="text-sm text-gray-400 mt-2">You will be able to edit your bid until the project is awarded to someone.</p>
+                          </div>
+                          <div className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 font-semibold shrink-0">
+                            One proposal per applicant
+                          </div>
+                        </div>
+            
+                        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                            <div className="text-xs font-bold text-white">Be specific</div>
+                            <div className="text-[11px] text-slate-500 mt-1">Explain exactly how you will solve the client's problem.</div>
+                          </div>
+                          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                            <div className="text-xs font-bold text-white">Show relevance</div>
+                            <div className="text-[11px] text-slate-500 mt-1">Mention experience that directly matches this project.</div>
+                          </div>
+                          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                            <div className="text-xs font-bold text-white">Set expectations</div>
+                            <div className="text-[11px] text-slate-500 mt-1">Give a realistic delivery estimate and clear scope.</div>
+                          </div>
+                        </div>
+            
+                        {toastMessage && (
+                          <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                            toastMessage.type === 'success'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                              : 'bg-red-500/10 border-red-500/20 text-red-300'
+                          }`}>
+                            {toastMessage.text}
+                          </div>
+                        )}
+            
+                        <form onSubmit={handleBidSubmit} className="space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                              <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Client budget</div>
+                              <div className="text-base font-bold text-white">{budgetSummary}</div>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                              <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Project type</div>
+                              <div className="text-base font-semibold text-slate-200">{projectTypeLabel}</div>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                              <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Proposals</div>
+                              <div className="text-base font-semibold text-amber-300">{job.bids?.length || 0}</div>
+                            </div>
+                          </div>
+            
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {/* Bid Amount */}
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Bid Amount</label>
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₹</span>
+                                <input
+                                  type="number"
+                                  required
+                                  value={bidAmount}
+                                  onChange={(e) => setBidAmount(e.target.value)}
+                                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+            
+                            {/* Delivery Time */}
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">This project will be delivered in</label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  required
+                                  value={deliveryDays}
+                                  onChange={(e) => setDeliveryDays(e.target.value)}
+                                  className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 pl-4 pr-16 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
+                                  placeholder="7"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Days</span>
+                              </div>
+                            </div>
+                          </div>
+            
+                          {Number.isFinite(parsedBidAmount) && parsedBidAmount > 0 && (
+                            <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/15 p-4">
+                              <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-3">Your bid preview</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Bid amount</div>
+                                  <div className="text-base font-bold text-white mt-1">₹{parsedBidAmount.toLocaleString('en-IN')}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated platform fee</div>
+                                  <div className="text-base font-semibold text-slate-300 mt-1">₹{estimatedPlatformFee.toLocaleString('en-IN')}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated earnings</div>
+                                  <div className="text-base font-bold text-emerald-300 mt-1">₹{estimatedEarnings.toLocaleString('en-IN')}</div>
+                                </div>
+                              </div>
+                              {expectedCompletionDate && (
+                                <div className="mt-4 pt-3 border-t border-white/5 text-xs text-slate-400">
+                                  Expected completion: <span className="text-slate-200 font-semibold">{expectedCompletionDate}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+            
+                          {/* Proposal Description */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Describe your proposal</label>
+                              <span className={`text-xs ${proposalText.length < 100 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {proposalText.length}/2000 (Min 100)
+                              </span>
+                            </div>
+                            <textarea
+                              required
+                              value={proposalText}
+                              onChange={(e) => setProposalText(e.target.value)}
+                              maxLength={2000}
+                              rows={6}
+                              className="w-full bg-slate-900/50 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600 resize-y"
+                              placeholder="Introduce yourself, mention relevant experience, explain your approach, and tell the client why you are a strong fit..."
+                            />
+                          </div>
+            
+                          {/* Portfolio Link */}
+                          <div className="space-y-2">
+                            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Portfolio / Previous Works Link</label>
+                            <input
+                              type="url"
+                              value={portfolioLink}
+                              onChange={(e) => setPortfolioLink(e.target.value)}
+                              className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600"
+                              placeholder="https://your-portfolio.com or Google Drive link"
+                            />
+                          </div>
+            
+                          <div className="flex justify-end pt-2">
+                            <button
+                              type="submit"
+                              disabled={isSubmitting || proposalText.length < 100}
+                              className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                            >
+                              {isSubmitting ? 'Submitting...' : 'Place Bid'}
+                            </button>
+                          </div>
+                        </form>
+          </>
+        )}
           </div>
 
         </div>
@@ -694,7 +752,7 @@ const expectedCompletionDate = Number(deliveryDays) > 0
                     onClick={scrollToBidForm}
                     className="flex items-center justify-center w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                   >
-                    Bid on this project
+                    {currentUser && (job.clientId === currentUser.id || job.client?.id === currentUser.id) ? 'View Project' : job.viewerBid ? 'View your proposal' : (!job.isOpen || job.status !== 'OPEN') ? 'Applications closed' : 'Bid on this project'}
                   </a>
                 </div>
               </div>
