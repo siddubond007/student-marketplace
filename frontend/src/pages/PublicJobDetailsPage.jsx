@@ -16,6 +16,8 @@ export default function PublicJobDetailsPage() {
   const [proposalText, setProposalText] = useState('');
   const [portfolioLink, setPortfolioLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
   
   const bidFormRef = useRef(null);
 
@@ -79,91 +81,92 @@ export default function PublicJobDetailsPage() {
     }
   };
 
-  if (loading) {
-  const formatEnumLabel = (value, fallback = 'Not specified') => {
-    if (!value) return fallback;
-    return String(value)
-      .toLowerCase()
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
-  };
+const formatEnumLabel = (value, fallback = 'Not specified') => {
+  if (!value) return fallback;
+  return String(value)
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
 
-  const projectTypeLabel = formatEnumLabel(job.projectType, 'One-time project');
-  const timelineLabel = formatEnumLabel(job.timeline, 'Flexible');
-  const startLabel = job.startPreference === 'SPECIFIC_DATE' && job.startDate
-    ? new Date(job.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    : formatEnumLabel(job.startPreference, 'As soon as possible');
-  const locationLabel = job.locationPreferences || 'Anywhere in India';
-  const languagesLabel = job.languagePreferences || 'English';
-  const postedLabel = job.createdAt
-    ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'Recently';
+const projectTypeLabel = formatEnumLabel(job?.projectType, 'One-time project');
+const timelineLabel = formatEnumLabel(job?.timeline, 'Flexible');
+const startLabel = job?.startPreference === 'SPECIFIC_DATE' && job?.startDate
+  ? new Date(job.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  : formatEnumLabel(job?.startPreference, 'As soon as possible');
+const locationLabel = job?.locationPreferences || 'Anywhere in India';
+const languagesLabel = job?.languagePreferences || 'English';
+const postedLabel = job?.createdAt
+  ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  : 'Recently';
 
-  const handleShareProject = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: job.title,
-          text: 'Check out this project on SkillLaunch',
-          url: window.location.href
-        });
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(window.location.href);
-        setToastMessage({ text: 'Project link copied to clipboard.', type: 'success' });
-      }
-    } catch (error) {
-      if (error?.name !== 'AbortError') {
-        setToastMessage({ text: 'Unable to share this project right now.', type: 'error' });
-      }
+const handleShareProject = async () => {
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: job.title,
+        text: 'Check out this project on SkillLaunch',
+        url: window.location.href
+      });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+      setToastMessage({ text: 'Project link copied to clipboard.', type: 'success' });
     }
-  };
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      setToastMessage({ text: 'Unable to share this project right now.', type: 'error' });
+    }
+  }
+};
 
-  const formatDate = (value) => {
-    if (!value) return 'Not specified';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Not specified';
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
+const formatDate = (value) => {
+  if (!value) return 'Not specified';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not specified';
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
-  const budgetTypeLabel = formatEnumLabel(job.budgetType, 'Budget');
-  const budgetSummary = String(job.budgetType || '').toUpperCase() === 'FIXED'
-    ? `${job.currency || 'INR'} ${Number(job.fixedBudget ?? job.budget ?? 0).toLocaleString('en-IN')}`
-    : job.minimumBudget != null && job.maximumBudget != null
-      ? `${job.currency || 'INR'} ${Number(job.minimumBudget).toLocaleString('en-IN')} - ${Number(job.maximumBudget).toLocaleString('en-IN')}`
-      : `${job.currency || 'INR'} ${Number(job.budget ?? 0).toLocaleString('en-IN')}`;
+const budgetTypeLabel = formatEnumLabel(job?.budgetType, 'Budget');
+const budgetSummary = String(job?.budgetType || '').toUpperCase() === 'FIXED'
+  ? `${job?.currency || 'INR'} ${Number(job?.fixedBudget ?? job?.budget ?? 0).toLocaleString('en-IN')}`
+  : job?.minimumBudget != null && job?.maximumBudget != null
+    ? `${job?.currency || 'INR'} ${Number(job?.minimumBudget).toLocaleString('en-IN')} - ${Number(job?.maximumBudget).toLocaleString('en-IN')}`
+    : `${job?.currency || 'INR'} ${Number(job?.budget ?? 0).toLocaleString('en-IN')}`;
 
-  const startSummary = job.startPreference === 'SPECIFIC_DATE'
-    ? formatDate(job.startDate)
-    : startLabel;
+const startSummary = job?.startPreference === 'SPECIFIC_DATE'
+  ? formatDate(job?.startDate)
+  : startLabel;
 
-  const deadlineSummary = job.deadlineType === 'SPECIFIC_DATE'
-    ? formatDate(job.deadlineDate)
-    : formatEnumLabel(job.deadlineType || job.timeline, 'Flexible');
+const deadlineSummary = job?.deadlineType === 'SPECIFIC_DATE'
+  ? formatDate(job?.deadlineDate)
+  : formatEnumLabel(job?.deadlineType || job?.timeline, 'Flexible');
 
-  const locationParts = [job.preferredState, job.preferredCity].filter(Boolean);
-  const displayLocation = locationParts.length
-    ? locationParts.join(', ')
-    : (job.locationPreferences || 'Anywhere in India');
+const locationParts = [job?.preferredState, job?.preferredCity].filter(Boolean);
+const displayLocation = locationParts.length
+  ? locationParts.join(', ')
+  : (job?.locationPreferences || 'Anywhere in India');
 
-  const displayLanguages = Array.isArray(job.preferredLanguages) && job.preferredLanguages.length
-    ? job.preferredLanguages.join(', ')
-    : (job.languagePreferences || 'English');
+const displayLanguages = Array.isArray(job?.preferredLanguages) && job?.preferredLanguages.length
+  ? job?.preferredLanguages.join(', ')
+  : (job?.languagePreferences || 'English');
 
-  const parsedBidAmount = Number(bidAmount);
-  const estimatedPlatformFee = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
-    ? Number((parsedBidAmount * 0.10).toFixed(2))
-    : 0;
-  const estimatedEarnings = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
-    ? Number((parsedBidAmount - estimatedPlatformFee).toFixed(2))
-    : 0;
-  const expectedCompletionDate = Number(deliveryDays) > 0
-    ? (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + Number(deliveryDays));
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      })()
-    : null;
+const parsedBidAmount = Number(bidAmount);
+const estimatedPlatformFee = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
+  ? Number((parsedBidAmount * 0.10).toFixed(2))
+  : 0;
+const estimatedEarnings = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
+  ? Number((parsedBidAmount - estimatedPlatformFee).toFixed(2))
+  : 0;
+const expectedCompletionDate = Number(deliveryDays) > 0
+  ? (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + Number(deliveryDays));
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    })()
+  : null;
 
+
+  if (loading) {
   return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
