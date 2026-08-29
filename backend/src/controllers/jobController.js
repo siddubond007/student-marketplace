@@ -827,6 +827,20 @@ exports.cancelHiring = async (req, res) => {
         data: { status: 'CANCELLED_REFUNDED' }
       });
 
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId: pendingOrder.id,
+          actorId: req.user.id,
+          type: 'ORDER_CANCELLED',
+          message: 'Pending payment hiring reservation was cancelled.',
+          source: 'JOB_CONTROLLER',
+          metadata: {
+            cancellationType: 'PENDING_PAYMENT_RESERVATION',
+            financialOutcome: 'NO_CAPTURE_CONFIRMED'
+          }
+        }
+      });
+
       return {
         job: job
       };
