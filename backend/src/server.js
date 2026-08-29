@@ -26,8 +26,27 @@ const { moderateMessage } = require('./services/moderationService');
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = new Set([
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://192.168.1.75:5173',
+  'http://192.168.1.75:5174'
+].filter(Boolean));
+
 const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:5173', methods: ['GET', 'POST'], credentials: true }
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Socket origin not allowed'));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
@@ -93,32 +112,203 @@ app.get('/api/health', (req, res) => {
 });
 
 // Socket.io Realtime Chat
-io.on('connection', (socket) => {
-  const userId = socket.handshake.query.userId;
-  if (userId) socket.join(`user_${userId}`);
+const jwt = require('jsonwebtoken');
 
-  socket.on('join_order_room', (orderId) => {
-    socket.join(`order_${orderId}`);
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'secret'
+    );
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        role: true,
+        isSuspended: true,
+        suspendedUntil: true
+      }
+    });
+
+    if (!user) {
+      return next(new Error('User not found'));
+    }
+
+    if (user.isSuspended) {
+      return next(new Error('Account suspended'));
+    }
+
+    if (
+      user.suspendedUntil &&
+      new Date(user.suspendedUntil) > new Date()
+    ) {
+      return next(new Error('Account temporarily suspended'));
+    }
+
+    socket.user = user;
+    next();
+  } catch (error) {
+    next(new Error('Invalid or expired session'));
+  }
+});
+
+io.on('connection', (socket) => {
+  const userId = socket.user.id;
+
+  socket.join(`user_${userId}`);
+
+  socket.on('join_order_room', async (orderId) => {
+    try {
+      if (!orderId || typeof orderId !== 'string') {
+        return socket.emit('order_room_denied', {
+          error: 'Invalid order reference.'
+        });
+      }
+
+      const order = await prisma.order.findFirst({
+        where:
+          socket.user.role === 'ADMIN'
+            ? { id: orderId }
+            : {
+                id: orderId,
+                OR: [
+                  { clientId: socket.user.id },
+                  { sellerId: socket.user.id }
+                ]
+              },
+        select: {
+          id: true
+        }
+      });
+
+      if (!order) {
+        return socket.emit('order_room_denied', {
+          error: 'You are not authorized to access this order.'
+        });
+      }
+
+      socket.join(`order_${orderId}`);
+
+      socket.emit('order_room_joined', { orderId });
+    } catch (error) {
+      console.error('Socket order room authorization error:', error.message);
+      socket.emit('order_room_denied', {
+        error: 'Unable to authorize this order.'
+      });
+    }
   });
 
   socket.on('send_chat_message', async (data) => {
-    const { orderId, senderId, recipientId, content, fileUrl } = data;
-    const check = await moderateMessage(content);
+    try {
+      const {
+        orderId,
+        content,
+        fileUrl
+      } = data || {};
 
-    if (!check.isAllowed) {
-      await prisma.moderationLog.create({
-        data: { senderId, flaggedText: content, violationType: check.reason, confidence: 0.95 }
+      if (!orderId || typeof orderId !== 'string') {
+        return socket.emit('message_error', {
+          error: 'Invalid order reference.'
+        });
+      }
+
+      const order = await prisma.order.findFirst({
+        where:
+          socket.user.role === 'ADMIN'
+            ? { id: orderId }
+            : {
+                id: orderId,
+                OR: [
+                  { clientId: socket.user.id },
+                  { sellerId: socket.user.id }
+                ]
+              },
+        select: {
+          id: true,
+          clientId: true,
+          sellerId: true
+        }
       });
-      return socket.emit('message_blocked', { warning: check.warning, blockedText: content });
+
+      if (!order) {
+        return socket.emit('message_error', {
+          error: 'You are not authorized to message this order.'
+        });
+      }
+
+      const recipientId =
+        socket.user.id === order.clientId
+          ? order.sellerId
+          : order.clientId;
+
+      const safeContent =
+        typeof content === 'string' ? content.trim() : '';
+
+      const safeFileUrl =
+        typeof fileUrl === 'string' && fileUrl.trim()
+          ? fileUrl.trim()
+          : null;
+
+      if (!safeContent && !safeFileUrl) {
+        return socket.emit('message_error', {
+          error: 'Message or attachment required.'
+        });
+      }
+
+      const check = await moderateMessage(safeContent);
+
+      if (!check.isAllowed) {
+        await prisma.moderationLog.create({
+          data: {
+            senderId: socket.user.id,
+            flaggedText: safeContent,
+            violationType: check.reason,
+            confidence: 0.95
+          }
+        });
+
+        return socket.emit('message_blocked', {
+          warning: check.warning,
+          blockedText: safeContent
+        });
+      }
+
+      const message = await prisma.message.create({
+        data: {
+          orderId,
+          senderId: socket.user.id,
+          recipientId,
+          content: safeContent,
+          fileUrl: safeFileUrl
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          }
+        }
+      });
+
+      io.to(`order_${orderId}`).emit('new_message', message);
+    } catch (error) {
+      console.error('Socket message error:', error.message);
+      socket.emit('message_error', {
+        error: 'Failed to send message.'
+      });
     }
-
-    const message = await prisma.message.create({
-      data: { orderId, senderId, recipientId, content, fileUrl }
-    });
-
-    io.to(`order_${orderId}`).emit('new_message', message);
   });
 });
+
+app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

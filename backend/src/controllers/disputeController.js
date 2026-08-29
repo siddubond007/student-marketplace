@@ -163,7 +163,24 @@ exports.resolveDispute = async (req, res) => {
 
     if (decision === 'RELEASE_TO_SELLER') {
 
+      const latestDeliverable = await prisma.deliverable.findFirst({
+        where: { orderId: dispute.orderId },
+        orderBy: { version: 'desc' },
+        select: { id: true, version: true }
+      });
+
       await prisma.$transaction([
+        ...(latestDeliverable ? [
+          prisma.deliverable.update({
+            where: { id: latestDeliverable.id },
+            data: {
+              reviewStatus: 'DISPUTE_RESOLVED',
+              reviewedAt: new Date(),
+              reviewedById: req.user.id
+            }
+          })
+        ] : []),
+
         prisma.order.update({
           where: { id: dispute.orderId },
           data: { status: 'COMPLETED' }

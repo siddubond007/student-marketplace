@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft, Paperclip, X, History } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft, Paperclip, X, History, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
+import { io as createSocket } from 'socket.io-client';
 
 export default function OrderWorkspacePage({ currentUser }) {
   const { orderId } = useParams();
@@ -16,6 +17,8 @@ export default function OrderWorkspacePage({ currentUser }) {
     { sender: 'System', text: 'Welcome to Order Workspace. Realtime AI chat filter active.' }
   ]);
   const [chatWarning, setChatWarning] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
+  const chatPanelRef = useRef(null);
 
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
@@ -38,6 +41,17 @@ export default function OrderWorkspacePage({ currentUser }) {
   const canApprove = isClient && order?.status === 'DELIVERED';
 
   useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setChatOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  useEffect(() => {
     API.get(`/orders/${orderId}`)
       .then(res => {
         if (res.data) setOrder(res.data);
@@ -48,6 +62,8 @@ export default function OrderWorkspacePage({ currentUser }) {
       .then(res => {
         setChatMessages(
           res.data.map(m => ({
+            id: m.id,
+            senderId: m.senderId,
             sender: m.sender?.fullName || 'User',
             text: m.content,
             fileUrl: m.fileUrl
@@ -56,6 +72,95 @@ export default function OrderWorkspacePage({ currentUser }) {
       })
       .catch(() => {});
   }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId || !currentUser?.id) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const socketBaseUrl =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : window.location.hostname === '192.168.1.75'
+          ? 'http://192.168.1.75:5000'
+          : (import.meta.env.VITE_SOCKET_URL ||
+             import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') ||
+             'https://student-marketplace-kg2f.onrender.com');
+
+    const socket = createSocket(socketBaseUrl, {
+      auth: {
+        token
+      }
+    });
+
+    const handleNewMessage = (message) => {
+      if (!message || message.orderId !== orderId) return;
+
+      setChatMessages(prev => {
+        const messageId = message.id;
+        if (messageId && prev.some(item => item.id === messageId)) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          {
+            id: message.id,
+            senderId: message.senderId,
+            sender: message.sender?.fullName || (
+              message.senderId === currentUser.id ? 'You' : 'User'
+            ),
+            text: message.content || '',
+            fileUrl: message.fileUrl || null
+          }
+        ];
+      });
+    };
+
+    const handleMessageBlocked = (data) => {
+      setChatWarning(
+        data?.warning ||
+        'This message was blocked by the safety filter.'
+      );
+      setTimeout(() => setChatWarning(''), 6000);
+    };
+
+    socket.on('connect', () => {
+      socket.emit('join_order_room', orderId);
+    });
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('message_blocked', handleMessageBlocked);
+
+    socket.on('connect_error', (error) => {
+      setChatWarning(
+        error?.message || 'Realtime chat connection failed.'
+      );
+      setTimeout(() => setChatWarning(''), 6000);
+    });
+
+    socket.on('order_room_denied', (data) => {
+      setChatWarning(
+        data?.error || 'You are not authorized to access this order.'
+      );
+      setTimeout(() => setChatWarning(''), 6000);
+    });
+
+    socket.on('message_error', (data) => {
+      setChatWarning(
+        data?.error || 'Failed to send message.'
+      );
+      setTimeout(() => setChatWarning(''), 6000);
+    });
+
+    return () => {
+      socket.off('new_message', handleNewMessage);
+      socket.off('message_blocked', handleMessageBlocked);
+      socket.disconnect();
+    };
+  }, [orderId, currentUser?.id]);
 
   const handleDeliver = async (e) => {
     e.preventDefault();
@@ -207,15 +312,6 @@ export default function OrderWorkspacePage({ currentUser }) {
         fileUrl: chatAttachment?.url || null
       });
 
-      setChatMessages(prev => [
-        ...prev,
-        {
-          sender: res.data.sender?.fullName || 'You',
-          text: res.data.content,
-          fileUrl: res.data.fileUrl
-        }
-      ]);
-
       setChatInput('');
       setChatAttachment(null);
     } catch (err) {
@@ -342,6 +438,20 @@ export default function OrderWorkspacePage({ currentUser }) {
           </div>
 
           <div className="flex flex-wrap lg:justify-end gap-3">
+            {(isClient || isSeller) && (
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="px-4 py-3 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20 transition-colors flex items-center gap-2"
+                aria-label="Open collaboration chat"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Chat
+                </span>
+              </button>
+            )}
+
             <div className={`px-4 py-3 rounded-2xl border ${toneClasses[meta.tone]}`}>
               <div className="text-[9px] font-black uppercase tracking-widest opacity-70">
                 Current Status
@@ -357,7 +467,13 @@ export default function OrderWorkspacePage({ currentUser }) {
                 {order?.totalAmount != null ? `₹${Number(order.totalAmount).toLocaleString('en-IN')}` : '—'}
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">
-                {isFunded ? 'Held in escrow' : 'Payment pending'}
+                {order?.status === 'COMPLETED'
+                  ? 'Payout released'
+                  : order?.status === 'CANCELLED_REFUNDED'
+                    ? 'Order closed'
+                    : isFunded
+                      ? 'Held in escrow'
+                      : 'Payment pending'}
               </div>
             </div>
 
@@ -385,9 +501,21 @@ export default function OrderWorkspacePage({ currentUser }) {
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5">
-          <div className="text-[10px] font-black uppercase tracking-widest text-indigo-300">
-            Action Required
+        <div className={`p-5 rounded-2xl border ${
+          order?.status === 'COMPLETED'
+            ? 'border-emerald-500/20 bg-emerald-500/5'
+            : order?.status === 'DISPUTED'
+              ? 'border-red-500/20 bg-red-500/5'
+              : 'border-indigo-500/20 bg-indigo-500/5'
+        }`}>
+          <div className={`text-[10px] font-black uppercase tracking-widest ${
+            order?.status === 'COMPLETED'
+              ? 'text-emerald-300'
+              : order?.status === 'DISPUTED'
+                ? 'text-red-300'
+                : 'text-indigo-300'
+          }`}>
+            {order?.status === 'COMPLETED' ? 'Transaction Complete' : 'Action Required'}
           </div>
           <div className="text-lg font-black text-white mt-1">{meta.next}</div>
 
@@ -723,9 +851,11 @@ export default function OrderWorkspacePage({ currentUser }) {
                         ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
                         : d.reviewStatus === 'APPROVED'
                           ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          : d.reviewStatus === 'DISPUTED'
+                          : d.reviewStatus === 'DISPUTE_RESOLVED'
                             ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                            : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300';
+                            : d.reviewStatus === 'DISPUTED'
+                              ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                              : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300';
 
                       return (
                         <div key={d.id || index} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
@@ -919,9 +1049,11 @@ export default function OrderWorkspacePage({ currentUser }) {
                       ? 'Order is cancelled/refunded.'
                       : order?.status === 'DISPUTED'
                         ? 'Order is disputed; funds remain subject to the dispute outcome.'
-                        : order?.transfer?.status === 'RELEASED'
-                          ? 'Escrow released to the freelancer.'
-                          : 'Payment verified and funds are secured in escrow.'}
+                        : order?.status === 'COMPLETED'
+                          ? 'Escrow has been released and the payout has been finalized.'
+                          : order?.transfer?.status === 'RELEASED'
+                            ? 'Escrow released to the freelancer.'
+                            : 'Payment verified and funds are secured in escrow.'}
                 </div>
               </div>
 
@@ -1230,102 +1362,6 @@ export default function OrderWorkspacePage({ currentUser }) {
 
       <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
         <div className="p-4 bg-slate-900 border-b border-slate-800 text-xs font-bold text-white flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>AI Monitored Escrow Chat</span>
-        </div>
-
-        <div className="h-[360px] p-4 overflow-y-auto space-y-2 text-xs bg-slate-950/40">
-          {chatMessages.map((m, i) => {
-            const mine = m.sender === currentUser?.fullName;
-            return (
-              <div key={i} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-                <div className={`text-[10px] mb-1 ${mine ? 'text-cyan-300' : 'text-slate-400'}`}>
-                  {m.sender}
-                </div>
-                <div className={`p-2.5 rounded-xl max-w-xl ${
-                  mine ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-300'
-                }`}>
-                  {m.text && <div>{m.text}</div>}
-
-                  {m.fileUrl && (
-                    <a
-                      href={m.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 flex items-center gap-2 text-[10px] font-bold underline break-all"
-                    >
-                      <Paperclip className="w-3.5 h-3.5 shrink-0" />
-                      Open attachment
-                    </a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {chatWarning && (
-            <div className="p-2 bg-red-500/20 text-red-300 rounded-xl text-xs">
-              {chatWarning}
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 bg-slate-900 space-y-2">
-          {chatAttachment && (
-            <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-950 border border-indigo-500/20">
-              <div className="flex items-center gap-2 min-w-0">
-                <Paperclip className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span className="text-[10px] text-slate-300 truncate">
-                  {chatAttachment.name}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setChatAttachment(null)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10"
-                aria-label="Remove attachment"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <label className={`px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-indigo-400 cursor-pointer ${
-              chatUploading ? 'opacity-50 pointer-events-none' : ''
-            }`}>
-              <Paperclip className="w-4 h-4" />
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleChatAttachmentChange}
-                disabled={chatUploading}
-              />
-            </label>
-
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder={chatUploading ? 'Uploading attachment...' : 'Message...'}
-              disabled={chatUploading}
-              className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none disabled:opacity-50"
-            />
-
-            <button
-              type="submit"
-              disabled={chatUploading || (!chatInput.trim() && !chatAttachment?.url)}
-              className="px-4 py-2 neon-airflow-btn text-white rounded-xl text-xs font-bold disabled:opacity-40"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
-        <div className="p-4 bg-slate-900 border-b border-slate-800 text-xs font-bold text-white flex items-center gap-2">
           <History className="w-4 h-4 text-indigo-400" />
           <span>Activity Timeline</span>
         </div>
@@ -1460,6 +1496,163 @@ export default function OrderWorkspacePage({ currentUser }) {
           </div>
         </div>
       )}
+      {(isClient || isSeller) && (
+        <>
+          {!chatOpen && (
+            <button
+              type="button"
+              onClick={() => setChatOpen(true)}
+              className="fixed right-5 bottom-5 z-50 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl shadow-indigo-900/40 flex items-center justify-center transition-transform hover:scale-105"
+              aria-label="Open collaboration chat"
+              title="Open collaboration chat"
+            >
+              <MessageCircle className="w-6 h-6" />
+            </button>
+          )}
+
+          {chatOpen && (
+            <>
+              <button
+                type="button"
+                onClick={() => setChatOpen(false)}
+                className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] cursor-default"
+                aria-label="Minimize collaboration chat"
+              />
+
+              <section
+                ref={chatPanelRef}
+                className="fixed right-5 bottom-5 z-50 w-[min(430px,calc(100vw-2rem))] h-[min(640px,calc(100vh-8rem))] min-h-[420px] glass-panel rounded-3xl border border-slate-700 shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
+              >
+                <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-white truncate">
+                        Collaboration Chat
+                      </div>
+                      <div className="text-[9px] text-slate-500 mt-0.5">
+                        Order conversation
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setChatOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                    aria-label="Minimize chat"
+                    title="Minimize chat"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 min-h-0 p-4 overflow-y-auto space-y-2 text-xs bg-slate-950/70">
+                  {chatMessages.map((m, i) => {
+                    const mine = m.senderId === currentUser?.id;
+                    return (
+                      <div key={i} className={`flex w-full ${mine ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`flex flex-col max-w-[78%] ${mine ? 'items-end' : 'items-start'}`}>
+                          {!mine && (
+                            <div className="text-[10px] mb-1 px-1 text-slate-400">
+                              {m.sender}
+                            </div>
+                          )}
+
+                          <div className={`p-2.5 rounded-2xl ${
+                            mine
+                              ? 'bg-indigo-600 text-white rounded-br-md'
+                              : 'bg-slate-900 text-slate-300 rounded-bl-md'
+                          }`}>
+                            {m.text && (
+                              <div className="whitespace-pre-wrap break-words">{m.text}</div>
+                            )}
+
+                            {m.fileUrl && (
+                              <a
+                                href={m.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-2 flex items-center gap-2 text-[10px] font-bold underline break-all"
+                              >
+                                <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                                Open attachment
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {chatWarning && (
+                    <div className="p-2 bg-red-500/20 text-red-300 rounded-xl text-xs">
+                      {chatWarning}
+                    </div>
+                  )}
+                </div>
+
+                <form
+                  onSubmit={handleSendMessage}
+                  className="p-3 border-t border-slate-800 bg-slate-900 space-y-2 shrink-0"
+                >
+                  {chatAttachment && (
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-950 border border-indigo-500/20">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <span className="text-[10px] text-slate-300 truncate">
+                          {chatAttachment.name}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setChatAttachment(null)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                        aria-label="Remove attachment"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <label className={`px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-indigo-400 cursor-pointer ${
+                      chatUploading ? 'opacity-50 pointer-events-none' : ''
+                    }`}>
+                      <Paperclip className="w-4 h-4" />
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleChatAttachmentChange}
+                        disabled={chatUploading}
+                      />
+                    </label>
+
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      placeholder={chatUploading ? 'Uploading attachment...' : 'Message...'}
+                      disabled={chatUploading}
+                      className="flex-1 min-w-0 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none disabled:opacity-50"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={chatUploading || (!chatInput.trim() && !chatAttachment?.url)}
+                      className="px-4 py-2 neon-airflow-btn text-white rounded-xl text-xs font-bold disabled:opacity-40"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </>
+          )}
+        </>
+      )}
+
     </div>
   );
 }

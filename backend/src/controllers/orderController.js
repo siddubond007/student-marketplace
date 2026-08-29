@@ -863,6 +863,11 @@ exports.sendMessage = async (req, res) => {
       }
     });
 
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${orderId}`).emit('new_message', message);
+    }
+
     res.status(201).json(message);
   } catch (err) {
     res.status(500).json({ error: err.message });
