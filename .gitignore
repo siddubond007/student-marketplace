@@ -13,3 +13,6 @@ backend.log
 *.pre-modal
 *.before-modal-replace
 .checkpoints/
+
+# Runtime upload staging
+backend/uploads_temp/
