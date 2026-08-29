@@ -77,17 +77,39 @@ exports.createReview = async (req, res) => {
       });
     }
 
-    const review = await prisma.review.create({
-      data: {
-        orderId,
-        reviewerId: req.user.id,
-        revieweeId,
-        overallRating,
-        communicationRating,
-        qualityRating,
-        timelinessRating,
-        comment
-      }
+    const review = await prisma.$transaction(async (tx) => {
+      const createdReview = await tx.review.create({
+        data: {
+          orderId,
+          reviewerId: req.user.id,
+          revieweeId,
+          overallRating,
+          communicationRating,
+          qualityRating,
+          timelinessRating,
+          comment: comment.trim()
+        }
+      });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'REVIEW_SUBMITTED',
+          message: `Review submitted with ${overallRating}/5 overall rating.`,
+          source: 'REVIEW_CONTROLLER',
+          metadata: {
+            reviewId: createdReview.id,
+            revieweeId,
+            overallRating,
+            communicationRating,
+            qualityRating,
+            timelinessRating
+          }
+        }
+      });
+
+      return createdReview;
     });
 
     const reviewer = await prisma.user.findUnique({

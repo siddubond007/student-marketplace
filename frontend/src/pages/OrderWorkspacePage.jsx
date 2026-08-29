@@ -22,6 +22,14 @@ export default function OrderWorkspacePage({ currentUser }) {
   const [disputeEvidence, setDisputeEvidence] = useState('');
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [revisionReason, setRevisionReason] = useState('');
+  const [reviewForm, setReviewForm] = useState({
+    overallRating: 5,
+    communicationRating: 5,
+    qualityRating: 5,
+    timelinessRating: 5,
+    comment: ''
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
@@ -91,6 +99,39 @@ export default function OrderWorkspacePage({ currentUser }) {
       window.location.reload();
     } catch (err) {
       alert(err?.response?.data?.error || 'Failed to request revision.');
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (order?.status !== 'COMPLETED') {
+      alert('Reviews can only be submitted after the order is completed.');
+      return;
+    }
+
+    if (!reviewForm.comment.trim() || reviewForm.comment.trim().length < 10) {
+      alert('Please write at least 10 characters about your experience.');
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+
+      await API.post(`/reviews/${orderId}`, {
+        overallRating: Number(reviewForm.overallRating),
+        communicationRating: Number(reviewForm.communicationRating),
+        qualityRating: Number(reviewForm.qualityRating),
+        timelinessRating: Number(reviewForm.timelinessRating),
+        comment: reviewForm.comment.trim()
+      });
+
+      alert('Review submitted successfully.');
+      window.location.reload();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to submit review.');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -958,9 +999,209 @@ export default function OrderWorkspacePage({ currentUser }) {
             </div>
           </section>
 
+          {order?.status === 'COMPLETED' && (
+            <section className="glass-panel p-6 rounded-3xl border border-slate-800">
+              <h2 className="text-sm font-black text-white mb-4">Completion Center</h2>
+
+              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                <div className="text-[9px] font-black uppercase tracking-widest text-emerald-300">
+                  Transaction Complete
+                </div>
+
+                <div className="text-sm font-black text-white mt-2">
+                  Order completed successfully.
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-[10px]">
+                  <div>
+                    <div className="text-slate-500">Order ID</div>
+                    <div className="text-slate-200 font-bold break-all mt-1">{order.id}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Total paid</div>
+                    <div className="text-white font-black mt-1">
+                      ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Freelancer payout</div>
+                    <div className="text-emerald-300 font-black mt-1">
+                      ₹{Number(order.sellerEarnings || 0).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Payment reference</div>
+                    <div className="text-slate-200 font-bold break-all mt-1">
+                      {order.razorpayPaymentId || 'Not available'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {(() => {
+                const myReview = order?.reviews?.find(
+                  review => review.reviewerId === currentUser?.id
+                );
+
+                return myReview ? (
+                  <div className="mt-4 p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                      Your Review
+                    </div>
+                    <div className="text-sm font-black text-white mt-2">
+                      {myReview.overallRating}/5 overall
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">
+                      {myReview.comment}
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitReview} className="mt-4 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-indigo-300">
+                      Leave Your Review
+                    </div>
+
+                    {[
+                      ['overallRating', 'Overall'],
+                      ['communicationRating', 'Communication'],
+                      ['qualityRating', 'Quality'],
+                      ['timelinessRating', 'Timeliness']
+                    ].map(([field, label]) => (
+                      <label key={field} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="text-slate-400">{label}</span>
+                        <select
+                          value={reviewForm[field]}
+                          onChange={e => setReviewForm(prev => ({
+                            ...prev,
+                            [field]: Number(e.target.value)
+                          }))}
+                          className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white"
+                        >
+                          {[5, 4, 3, 2, 1].map(value => (
+                            <option key={value} value={value}>{value}/5</option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+
+                    <textarea
+                      rows="4"
+                      value={reviewForm.comment}
+                      onChange={e => setReviewForm(prev => ({
+                        ...prev,
+                        comment: e.target.value
+                      }))}
+                      placeholder="Describe your experience with this order..."
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="w-full py-3 neon-airflow-btn text-white text-xs font-black rounded-xl disabled:opacity-50"
+                    >
+                      {submittingReview ? 'Submitting Review...' : 'Submit Review'}
+                    </button>
+                  </form>
+                );
+              })()}
+            </section>
+          )}
+
           {(isClient || isSeller) && (
             <section className="glass-panel p-6 rounded-3xl border border-slate-800">
               <h2 className="text-sm font-black text-white mb-4">Protection</h2>
+
+              {order?.dispute && (
+                <div className="mb-4 p-4 rounded-2xl bg-red-500/5 border border-red-500/20">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-red-300">
+                        Dispute Case
+                      </div>
+                      <div className="text-sm font-black text-white mt-1">
+                        {order.dispute.status || 'OPEN'}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-500 text-right">
+                      Opened {order.dispute.createdAt
+                        ? new Date(order.dispute.createdAt).toLocaleString('en-IN')
+                        : '—'}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-3 text-xs">
+                    <div>
+                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        Reason
+                      </div>
+                      <div className="text-slate-300 mt-1 whitespace-pre-wrap">
+                        {order.dispute.reason || 'No reason provided.'}
+                      </div>
+                    </div>
+
+                    {order.dispute.evidence && (
+                      <div>
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Evidence
+                        </div>
+                        <a
+                          href={order.dispute.evidence}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-indigo-400 hover:underline break-all mt-1"
+                        >
+                          {order.dispute.evidence}
+                        </a>
+                      </div>
+                    )}
+
+                    {order.dispute.sellerReason && (
+                      <div className="pt-3 border-t border-slate-800">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Freelancer Response
+                        </div>
+                        <div className="text-slate-300 mt-1 whitespace-pre-wrap">
+                          {order.dispute.sellerReason}
+                        </div>
+                      </div>
+                    )}
+
+                    {order.dispute.sellerEvidence && (
+                      <div>
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Freelancer Evidence
+                        </div>
+                        <a
+                          href={order.dispute.sellerEvidence}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-cyan-400 hover:underline break-all mt-1"
+                        >
+                          {order.dispute.sellerEvidence}
+                        </a>
+                      </div>
+                    )}
+
+                    {order.dispute.adminDecision && (
+                      <div className="pt-3 border-t border-slate-800">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          Resolution
+                        </div>
+                        <div className="text-white font-bold mt-1">
+                          {order.dispute.adminDecision}
+                        </div>
+                        {order.dispute.resolvedAt && (
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            Resolved {new Date(order.dispute.resolvedAt).toLocaleString('en-IN')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {canApprove && (
                 <>
