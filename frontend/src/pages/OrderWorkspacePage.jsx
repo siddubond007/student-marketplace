@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft, Paperclip, X, History } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
@@ -10,6 +10,8 @@ export default function OrderWorkspacePage({ currentUser }) {
   const [deliverLink, setDeliverLink] = useState('');
   const [deliverNote, setDeliverNote] = useState('');
   const [chatInput, setChatInput] = useState('');
+  const [chatAttachment, setChatAttachment] = useState(null);
+  const [chatUploading, setChatUploading] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { sender: 'System', text: 'Welcome to Order Workspace. Realtime AI chat filter active.' }
   ]);
@@ -39,7 +41,8 @@ export default function OrderWorkspacePage({ currentUser }) {
         setChatMessages(
           res.data.map(m => ({
             sender: m.sender?.fullName || 'User',
-            text: m.content
+            text: m.content,
+            fileUrl: m.fileUrl
           }))
         );
       })
@@ -112,12 +115,45 @@ export default function OrderWorkspacePage({ currentUser }) {
     }
   };
 
+  const handleChatAttachmentChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Attachment must be 25 MB or smaller.');
+      return;
+    }
+
+    try {
+      setChatUploading(true);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await API.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setChatAttachment({
+        name: file.name,
+        url: res.data.url
+      });
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to upload attachment.');
+    } finally {
+      setChatUploading(false);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+
+    if (!chatInput.trim() && !chatAttachment?.url) return;
 
     const leakPattern = /(phone|call|whatsapp|gpay|paytm|upi|telegram|@|\b\d{10}\b)/i;
-    if (leakPattern.test(chatInput)) {
+    if (chatInput.trim() && leakPattern.test(chatInput)) {
       setChatWarning('🚨 AI Safety Alert: Message blocked. Sharing contact numbers or external payments violates safety rules.');
       setTimeout(() => setChatWarning(''), 6000);
       setChatInput('');
@@ -126,20 +162,23 @@ export default function OrderWorkspacePage({ currentUser }) {
 
     try {
       const res = await API.post(`/orders/${orderId}/messages`, {
-        content: chatInput
+        content: chatInput,
+        fileUrl: chatAttachment?.url || null
       });
 
       setChatMessages(prev => [
         ...prev,
         {
           sender: res.data.sender?.fullName || 'You',
-          text: res.data.content
+          text: res.data.content,
+          fileUrl: res.data.fileUrl
         }
       ]);
 
       setChatInput('');
+      setChatAttachment(null);
     } catch (err) {
-      alert('Failed to send message');
+      alert(err?.response?.data?.error || 'Failed to send message');
     }
   };
 
@@ -971,7 +1010,19 @@ export default function OrderWorkspacePage({ currentUser }) {
                 <div className={`p-2.5 rounded-xl max-w-xl ${
                   mine ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-300'
                 }`}>
-                  {m.text}
+                  {m.text && <div>{m.text}</div>}
+
+                  {m.fileUrl && (
+                    <a
+                      href={m.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 flex items-center gap-2 text-[10px] font-bold underline break-all"
+                    >
+                      <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                      Open attachment
+                    </a>
+                  )}
                 </div>
               </div>
             );
@@ -984,21 +1035,112 @@ export default function OrderWorkspacePage({ currentUser }) {
           )}
         </div>
 
-        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 bg-slate-900 flex gap-2">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            placeholder="Message..."
-            className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 neon-airflow-btn text-white rounded-xl text-xs font-bold"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 bg-slate-900 space-y-2">
+          {chatAttachment && (
+            <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-950 border border-indigo-500/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <Paperclip className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-[10px] text-slate-300 truncate">
+                  {chatAttachment.name}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setChatAttachment(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                aria-label="Remove attachment"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <label className={`px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-indigo-400 cursor-pointer ${
+              chatUploading ? 'opacity-50 pointer-events-none' : ''
+            }`}>
+              <Paperclip className="w-4 h-4" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleChatAttachmentChange}
+                disabled={chatUploading}
+              />
+            </label>
+
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder={chatUploading ? 'Uploading attachment...' : 'Message...'}
+              disabled={chatUploading}
+              className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none disabled:opacity-50"
+            />
+
+            <button
+              type="submit"
+              disabled={chatUploading || (!chatInput.trim() && !chatAttachment?.url)}
+              className="px-4 py-2 neon-airflow-btn text-white rounded-xl text-xs font-bold disabled:opacity-40"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </form>
+      </section>
+
+      <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
+        <div className="p-4 bg-slate-900 border-b border-slate-800 text-xs font-bold text-white flex items-center gap-2">
+          <History className="w-4 h-4 text-indigo-400" />
+          <span>Activity Timeline</span>
+        </div>
+
+        <div className="p-5 bg-slate-950/40">
+          {order?.activityEvents?.length ? (
+            <div className="relative pl-6 space-y-5">
+              <div className="absolute left-2 top-2 bottom-2 w-px bg-slate-800" />
+
+              {[...order.activityEvents]
+                .slice()
+                .reverse()
+                .map((event, index) => (
+                  <div key={event.id || index} className="relative">
+                    <div className="absolute -left-[1.15rem] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-400 ring-4 ring-slate-950" />
+
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-white">
+                          {event.message}
+                        </div>
+
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          {event.actor?.fullName
+                            ? `${event.actor.fullName}${event.actor.role ? ` · ${event.actor.role.replace(/_/g, ' ')}` : ''}`
+                            : 'System'}
+                        </div>
+
+                        {event.source && (
+                          <div className="text-[9px] text-slate-600 mt-1 uppercase tracking-wider">
+                            {event.source.replace(/_/g, ' ')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-[10px] text-slate-500 sm:text-right shrink-0">
+                        {event.createdAt
+                          ? new Date(event.createdAt).toLocaleString('en-IN')
+                          : '—'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="p-5 rounded-2xl border border-dashed border-slate-800 text-xs text-slate-500">
+              No activity has been recorded for this order yet.
+            </div>
+          )}
+        </div>
       </section>
 
       {showRevisionModal && (

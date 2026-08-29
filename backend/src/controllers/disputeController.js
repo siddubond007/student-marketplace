@@ -60,7 +60,7 @@ exports.createDispute = async (req, res) => {
         data: { status: 'DISPUTED' }
       });
 
-      return tx.dispute.create({
+      const dispute = await tx.dispute.create({
         data: {
           orderId,
           openedById: req.user.id,
@@ -68,6 +68,21 @@ exports.createDispute = async (req, res) => {
           evidence
         }
       });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'DISPUTE_OPENED',
+          message: 'Dispute opened for this order.',
+          source: 'DISPUTE_CONTROLLER',
+          metadata: {
+            disputeId: dispute.id
+          }
+        }
+      });
+
+      return dispute;
     });
 
     res.status(201).json({
@@ -178,6 +193,19 @@ exports.resolveDispute = async (req, res) => {
             adminDecision: decision,
             resolvedAt: new Date()
           }
+        }),
+        prisma.orderActivityEvent.create({
+          data: {
+            orderId: dispute.orderId,
+            actorId: req.user.id,
+            type: 'DISPUTE_RESOLVED',
+            message: 'Dispute resolved: funds released to the freelancer.',
+            source: 'DISPUTE_CONTROLLER',
+            metadata: {
+              disputeId: dispute.id,
+              decision
+            }
+          }
         })
       ]);
 
@@ -207,6 +235,19 @@ exports.resolveDispute = async (req, res) => {
             status: 'RESOLVED',
             adminDecision: decision,
             resolvedAt: new Date()
+          }
+        }),
+        prisma.orderActivityEvent.create({
+          data: {
+            orderId: dispute.orderId,
+            actorId: req.user.id,
+            type: 'DISPUTE_RESOLVED',
+            message: 'Dispute resolved: order moved to cancelled/refunded state.',
+            source: 'DISPUTE_CONTROLLER',
+            metadata: {
+              disputeId: dispute.id,
+              decision
+            }
           }
         })
       ]);

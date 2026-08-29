@@ -101,6 +101,7 @@ model User {
   parentConsentDeclaration Boolean               @default(false)
   razorpayAccountId        String?
   strikeLogs               StrikeLog[]
+  activityEvents           OrderActivityEvent[]
   isDeleted                Boolean               @default(false)
   deletedAt                DateTime?
 }
@@ -294,10 +295,11 @@ model Order {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
-  deliverables Deliverable[]
-  messages     Message[]
-  reviews      Review[]
-  dispute      Dispute?
+  deliverables  Deliverable[]
+  messages      Message[]
+  reviews       Review[]
+  dispute       Dispute?
+  activityEvents OrderActivityEvent[]
   GigPackage   GigPackage?   @relation(fields: [gigPackageId], references: [id])
   gigPackageId String?
 
@@ -322,6 +324,23 @@ model Deliverable {
   @@index([orderId])
   @@index([orderId, version])
   @@index([reviewStatus])
+}
+
+model OrderActivityEvent {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  type      String
+  message   String
+  source    String   @default("SYSTEM")
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([actorId])
+  @@index([type])
 }
 
 model Wallet {

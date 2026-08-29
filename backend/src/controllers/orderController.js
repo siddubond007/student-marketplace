@@ -57,20 +57,38 @@ exports.createOrder = async (req, res) => {
     });
 
     // 5. Create Local Database State (Status: PENDING_PAYMENT)
-    const order = await prisma.order.create({
-      data: {
-        clientId: req.user.id,
-        sellerId,
-        gigId: gigId || null,
-        jobId: jobId || null,
-        totalAmount: amount,
-        platformFee,
-        sellerEarnings,
-        status: 'PENDING_PAYMENT',
-        razorpayOrderId: rpOrder.id,
-        deadline,
-        requirements: requirements || 'Standard project deliverables.'
-      }
+    const order = await prisma.$transaction(async (tx) => {
+      const createdOrder = await tx.order.create({
+        data: {
+          clientId: req.user.id,
+          sellerId,
+          gigId: gigId || null,
+          jobId: jobId || null,
+          totalAmount: amount,
+          platformFee,
+          sellerEarnings,
+          status: 'PENDING_PAYMENT',
+          razorpayOrderId: rpOrder.id,
+          deadline,
+          requirements: requirements || 'Standard project deliverables.'
+        }
+      });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId: createdOrder.id,
+          actorId: req.user.id,
+          type: 'ORDER_CREATED',
+          message: 'Order created and payment initiated.',
+          source: 'ORDER_CONTROLLER',
+          metadata: {
+            totalAmount: amount,
+            razorpayOrderId: rpOrder.id
+          }
+        }
+      });
+
+      return createdOrder;
     });
 
     res.status(201).json({ 
@@ -189,6 +207,20 @@ exports.verifyPayment = async (req, res) => {
         data: {
           status: 'FUNDED_IN_ESCROW',
           razorpayPaymentId
+        }
+      });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'PAYMENT_SECURED',
+          message: 'Payment captured and funds secured in escrow.',
+          source: 'PAYMENT_VERIFICATION',
+          metadata: {
+            razorpayOrderId,
+            razorpayPaymentId
+          }
         }
       });
 
@@ -325,6 +357,18 @@ exports.getOrderById = async (req, res) => {
             createdAt: true
           },
           orderBy: { createdAt: 'desc' }
+        },
+        activityEvents: {
+          include: {
+            actor: {
+              select: {
+                id: true,
+                fullName: true,
+                role: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'asc' }
         }
       }
     });
@@ -448,6 +492,20 @@ exports.submitDeliverable = async (req, res) => {
         }
       });
 
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'DELIVERABLE_SUBMITTED',
+          message: `Freelancer submitted delivery version ${nextVersion}.`,
+          source: 'DELIVERY_CONTROLLER',
+          metadata: {
+            deliverableId: createdDeliverable.id,
+            version: nextVersion
+          }
+        }
+      });
+
       return [createdDeliverable, updatedOrderRecord];
     });
 
@@ -521,6 +579,21 @@ exports.requestRevision = async (req, res) => {
           title: 'Revision Requested',
           message: `The client requested changes to delivery version ${latestDeliverable.version}.`,
           type: 'REVISION_REQUESTED'
+        }
+      });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'REVISION_REQUESTED',
+          message: `Client requested changes to delivery version ${latestDeliverable.version}.`,
+          source: 'DELIVERY_CONTROLLER',
+          metadata: {
+            deliverableId: latestDeliverable.id,
+            version: latestDeliverable.version,
+            reason: reason.trim()
+          }
         }
       });
 
@@ -619,6 +692,34 @@ exports.approveOrder = async (req, res) => {
         data: { points: { increment: 50 } }
       });
 
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'DELIVERY_APPROVED',
+          message: `Client approved delivery version ${latestDeliverable.version}.`,
+          source: 'APPROVAL_CONTROLLER',
+          metadata: {
+            deliverableId: latestDeliverable.id,
+            version: latestDeliverable.version
+          }
+        }
+      });
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId,
+          actorId: req.user.id,
+          type: 'PAYMENT_RELEASED',
+          message: `₹${order.sellerEarnings} released to the freelancer.`,
+          source: 'APPROVAL_CONTROLLER',
+          metadata: {
+            amount: order.sellerEarnings,
+            deliveryVersion: latestDeliverable.version
+          }
+        }
+      });
+
       await tx.notification.create({
         data: {
           userId: order.sellerId,
@@ -699,10 +800,14 @@ exports.getMessages = async (req, res) => {
 exports.sendMessage = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { content } = req.body;
+    const { content, fileUrl } = req.body;
 
-    if (!content?.trim()) {
-      return res.status(400).json({ error: 'Message required' });
+    if (!content?.trim() && !fileUrl?.trim()) {
+      return res.status(400).json({ error: 'Message or attachment required' });
+    }
+
+    if (fileUrl && typeof fileUrl !== 'string') {
+      return res.status(400).json({ error: 'Invalid attachment URL' });
     }
 
     const authBoundary = req.user?.role === 'admin' 
@@ -733,7 +838,8 @@ exports.sendMessage = async (req, res) => {
         orderId,
         senderId: req.user.id,
         recipientId,
-        content: content.trim()
+        content: content?.trim() || '',
+        fileUrl: fileUrl?.trim() || null
       },
       include: {
         sender: {
