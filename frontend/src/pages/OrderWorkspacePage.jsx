@@ -598,7 +598,18 @@ export default function OrderWorkspacePage({ currentUser }) {
 
             {canDeliver ? (
               <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
-                <h2 className="text-sm font-black text-white">Delivery Center</h2>
+                <div>
+                  <h2 className="text-sm font-black text-white">
+                    {order?.status === 'REVISION_REQUESTED'
+                      ? 'Resubmit Revised Deliverables'
+                      : 'Delivery Center'}
+                  </h2>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    {order?.status === 'REVISION_REQUESTED'
+                      ? 'Submit a new delivery version addressing the client’s requested changes.'
+                      : 'Submit your completed project for client review.'}
+                  </p>
+                </div>
                 <form onSubmit={handleDeliver} className="space-y-3">
                   <input
                     required
