@@ -124,6 +124,21 @@ export default function PublicJobDetailsPage() {
     ? job.preferredLanguages.join(', ')
     : (job.languagePreferences || 'English');
 
+  const parsedBidAmount = Number(bidAmount);
+  const estimatedPlatformFee = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
+    ? Number((parsedBidAmount * 0.10).toFixed(2))
+    : 0;
+  const estimatedEarnings = Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
+    ? Number((parsedBidAmount - estimatedPlatformFee).toFixed(2))
+    : 0;
+  const expectedCompletionDate = Number(deliveryDays) > 0
+    ? (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + Number(deliveryDays));
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      })()
+    : null;
+
   return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -356,6 +371,21 @@ export default function PublicJobDetailsPage() {
             <p className="text-sm text-gray-400 mb-6">You will be able to edit your bid until the project is awarded to someone.</p>
 
             <form onSubmit={handleBidSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Client budget</div>
+                  <div className="text-base font-bold text-white">{budgetSummary}</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Project type</div>
+                  <div className="text-base font-semibold text-slate-200">{projectTypeLabel}</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Proposals</div>
+                  <div className="text-base font-semibold text-amber-300">{job.bids?.length || 0}</div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Bid Amount */}
@@ -391,6 +421,31 @@ export default function PublicJobDetailsPage() {
                 </div>
               </div>
 
+              {Number.isFinite(parsedBidAmount) && parsedBidAmount > 0 && (
+                <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/15 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-3">Your bid preview</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Bid amount</div>
+                      <div className="text-base font-bold text-white mt-1">₹{parsedBidAmount.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated platform fee</div>
+                      <div className="text-base font-semibold text-slate-300 mt-1">₹{estimatedPlatformFee.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Estimated earnings</div>
+                      <div className="text-base font-bold text-emerald-300 mt-1">₹{estimatedEarnings.toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+                  {expectedCompletionDate && (
+                    <div className="mt-4 pt-3 border-t border-white/5 text-xs text-slate-400">
+                      Expected completion: <span className="text-slate-200 font-semibold">{expectedCompletionDate}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Proposal Description */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1">
@@ -406,7 +461,7 @@ export default function PublicJobDetailsPage() {
                   maxLength={2000}
                   rows={6}
                   className="w-full bg-slate-900/50 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-gray-600 resize-y"
-                  placeholder="Enter and describe why you will be best suitable for this job and your experiences..."
+                  placeholder="Introduce yourself, mention relevant experience, explain your approach, and tell the client why you are a strong fit..."
                 />
               </div>
 
