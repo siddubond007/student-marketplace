@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe } from 'lucide-react';
+import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe, Clock3, MapPin, Languages, ShieldCheck } from 'lucide-react';
 import API from '../services/api';
 
 export default function PublicJobDetailsPage() {
@@ -74,7 +74,26 @@ export default function PublicJobDetailsPage() {
   };
 
   if (loading) {
-    return (
+  const formatEnumLabel = (value, fallback = 'Not specified') => {
+    if (!value) return fallback;
+    return String(value)
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const projectTypeLabel = formatEnumLabel(job.projectType, 'One-time project');
+  const timelineLabel = formatEnumLabel(job.timeline, 'Flexible');
+  const startLabel = job.startPreference === 'SPECIFIC_DATE' && job.startDate
+    ? new Date(job.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : formatEnumLabel(job.startPreference, 'As soon as possible');
+  const locationLabel = job.locationPreferences || 'Anywhere in India';
+  const languagesLabel = job.languagePreferences || 'English';
+  const postedLabel = job.createdAt
+    ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Recently';
+
+  return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
@@ -121,11 +140,15 @@ export default function PublicJobDetailsPage() {
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs tracking-wide uppercase">
                 {job.experienceLevel || 'INTERMEDIATE'}
               </span>
-              {job.timeline && (
-                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs">
-                  <Calendar size={12} /> {job.timeline}
-                </span>
-              )}
+              <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+                {projectTypeLabel}
+              </span>
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs">
+                <Calendar size={12} /> {timelineLabel}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
+                {job.status === 'OPEN' && job.isOpen ? 'Accepting proposals' : formatEnumLabel(job.status)}
+              </span>
             </div>
 
             <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-6">
@@ -320,6 +343,59 @@ export default function PublicJobDetailsPage() {
                   <div>
                     <div className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1">Budget</div>
                     <div className="text-2xl font-black text-white">₹{job.budget}</div>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-white/5" />
+
+                {/* Project Snapshot */}
+                <div className="space-y-4">
+                  <div className="text-xs uppercase tracking-wider text-gray-500 font-bold">Project Snapshot</div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-start gap-2.5">
+                      <Clock3 size={15} className="mt-0.5 text-indigo-400 shrink-0" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Duration</div>
+                        <div className="text-sm text-gray-200 mt-0.5">{timelineLabel}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <Calendar size={15} className="mt-0.5 text-purple-400 shrink-0" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Posted</div>
+                        <div className="text-sm text-gray-200 mt-0.5">{postedLabel}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <MapPin size={15} className="mt-0.5 text-emerald-400 shrink-0" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Location</div>
+                        <div className="text-sm text-gray-200 mt-0.5 break-words">{locationLabel}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <Languages size={15} className="mt-0.5 text-blue-400 shrink-0" />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Language</div>
+                        <div className="text-sm text-gray-200 mt-0.5 break-words">{languagesLabel}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                    <ShieldCheck size={16} className="mt-0.5 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-gray-200">Application status</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">
+                        {job.status === 'OPEN' && job.isOpen
+                          ? 'This project is currently open for proposals.'
+                          : 'This project is not currently accepting new proposals.'}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
