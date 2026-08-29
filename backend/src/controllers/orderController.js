@@ -767,7 +767,7 @@ exports.getMessages = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const authBoundary = req.user?.role === 'admin' 
+    const authBoundary = req.user?.role === 'ADMIN'
     ? { id: orderId } 
     : { id: orderId, OR: [{ clientId: req.user.id }, { sellerId: req.user.id }] };
 
@@ -822,7 +822,7 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ error: 'Invalid attachment URL' });
     }
 
-    const authBoundary = req.user?.role === 'admin' 
+    const authBoundary = req.user?.role === 'ADMIN'
     ? { id: orderId } 
     : { id: orderId, OR: [{ clientId: req.user.id }, { sellerId: req.user.id }] };
 
