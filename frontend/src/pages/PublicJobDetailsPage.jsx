@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe, Clock3, MapPin, Languages, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Wallet, User, Users, CheckCircle2, Calendar, LayoutTemplate, Paperclip, ExternalLink, Globe, Clock3, MapPin, Languages, ShieldCheck, Bookmark, Share2 } from 'lucide-react';
 import API from '../services/api';
 
 export default function PublicJobDetailsPage() {
@@ -98,6 +98,25 @@ export default function PublicJobDetailsPage() {
   const postedLabel = job.createdAt
     ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Recently';
+
+  const handleShareProject = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: job.title,
+          text: 'Check out this project on SkillLaunch',
+          url: window.location.href
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(window.location.href);
+        setToastMessage({ text: 'Project link copied to clipboard.', type: 'success' });
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        setToastMessage({ text: 'Unable to share this project right now.', type: 'error' });
+      }
+    }
+  };
 
   const formatDate = (value) => {
     if (!value) return 'Not specified';
@@ -203,9 +222,49 @@ export default function PublicJobDetailsPage() {
               </span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-6">
-              {job.title}
-            </h1>
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+              <div className="min-w-0">
+                <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4">
+                  {job.title}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-400">
+                  <span className="font-semibold text-slate-300">{job.category || 'General'}</span>
+                  {job.subcategory && (
+                    <>
+                      <span className="text-slate-700">/</span>
+                      <span>{job.subcategory}</span>
+                    </>
+                  )}
+                  <span className="text-slate-700">•</span>
+                  <span>Posted {postedLabel}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsSaved(prev => !prev)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition ${
+                    isSaved
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+                  {isSaved ? 'Saved' : 'Save'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShareProject}
+                  className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-slate-300 hover:text-white hover:border-white/20 text-xs font-bold transition"
+                >
+                  <Share2 size={15} />
+                  Share
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Project Facts */}
