@@ -387,7 +387,30 @@ exports.getPublicJobById = async (req, res) => {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: {
-        client: { select: { id: true, fullName: true } },
+        client: {
+          select: {
+            id: true,
+            fullName: true,
+            averageRating: true,
+            totalReviews: true,
+            createdAt: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+                tagline: true,
+                college: true
+              }
+            },
+            verification: {
+              select: {
+                status: true,
+                isCollegeEmailVerified: true,
+                collegeIdStatus: true,
+                govtIdStatus: true
+              }
+            }
+          }
+        },
         bids: { select: { id: true } }
       }
     });

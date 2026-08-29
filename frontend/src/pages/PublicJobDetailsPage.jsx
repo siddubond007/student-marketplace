@@ -544,6 +544,80 @@ export default function PublicJobDetailsPage() {
               </div>
             </div>
 
+            {/* Client Trust Card */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl">
+              <div className="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-1">About the client</div>
+              <h3 className="text-lg font-bold text-white mb-5">Client profile</h3>
+
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center shrink-0">
+                  {job.client?.profile?.avatarUrl ? (
+                    <img
+                      src={job.client.profile.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="text-slate-500" size={22} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-base font-bold text-white truncate">
+                    {job.client?.fullName || 'Client'}
+                  </div>
+                  {job.client?.profile?.tagline && (
+                    <div className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      {job.client.profile.tagline}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-5">
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Rating</div>
+                  <div className="text-sm font-bold text-white mt-1">
+                    {Number(job.client?.averageRating || 0).toFixed(1)} / 5
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Reviews</div>
+                  <div className="text-sm font-bold text-white mt-1">
+                    {job.client?.totalReviews || 0}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Member since</div>
+                  <div className="text-sm font-semibold text-slate-200 mt-1">
+                    {job.client?.createdAt ? formatDate(job.client.createdAt) : 'Recently'}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Verification</div>
+                  <div className="text-sm font-semibold mt-1 flex items-center gap-1.5">
+                    {job.client?.verification?.status === 'APPROVED' ? (
+                      <>
+                        <ShieldCheck size={14} className="text-emerald-400" />
+                        <span className="text-emerald-300">Verified</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">Not verified</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {job.client?.profile?.college && (
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Organization / College</div>
+                  <div className="text-sm text-slate-300">{job.client.profile.college}</div>
+                </div>
+              )}
+            </div>
+
             {/* Skills Taxonomy Card */}
             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl">
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Required Skills</h3>
