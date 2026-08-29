@@ -192,8 +192,8 @@ export default function OrderWorkspacePage({ currentUser }) {
   };
 
   const progressSteps = [
-    'Paid',
-    'Accepted',
+    'Payment',
+    'Escrow',
     'In Progress',
     'Delivered',
     'Review',
@@ -324,6 +324,50 @@ export default function OrderWorkspacePage({ currentUser }) {
           </div>
         </div>
 
+        <div className="pt-5 border-t border-slate-800">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+            Order Information
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Order ID</div>
+              <div className="text-[11px] font-bold text-slate-300 mt-1 break-all">{order?.id || orderId || '—'}</div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Category</div>
+              <div className="text-[11px] font-bold text-slate-300 mt-1">
+                {order?.job?.category || order?.gig?.category || 'Not specified'}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Created</div>
+              <div className="text-[11px] font-bold text-slate-300 mt-1">
+                {order?.createdAt
+                  ? new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })
+                  : '—'}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Project Type</div>
+              <div className="text-[11px] font-bold text-slate-300 mt-1">
+                {order?.job?.projectType
+                  ? String(order.job.projectType).replace(/_/g, ' ')
+                  : order?.gig
+                    ? 'Freelance Service'
+                    : 'Project'}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -432,6 +476,74 @@ export default function OrderWorkspacePage({ currentUser }) {
                       ? order.job.deliverables.join(', ')
                       : 'No deliverable scope recorded yet.'}
                   </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                    References
+                  </div>
+                  {order?.job?.referenceLinks?.length ? (
+                    <div className="space-y-2">
+                      {order.job.referenceLinks.map(link => (
+                        <a
+                          key={link}
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-indigo-400 hover:underline break-all"
+                        >
+                          {link}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500">
+                      No reference links provided.
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                    Attachments / External Links
+                  </div>
+                  <div className="space-y-2">
+                    {order?.job?.attachmentUrls?.length ? (
+                      order.job.attachmentUrls.map(link => (
+                        <a
+                          key={link}
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-indigo-400 hover:underline break-all"
+                        >
+                          Attachment: {link}
+                        </a>
+                      ))
+                    ) : null}
+
+                    {order?.job?.externalLinks?.length ? (
+                      order.job.externalLinks.map(link => (
+                        <a
+                          key={link}
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-cyan-400 hover:underline break-all"
+                        >
+                          External: {link}
+                        </a>
+                      ))
+                    ) : null}
+
+                    {!order?.job?.attachmentUrls?.length && !order?.job?.externalLinks?.length && (
+                      <div className="text-xs text-slate-500">
+                        No attachments or external links provided.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
