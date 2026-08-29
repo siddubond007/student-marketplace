@@ -806,22 +806,115 @@ export default function OrderWorkspacePage({ currentUser }) {
           </section>
 
           <section className="glass-panel p-6 rounded-3xl border border-slate-800">
-            <h2 className="text-sm font-black text-white mb-4">Payment Summary</h2>
+            <h2 className="text-sm font-black text-white mb-4">Payment Center</h2>
+
             <div className="space-y-3 text-xs">
               <div className="flex justify-between gap-4">
                 <span className="text-slate-500">Project price</span>
-                <span className="font-black text-white">₹{Number(order?.totalAmount || 0).toLocaleString('en-IN')}</span>
+                <span className="font-black text-white">
+                  ₹{Number(order?.totalAmount || 0).toLocaleString('en-IN')}
+                </span>
               </div>
+
               <div className="flex justify-between gap-4">
                 <span className="text-slate-500">Platform fee</span>
-                <span className="font-bold text-slate-300">₹{Number(order?.platformFee || 0).toLocaleString('en-IN')}</span>
+                <span className="font-bold text-slate-300">
+                  ₹{Number(order?.platformFee || 0).toLocaleString('en-IN')}
+                </span>
               </div>
+
               <div className="flex justify-between gap-4 border-t border-slate-800 pt-3">
                 <span className="text-slate-400">Freelancer earnings</span>
-                <span className="font-black text-emerald-300">₹{Number(order?.sellerEarnings || 0).toLocaleString('en-IN')}</span>
+                <span className="font-black text-emerald-300">
+                  ₹{Number(order?.sellerEarnings || 0).toLocaleString('en-IN')}
+                </span>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-300">
-                {isFunded ? 'Funds are currently represented as secured in escrow.' : 'Payment has not yet been secured.'}
+
+              <div className={`p-3 rounded-xl border ${
+                order?.status === 'PENDING_PAYMENT'
+                  ? 'bg-amber-500/5 border-amber-500/20 text-amber-300'
+                  : order?.status === 'CANCELLED_REFUNDED'
+                    ? 'bg-slate-800/40 border-slate-700 text-slate-300'
+                    : 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+              }`}>
+                <div className="font-black">Payment Lifecycle</div>
+                <div className="mt-1">
+                  {order?.status === 'PENDING_PAYMENT'
+                    ? 'Payment is pending verification.'
+                    : order?.status === 'CANCELLED_REFUNDED'
+                      ? 'Order is cancelled/refunded.'
+                      : order?.status === 'DISPUTED'
+                        ? 'Order is disputed; funds remain subject to the dispute outcome.'
+                        : order?.transfer?.status === 'RELEASED'
+                          ? 'Escrow released to the freelancer.'
+                          : 'Payment verified and funds are secured in escrow.'}
+                </div>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">Payment provider</span>
+                  <span className="font-bold text-slate-300">Razorpay</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">Gateway order</span>
+                  <span className="font-bold text-slate-300 text-right break-all">
+                    {order?.razorpayOrderId || 'Not available'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">Payment reference</span>
+                  <span className="font-bold text-slate-300 text-right break-all">
+                    {order?.razorpayPaymentId || 'Not available'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">Transfer status</span>
+                  <span className={`font-black ${
+                    order?.transfer?.status === 'RELEASED'
+                      ? 'text-emerald-300'
+                      : order?.transfer
+                        ? 'text-amber-300'
+                        : 'text-slate-500'
+                  }`}>
+                    {order?.transfer
+                      ? order.transfer.status || 'PENDING'
+                      : 'No transfer record'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="glass-panel p-6 rounded-3xl border border-slate-800">
+            <h2 className="text-sm font-black text-white mb-4">Financial Outcome</h2>
+
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                Current Outcome
+              </div>
+
+              <div className="text-sm font-black text-white mt-2">
+                {order?.status === 'COMPLETED'
+                  ? 'Order completed and payout finalized.'
+                  : order?.status === 'CANCELLED_REFUNDED'
+                    ? 'Order cancelled; refund outcome has been recorded locally.'
+                    : order?.status === 'DISPUTED'
+                      ? 'Financial outcome is pending dispute resolution.'
+                      : order?.status === 'PENDING_PAYMENT'
+                        ? 'Awaiting payment verification.'
+                        : order?.transfer?.status === 'RELEASED'
+                          ? 'Escrow transfer has been released to the freelancer.'
+                          : isFunded
+                            ? 'Funds are secured in escrow.'
+                            : 'Financial outcome is not yet available.'}
+              </div>
+
+              <div className="mt-3 text-[10px] text-slate-500">
+                This summary reflects the order state and any persisted transfer record. It does not infer a gateway refund or transfer when no corresponding record exists.
               </div>
             </div>
           </section>
