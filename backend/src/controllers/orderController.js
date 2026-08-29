@@ -456,6 +456,18 @@ exports.submitDeliverable = async (req, res) => {
     autoApproveAt.setDate(autoApproveAt.getDate() + 5); // 5-day review timer
 
     const [deliverable, updatedOrder] = await prisma.$transaction(async (tx) => {
+      const lockedOrders = await tx.$queryRaw`
+        SELECT id
+        FROM "Order"
+        WHERE id = ${orderId}
+          AND "sellerId" = ${req.user.id}
+        FOR UPDATE
+      `;
+
+      if (!lockedOrders || lockedOrders.length === 0) {
+        throw new Error('ORDER_LOCK_FAILED');
+      }
+
       const latestDeliverable = await tx.deliverable.findFirst({
         where: { orderId },
         orderBy: { version: 'desc' },

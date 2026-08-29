@@ -324,6 +324,7 @@ model Deliverable {
   @@index([orderId])
   @@index([orderId, version])
   @@index([reviewStatus])
+  @@unique([orderId, version])
 }
 
 model OrderActivityEvent {
