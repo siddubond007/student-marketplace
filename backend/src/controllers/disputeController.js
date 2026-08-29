@@ -155,6 +155,12 @@ exports.resolveDispute = async (req, res) => {
       return res.status(404).json({ error: 'Dispute not found.' });
     }
 
+    if (dispute.status === 'RESOLVED') {
+      return res.status(409).json({
+        error: 'Dispute has already been resolved.'
+      });
+    }
+
     if (decision === 'RELEASE_TO_SELLER') {
 
       await prisma.$transaction([
