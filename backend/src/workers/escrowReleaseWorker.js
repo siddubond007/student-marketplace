@@ -39,7 +39,22 @@ async function processMatureOrders() {
         }
         
         // Step 2: Finalize Local State
+        const latestDeliverable = await prisma.deliverable.findFirst({
+          where: { orderId: order.id },
+          orderBy: { version: 'desc' },
+          select: { id: true }
+        });
+
         await prisma.$transaction([
+          ...(latestDeliverable ? [
+            prisma.deliverable.update({
+              where: { id: latestDeliverable.id },
+              data: {
+                reviewStatus: 'APPROVED',
+                reviewedAt: new Date()
+              }
+            })
+          ] : []),
           prisma.order.update({
             where: { id: order.id },
             data: { status: 'COMPLETED' }

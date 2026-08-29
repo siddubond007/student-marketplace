@@ -575,6 +575,24 @@ exports.approveOrder = async (req, res) => {
       }
 
       // 2. Perform safe, locked state transitions
+      const latestDeliverable = await tx.deliverable.findFirst({
+        where: { orderId },
+        orderBy: { version: 'desc' }
+      });
+
+      if (!latestDeliverable) {
+        throw new Error("BAD_REQUEST: Order cannot be approved without a submitted delivery.");
+      }
+
+      const updatedDeliverable = await tx.deliverable.update({
+        where: { id: latestDeliverable.id },
+        data: {
+          reviewStatus: 'APPROVED',
+          reviewedAt: new Date(),
+          reviewedById: req.user.id
+        }
+      });
+
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: { status: 'COMPLETED' }
@@ -610,13 +628,19 @@ exports.approveOrder = async (req, res) => {
         }
       });
 
-      return { updatedOrder, updatedWallet, sellerEarnings: order.sellerEarnings };
+      return {
+        updatedOrder,
+        updatedDeliverable,
+        updatedWallet,
+        sellerEarnings: order.sellerEarnings
+      };
     }, { maxWait: 2000, timeout: 5000 });
 
     res.json({ 
       message: 'Order approved! ₹' + result.sellerEarnings + ' released to student wallet.', 
       order: result.updatedOrder, 
-      wallet: result.updatedWallet 
+      wallet: result.updatedWallet,
+      deliverable: result.updatedDeliverable
     });
   } catch (err) {
     if (err.message.includes('FORBIDDEN')) return res.status(403).json({ error: err.message.replace('FORBIDDEN: ', '') });
