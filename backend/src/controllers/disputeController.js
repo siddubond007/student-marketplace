@@ -252,7 +252,23 @@ exports.resolveDispute = async (req, res) => {
             source: 'DISPUTE_CONTROLLER',
             metadata: {
               disputeId: dispute.id,
-              decision
+              decision,
+              financialOutcome: 'LOCAL_CANCELLED_REFUNDED'
+            }
+          }
+        }),
+        prisma.orderActivityEvent.create({
+          data: {
+            orderId: dispute.orderId,
+            actorId: req.user.id,
+            type: 'ORDER_CANCELLED',
+            message: 'Order cancelled following dispute resolution in favor of the client.',
+            source: 'DISPUTE_CONTROLLER',
+            metadata: {
+              disputeId: dispute.id,
+              cancellationType: 'DISPUTE_RESOLUTION',
+              financialOutcome: 'LOCAL_CANCELLED_REFUNDED',
+              gatewayRefundConfirmed: false
             }
           }
         })
