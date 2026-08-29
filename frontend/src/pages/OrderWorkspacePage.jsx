@@ -18,11 +18,13 @@ export default function OrderWorkspacePage({ currentUser }) {
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeEvidence, setDisputeEvidence] = useState('');
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionReason, setRevisionReason] = useState('');
 
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
   const isFunded = ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED', 'IN_REVIEW', 'DISPUTED', 'COMPLETED'].includes(order?.status);
-  const canDeliver = isSeller && ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED', 'IN_REVIEW'].includes(order?.status);
+  const canDeliver = isSeller && ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED'].includes(order?.status);
   const canApprove = isClient && ['DELIVERED', 'IN_REVIEW'].includes(order?.status);
 
   useEffect(() => {
@@ -68,6 +70,26 @@ export default function OrderWorkspacePage({ currentUser }) {
     }
   };
 
+
+  const handleRequestRevision = async () => {
+    if (!revisionReason.trim()) {
+      alert('Please describe the changes required.');
+      return;
+    }
+
+    try {
+      const res = await API.post(`/orders/${orderId}/request-revision`, {
+        reason: revisionReason.trim()
+      });
+
+      alert(res.data.message || 'Revision requested successfully.');
+      setShowRevisionModal(false);
+      setRevisionReason('');
+      window.location.reload();
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Failed to request revision.');
+    }
+  };
 
   const handleOpenDispute = async () => {
     if (!disputeReason.trim()) {
@@ -307,13 +329,23 @@ export default function OrderWorkspacePage({ currentUser }) {
             )}
 
             {canApprove && (
-              <button
-                type="button"
-                onClick={handleApprove}
-                className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl"
-              >
-                Approve & Release
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl"
+                >
+                  Approve & Release
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRevisionModal(true)}
+                  className="px-5 py-3 border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-black rounded-xl"
+                >
+                  Request Revision
+                </button>
+              </>
             )}
 
             {isClient && order?.status === 'PENDING_PAYMENT' && (
@@ -550,6 +582,20 @@ export default function OrderWorkspacePage({ currentUser }) {
           </section>
 
           <section id="delivery-center" className="glass-panel p-6 rounded-3xl border border-slate-800">
+            {order?.status === 'REVISION_REQUESTED' && isSeller && (
+              <div className="mb-5 p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                  Revision Requested
+                </div>
+                <div className="text-sm font-black text-white mt-2">
+                  Delivery version {order?.deliverables?.[0]?.version || '—'} needs changes
+                </div>
+                <p className="text-xs text-slate-300 mt-2 whitespace-pre-wrap">
+                  {order?.deliverables?.[0]?.revisionReason || 'The client requested changes to the submitted work.'}
+                </p>
+              </div>
+            )}
+
             {canDeliver ? (
               <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
                 <h2 className="text-sm font-black text-white">Delivery Center</h2>
@@ -582,31 +628,106 @@ export default function OrderWorkspacePage({ currentUser }) {
                 <h2 className="text-sm font-black text-white mb-3">Delivery Center</h2>
                 {order?.deliverables?.length ? (
                   <div className="space-y-3">
-                    {order.deliverables.map((d, index) => (
-                      <div key={d.id || index} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                          Submission {order.deliverables.length - index}
-                        </div>
-                        <div className="text-xs text-slate-300 mt-2 whitespace-pre-wrap">
-                          {d.message || 'Deliverable submitted.'}
-                        </div>
-                        {d.driveLinks?.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            {d.driveLinks.map(link => (
-                              <a
-                                key={link}
-                                href={link}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block text-xs text-indigo-400 hover:underline break-all"
-                              >
-                                {link}
-                              </a>
-                            ))}
+                    {order.deliverables.map((d, index) => {
+                      const statusLabel = String(d.reviewStatus || 'PENDING_REVIEW')
+                        .replace(/_/g, ' ')
+                        .toLowerCase()
+                        .replace(/\b\w/g, c => c.toUpperCase());
+
+                      const statusClass = d.reviewStatus === 'REVISION_REQUESTED'
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                        : d.reviewStatus === 'APPROVED'
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                          : d.reviewStatus === 'DISPUTED'
+                            ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                            : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300';
+
+                      return (
+                        <div key={d.id || index} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div>
+                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                Delivery Version
+                              </div>
+                              <div className="text-sm font-black text-white mt-1">
+                                Version {d.version ?? order.deliverables.length - index}
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-1">
+                                Submitted {d.submittedAt
+                                  ? new Date(d.submittedAt).toLocaleString('en-IN')
+                                  : '—'}
+                              </div>
+                            </div>
+
+                            <span className={`self-start px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider ${statusClass}`}>
+                              {statusLabel}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+
+                          <div className="mt-4">
+                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                              Delivery Notes
+                            </div>
+                            <div className="text-xs text-slate-300 whitespace-pre-wrap">
+                              {d.message || 'No delivery notes provided.'}
+                            </div>
+                          </div>
+
+                          {d.revisionReason && (
+                            <div className="mt-4 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                              <div className="text-[9px] font-black uppercase tracking-widest text-amber-300">
+                                Revision Reason
+                              </div>
+                              <div className="text-xs text-slate-300 mt-1 whitespace-pre-wrap">
+                                {d.revisionReason}
+                              </div>
+                            </div>
+                          )}
+
+                          {d.driveLinks?.length > 0 && (
+                            <div className="mt-4">
+                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                                Links
+                              </div>
+                              <div className="space-y-1">
+                                {d.driveLinks.map(link => (
+                                  <a
+                                    key={link}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block text-xs text-indigo-400 hover:underline break-all"
+                                  >
+                                    {link}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {d.fileUrls?.length > 0 && (
+                            <div className="mt-4">
+                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                                Files
+                              </div>
+                              <div className="space-y-1">
+                                {d.fileUrls.map(file => (
+                                  <a
+                                    key={file}
+                                    href={file}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block text-xs text-cyan-400 hover:underline break-all"
+                                  >
+                                    {file}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-5 rounded-2xl bg-slate-950 border border-dashed border-slate-800 text-xs text-slate-500">
@@ -699,13 +820,22 @@ export default function OrderWorkspacePage({ currentUser }) {
               <h2 className="text-sm font-black text-white mb-4">Protection</h2>
 
               {canApprove && (
-                <button
-                  onClick={handleApprove}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Approve & Release
-                </button>
+                <>
+                  <button
+                    onClick={handleApprove}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Approve & Release
+                  </button>
+
+                  <button
+                    onClick={() => setShowRevisionModal(true)}
+                    className="w-full py-3 mt-3 border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-black rounded-xl"
+                  >
+                    Request Revision
+                  </button>
+                </>
               )}
 
               <button
@@ -766,6 +896,49 @@ export default function OrderWorkspacePage({ currentUser }) {
           </button>
         </form>
       </section>
+
+      {showRevisionModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-lg">
+            <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+              Delivery Review
+            </div>
+            <h3 className="text-xl font-black text-white mt-2 mb-2">
+              Request Revision
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              Explain clearly what needs to change. The current delivery version will remain preserved in the workspace history.
+            </p>
+
+            <textarea
+              rows="5"
+              value={revisionReason}
+              onChange={e => setRevisionReason(e.target.value)}
+              placeholder="Describe the required changes..."
+              className="w-full mb-4 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white"
+            />
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowRevisionModal(false);
+                  setRevisionReason('');
+                }}
+                className="px-4 py-2 bg-slate-700 text-white rounded-xl"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleRequestRevision}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold"
+              >
+                Send Revision Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDisputeModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">

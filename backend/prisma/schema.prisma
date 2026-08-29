@@ -306,15 +306,22 @@ model Order {
 }
 
 model Deliverable {
-  id          String   @id @default(uuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  fileUrls    String[]
-  driveLinks  String[]
-  message     String
-  submittedAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  orderId         String
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileUrls        String[]
+  driveLinks      String[]
+  message         String
+  version         Int      @default(1)
+  reviewStatus    String   @default("PENDING_REVIEW")
+  revisionReason  String?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  submittedAt     DateTime @default(now())
 
   @@index([orderId])
+  @@index([orderId, version])
+  @@index([reviewStatus])
 }
 
 model Wallet {

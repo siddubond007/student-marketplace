@@ -400,43 +400,153 @@ exports.submitDeliverable = async (req, res) => {
       });
     }
 
-    if (!['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED', 'IN_REVIEW'].includes(order.status)) {
+    if (!['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED'].includes(order.status)) {
       return res.status(409).json({
-        error: 'Deliverables can only be submitted after payment has been verified and the project is active.'
+        error: order.status === 'DELIVERED' || order.status === 'IN_REVIEW'
+          ? 'A submitted delivery must be reviewed before another delivery can be submitted.'
+          : 'Deliverables can only be submitted after payment has been verified and the project is active.'
       });
     }
 
     const autoApproveAt = new Date();
     autoApproveAt.setDate(autoApproveAt.getDate() + 5); // 5-day review timer
 
-    const [deliverable, updatedOrder] = await prisma.$transaction([
-      prisma.deliverable.create({
+    const [deliverable, updatedOrder] = await prisma.$transaction(async (tx) => {
+      const latestDeliverable = await tx.deliverable.findFirst({
+        where: { orderId },
+        orderBy: { version: 'desc' },
+        select: { version: true }
+      });
+
+      const nextVersion = (latestDeliverable?.version || 0) + 1;
+
+      const createdDeliverable = await tx.deliverable.create({
         data: {
           orderId,
           fileUrls: fileUrls || [],
           driveLinks: driveLinks || [],
-          message: message || 'Work completed and submitted for review.'
+          message: message || 'Work completed and submitted for review.',
+          version: nextVersion,
+          reviewStatus: 'PENDING_REVIEW'
         }
-      }),
-      prisma.order.update({
+      });
+
+      const updatedOrderRecord = await tx.order.update({
         where: { id: orderId },
         data: {
           status: 'DELIVERED',
           autoApproveAt
         }
-        }),
-      prisma.notification.create({
+      });
+
+      await tx.notification.create({
         data: {
           userId: order.clientId,
           title: "Deliverable Submitted",
-          message: "A freelancer has submitted work for your review. The 5-day approval timer has started.",
+          message: `A freelancer has submitted delivery version ${nextVersion} for your review. The 5-day approval timer has started.`,
           type: "DELIVERABLE_SUBMITTED"
         }
-      })
-    ]);
+      });
+
+      return [createdDeliverable, updatedOrderRecord];
+    });
 
     res.json({ message: 'Deliverable submitted. 5-day review timer started.', deliverable, order: updatedOrder });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Client Requests Delivery Revision
+exports.requestRevision = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason?.trim()) {
+      return res.status(400).json({ error: 'Revision reason is required.' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const lockedOrders = await tx.$queryRaw`
+        SELECT * FROM "Order"
+        WHERE id = ${orderId}
+        FOR UPDATE
+      `;
+
+      if (!lockedOrders || lockedOrders.length === 0) {
+        throw new Error('NOT_FOUND: Order not found.');
+      }
+
+      const order = lockedOrders[0];
+
+      if (order.clientId !== req.user.id && req.user.role !== 'ADMIN') {
+        throw new Error('FORBIDDEN: Only the client can request a revision.');
+      }
+
+      if (!['DELIVERED', 'IN_REVIEW'].includes(order.status)) {
+        throw new Error('BAD_REQUEST: A revision can only be requested while a delivery is under review.');
+      }
+
+      const latestDeliverable = await tx.deliverable.findFirst({
+        where: { orderId },
+        orderBy: { version: 'desc' }
+      });
+
+      if (!latestDeliverable) {
+        throw new Error('BAD_REQUEST: No submitted delivery exists for this order.');
+      }
+
+      const updatedDeliverable = await tx.deliverable.update({
+        where: { id: latestDeliverable.id },
+        data: {
+          reviewStatus: 'REVISION_REQUESTED',
+          revisionReason: reason.trim(),
+          reviewedAt: new Date(),
+          reviewedById: req.user.id
+        }
+      });
+
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'REVISION_REQUESTED',
+          autoApproveAt: null
+        }
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: order.sellerId,
+          title: 'Revision Requested',
+          message: `The client requested changes to delivery version ${latestDeliverable.version}.`,
+          type: 'REVISION_REQUESTED'
+        }
+      });
+
+      return { updatedOrder, updatedDeliverable };
+    });
+
+    res.json({
+      message: 'Revision requested successfully.',
+      order: result.updatedOrder,
+      deliverable: result.updatedDeliverable
+    });
+  } catch (err) {
+    console.error('Request Revision Error:', err);
+
+    if (err.message.startsWith('NOT_FOUND:')) {
+      return res.status(404).json({ error: err.message.replace('NOT_FOUND: ', '') });
+    }
+
+    if (err.message.startsWith('FORBIDDEN:')) {
+      return res.status(403).json({ error: err.message.replace('FORBIDDEN: ', '') });
+    }
+
+    if (err.message.startsWith('BAD_REQUEST:')) {
+      return res.status(400).json({ error: err.message.replace('BAD_REQUEST: ', '') });
+    }
+
     res.status(500).json({ error: err.message });
   }
 };
