@@ -634,9 +634,17 @@ const expectedCompletionDate = Number(deliveryDays) > 0
                             />
                           </div>
             
-                          <div className="flex justify-end pt-2">
-                            <button
-                              type="submit"
+                          {/* Safety Reminder */}
+                              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-300/90 text-xs mb-6">
+                                <ShieldCheck size={16} className="shrink-0 mt-0.5 text-amber-400" />
+                                <p className="leading-relaxed">
+                                  <strong>Safety Tip:</strong> Keep communication and payments on SkillLaunch. Do not send money or share personal bank details with a client to apply for a job.
+                                </p>
+                              </div>
+                              
+                              <div className="flex justify-end pt-2">
+                                <button
+                                  type="submit"
                               disabled={isSubmitting || proposalText.length < 100}
                               className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                             >
@@ -648,9 +656,22 @@ const expectedCompletionDate = Number(deliveryDays) > 0
         )}
           </div>
 
-        </div>
+          {/* Similar / Recommended Projects */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl mt-8">
+              <h2 className="text-xl font-bold text-white mb-6">Similar projects you might like</h2>
+              <div className="text-center py-10 bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center">
+                <div className="text-slate-400 text-sm mb-2">
+                  Explore more projects in <span className="font-semibold text-slate-300">{job.category || 'this category'}</span>
+                </div>
+                <Link to="/jobs" className="text-emerald-400 text-xs font-bold hover:text-emerald-300 transition-colors inline-block mt-2">
+                  Return to Marketplace &rarr;
+                </Link>
+              </div>
+            </div>
 
-        {/* Right: Sticky Sidebar */}
+          </div>
+
+          {/* Right: Sticky Sidebar */}
         <div className="lg:col-span-4">
           <div className="sticky top-6 space-y-6">
             
