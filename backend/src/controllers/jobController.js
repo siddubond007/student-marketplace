@@ -419,7 +419,30 @@ exports.getPublicJobById = async (req, res) => {
       return res.status(404).json({ error: 'Job not available or private.' });
     }
 
-    return res.json(job);
+    let viewerBid = null;
+
+    if (req.user?.role === 'STUDENT_FREELANCER') {
+      viewerBid = await prisma.bid.findUnique({
+        where: {
+          jobId_studentId: {
+            jobId,
+            studentId: req.user.id
+          }
+        },
+        select: {
+          id: true,
+          proposedAmount: true,
+          deliveryDays: true,
+          status: true,
+          createdAt: true
+        }
+      });
+    }
+
+    return res.json({
+      ...job,
+      viewerBid
+    });
   } catch (err) {
     console.error('Error in getPublicJobById:', err);
     return res.status(500).json({ error: err.message });

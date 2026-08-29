@@ -46,3 +46,51 @@ exports.requireAdmin = (req, res, next) => {
   }
   next();
 };
+
+
+exports.optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Public requests remain anonymous and continue normally.
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.substring(7).trim();
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        role: true,
+        isSuspended: true,
+        suspendedUntil: true
+      }
+    });
+
+    if (!user || user.isSuspended) {
+      req.user = null;
+      return next();
+    }
+
+    if (user.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    // Invalid/expired optional credentials must not break public job viewing.
+    req.user = null;
+    next();
+  }
+};
