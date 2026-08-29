@@ -31,8 +31,6 @@ function StarRating({ value, onChange }) {
 export default function ClientDashboard({ currentUser }) {
   const navigate = useNavigate();
 
-  const [jobs, setJobs] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
@@ -48,8 +46,6 @@ export default function ClientDashboard({ currentUser }) {
   const [filter, setFilter] = useState('ALL');
 
   const [showPostJobModal, setShowPostJobModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [jobToDelete, setJobToDelete] = useState(null);
 
   const [jobForm, setJobForm] = useState({
     title: '',
@@ -67,17 +63,11 @@ export default function ClientDashboard({ currentUser }) {
         setDashboardLoading(true);
         setDashboardError('');
 
-        const [dashboardRes, jobsRes, ordersRes] = await Promise.all([
-          API.get('/client/dashboard'),
-          API.get('/jobs/my-projects'),
-          API.get('/orders')
-        ]);
+        const dashboardRes = await API.get('/client/dashboard');
 
         if (!mounted) return;
 
         setDashboardData(dashboardRes.data);
-        setJobs(jobsRes.data || []);
-        setOrders(ordersRes.data || []);
       } catch (err) {
         if (!mounted) return;
         setDashboardError(
@@ -111,8 +101,6 @@ export default function ClientDashboard({ currentUser }) {
 
       const createdJob = res.data.job || res.data;
 
-      setJobs([createdJob, ...jobs]);
-
       setShowPostJobModal(false);
 
       confetti({
@@ -142,26 +130,6 @@ export default function ClientDashboard({ currentUser }) {
       window.location.reload();
     } catch (err) {
       alert(err.response?.data?.error || "Failed to submit review.");
-    }
-  };
-
-  const handleDeleteJob = (id) => {
-    setJobToDelete(id);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteJob = async () => {
-    try {
-      await API.delete(`/jobs/${jobToDelete}`);
-
-      setJobs(prev =>
-        prev.filter(j => j.id !== jobToDelete)
-      );
-
-      setShowDeleteModal(false);
-      setJobToDelete(null);
-    } catch {
-      alert('Failed to delete job.');
     }
   };
 
@@ -233,32 +201,6 @@ export default function ClientDashboard({ currentUser }) {
 
   const formatCurrency = (value) =>
     `₹${Number(value || 0).toLocaleString('en-IN')}`;
-
-  const filteredJobs = jobs.filter(job => {
-    if (filter === 'ALL') return true;
-
-    if (filter === 'DRAFTS') {
-      return (job.status || '').toUpperCase() === 'DRAFT';
-    }
-
-    if (filter === 'PUBLISHED') {
-      return (job.status || '').toUpperCase() === 'OPEN';
-    }
-
-    if (filter === 'IN_PROGRESS') {
-      return (job.status || '').toUpperCase() === 'IN_PROGRESS';
-    }
-
-    if (filter === 'COMPLETED') {
-      return (job.status || '').toUpperCase() === 'COMPLETED';
-    }
-
-    if (filter === 'CANCELLED') {
-      return (job.status || '').toUpperCase() === 'CANCELLED';
-    }
-
-    return true;
-  });
 
   return (
     <div className="space-y-7 pb-16">
@@ -550,16 +492,406 @@ export default function ClientDashboard({ currentUser }) {
       </div>
 
 
-      {(() => {
-        const pendingReviews = orders
-          .filter((order) => {
-            if (order.status !== 'COMPLETED') return false;
+      {attention.proposalJobs.length > 0 && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-xl font-black text-white">
+                  Proposals to Review
+                </h3>
+              </div>
+              <p className="text-sm text-slate-400 mt-1">
+                Review students who have applied to your projects.
+              </p>
+            </div>
 
-            return !(order.reviews || []).some(
-              (review) => review.reviewerId === order.client?.id
-            );
-          })
-          .slice(0, 4);
+            <span className="px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-sm font-black text-indigo-300">
+              {dashboardSummary.pendingProposals} waiting
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {attention.proposalJobs.slice(0, 4).map((project) => (
+              <Link
+                key={project.id}
+                to={`/my-projects/${project.id}/proposals`}
+                className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+              >
+                <div className="min-w-0">
+                  <p className="text-base font-bold text-white truncate">
+                    {project.title}
+                  </p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {project.pendingProposalCount}{' '}
+                    {project.pendingProposalCount === 1 ? 'proposal' : 'proposals'} waiting for review
+                  </p>
+                </div>
+
+                <span className="text-sm font-black text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1 shrink-0">
+                  Review
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          {attention.proposalJobs.length > 4 && (
+            <p className="text-sm text-slate-500 mt-4 text-center">
+              Showing the projects with the most proposal activity.
+            </p>
+          )}
+        </div>
+      )}
+
+      {dashboardData?.deadlines?.length > 0 && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-5">
+            <Clock3 className="w-5 h-5 text-amber-400" />
+            <div>
+              <h3 className="text-xl font-black text-white">
+                Upcoming Deadlines
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                The next important project deadlines on your workload.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {dashboardData.deadlines.map((item) => {
+              const deadline = new Date(item.deadline);
+              const daysRemaining = Math.ceil(
+                (deadline.getTime() - Date.now()) / 86400000
+              );
+
+              const href = item.orderId
+                ? `/orders/${item.orderId}`
+                : `/my-projects/${item.projectId}`;
+
+              const urgency =
+                daysRemaining <= 1
+                  ? 'text-red-400'
+                  : daysRemaining <= 3
+                    ? 'text-amber-400'
+                    : 'text-slate-300';
+
+              return (
+                <Link
+                  key={`${item.orderId || 'project'}-${item.projectId}`}
+                  to={href}
+                  className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+                >
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-white truncate">
+                      {item.projectTitle}
+                    </p>
+
+                    <p className="text-sm text-slate-400 mt-1">
+                      {item.studentName
+                        ? `${item.studentName} · ${item.status.replaceAll('_', ' ')}`
+                        : 'Project deadline'}
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <p className={`text-sm font-black ${urgency}`}>
+                      {daysRemaining === 0
+                        ? 'Due today'
+                        : daysRemaining === 1
+                          ? 'Due tomorrow'
+                          : `${daysRemaining} days left`}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {deadline.toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className="flex items-center gap-2 mb-5">
+          <DollarSign className="w-5 h-5 text-emerald-400" />
+          <div>
+            <h3 className="text-xl font-black text-white">
+              Payments & Escrow
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">
+              A quick view of money committed to your marketplace work.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+            <p className="text-sm text-slate-500">In Escrow</p>
+            <p className="text-2xl font-black text-white mt-1">
+              {formatCurrency(dashboardSummary.escrowAmount)}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              Funds currently secured
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+            <p className="text-sm text-slate-500">Total Spent</p>
+            <p className="text-2xl font-black text-white mt-1">
+              {formatCurrency(dashboardSummary.totalSpend)}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              Captured order payments
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+            <p className="text-sm text-slate-500">Payments Pending</p>
+            <p className="text-2xl font-black text-white mt-1">
+              {attention.paymentItems.length}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">
+              Hiring reservations awaiting payment
+            </p>
+          </div>
+        </div>
+
+        {attention.paymentItems.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-slate-800 space-y-3">
+            {attention.paymentItems.slice(0, 3).map((item) => (
+              <Link
+                key={item.orderId}
+                to={`/orders/${item.orderId}`}
+                className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+              >
+                <div className="min-w-0">
+                  <p className="text-base font-bold text-white truncate">
+                    {item.projectTitle}
+                  </p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Payment required · {formatCurrency(item.amount)}
+                  </p>
+                </div>
+
+                <span className="text-sm font-black text-indigo-400 group-hover:text-indigo-300 flex items-center gap-1 shrink-0">
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {dashboardData?.recommendedStudents?.length > 0 && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h3 className="text-xl font-black text-white">
+                  Recommended Students
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Discover highly rated student freelancers.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/talent-search"
+              className="text-sm font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            >
+              Explore Talent
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {dashboardData.recommendedStudents.slice(0, 4).map((student) => (
+              <div
+                key={student.id}
+                className="rounded-2xl bg-slate-950/60 border border-slate-800 p-5"
+              >
+                <div className="flex items-center gap-3">
+                  {student.profile?.avatarUrl ? (
+                    <img
+                      src={student.profile.avatarUrl}
+                      alt=""
+                      className="w-12 h-12 rounded-2xl object-cover border border-slate-700"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-base font-black text-indigo-300">
+                      {(student.fullName || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <p className="text-base font-black text-white truncate">
+                      {student.fullName}
+                    </p>
+                    <p className="text-sm text-slate-400 truncate mt-0.5">
+                      {student.profile?.category || 'Student Freelancer'}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-300 mt-4 line-clamp-2 min-h-[40px]">
+                  {student.profile?.tagline || 'Student freelancer ready to work.'}
+                </p>
+
+                <div className="flex items-center justify-between gap-3 mt-4">
+                  <div>
+                    <p className="text-sm text-slate-500">Rating</p>
+                    <p className="text-base font-black text-white mt-0.5">
+                      {Number(student.averageRating || 0).toFixed(1)} ★
+                      <span className="text-sm text-slate-500 font-medium ml-1">
+                        ({student.totalReviews || 0})
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm text-slate-500">From</p>
+                    <p className="text-base font-black text-white mt-0.5">
+                      {formatCurrency(student.profile?.hourlyRate || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to={`/u/${student.username || student.id}`}
+                  className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-black"
+                >
+                  View Profile
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dashboardData?.recentConversations?.length > 0 && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-5">
+            <Users className="w-5 h-5 text-indigo-400" />
+            <div>
+              <h3 className="text-xl font-black text-white">
+                Recent Conversations
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Your latest messages from active project rooms.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {dashboardData.recentConversations.slice(0, 5).map((conversation) => (
+              <Link
+                key={conversation.orderId}
+                to={`/orders/${conversation.orderId}`}
+                className="group flex items-center gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-indigo-400" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-bold text-white truncate">
+                    {conversation.projectTitle}
+                  </p>
+
+                  <p className="text-sm text-slate-300 truncate mt-1">
+                    <span className="font-semibold">
+                      {conversation.senderName}:
+                    </span>{' '}
+                    {conversation.message}
+                  </p>
+
+                  <p className="text-sm text-slate-500 mt-1">
+                    {new Date(conversation.createdAt).toLocaleString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dashboardData?.recentActivity?.length > 0 && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-5">
+            <Clock3 className="w-5 h-5 text-indigo-400" />
+            <div>
+              <h3 className="text-xl font-black text-white">
+                Recent Activity
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">
+                The latest updates across your active work.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {dashboardData.recentActivity.slice(0, 6).map((event) => {
+              const href = event.projectId
+                ? `/my-projects/${event.projectId}`
+                : `/orders/${event.orderId}`;
+
+              return (
+                <Link
+                  key={event.id}
+                  to={href}
+                  className="group flex items-start gap-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                    <Clock3 className="w-4 h-4 text-indigo-400" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-bold text-white">
+                      {event.message}
+                    </p>
+
+                    <p className="text-sm text-slate-400 truncate mt-1">
+                      {event.projectTitle}
+                    </p>
+
+                    <p className="text-sm text-slate-500 mt-1">
+                      {new Date(event.createdAt).toLocaleString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+
+                  <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 mt-1 shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {(() => {
+        const pendingReviews = dashboardData?.pendingReviews || [];
 
         return (
           <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
@@ -594,17 +926,17 @@ export default function ClientDashboard({ currentUser }) {
                   >
                     <div className="min-w-0">
                       <p className="text-base font-bold text-white truncate">
-                        {order.job?.title || `Order #${order.id.slice(0, 8)}`}
+                        {order.projectTitle || `Order #${order.orderId?.slice(0, 8)}`}
                       </p>
                       <p className="text-sm text-slate-400 mt-1">
-                        {order.seller?.fullName || 'Student'} · {formatCurrency(order.totalAmount)}
+                        {order.studentName || 'Student'} · {formatCurrency(order.totalAmount)}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => {
-                          setSelectedOrderId(order.id);
+                          setSelectedOrderId(order.orderId);
                           setShowReviewModal(true);
                         }}
                         className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-black rounded-xl"
@@ -816,39 +1148,6 @@ export default function ClientDashboard({ currentUser }) {
         </div>
       )}
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-md shadow-2xl">
-            <h3 className="text-xl font-black text-white mb-3">
-              Delete Project Brief
-            </h3>
-
-            <p className="text-slate-400 text-sm mb-6">
-              Are you sure you want to delete this project?
-              This action cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setJobToDelete(null);
-                }}
-                className="px-5 py-2 rounded-xl bg-slate-800 text-white"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={confirmDeleteJob}
-                className="px-5 py-2 rounded-xl bg-red-600 text-white font-bold"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

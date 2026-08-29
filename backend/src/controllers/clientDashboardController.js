@@ -24,9 +24,7 @@ const dashboardOrderInclude = {
     }
   },
   deliverables: {
-    orderBy: {
-      version: 'desc'
-    },
+    orderBy: { version: 'desc' },
     take: 1,
     select: {
       id: true,
@@ -46,59 +44,83 @@ exports.getClientDashboard = async (req, res) => {
     }
 
     const clientId = req.user.id;
+    const now = new Date();
 
     const [
-      jobs,
-      proposalAggregate,
-      orders,
-      unreadNotifications
+      jobStatusGroups,
+      proposalGroups,
+      activeProjectCount,
+      totalSpendAggregate,
+      escrowAggregate,
+      completedProjects,
+      unreadNotifications,
+      deliveryApprovalItems,
+      paymentItems,
+      activeProjects,
+      deadlineOrders,
+      deadlineProjects,
+      recentActivityEvents,
+      recentConversationMessages,
+      pendingReviewOrders,
+      recommendedStudents
     ] = await Promise.all([
-      prisma.job.findMany({
+      prisma.job.groupBy({
+        by: ['status'],
         where: {
           clientId,
           isDeleted: false
         },
-        select: {
-          id: true,
-          title: true,
-          category: true,
-          status: true,
-          isOpen: true,
-          budget: true,
-          deadlineDate: true,
-          timeline: true,
-          createdAt: true,
-          updatedAt: true,
-          bids: {
-            select: {
-              id: true,
-              status: true
-            }
-          }
-        },
-        orderBy: {
-          updatedAt: 'desc'
-        }
+        _count: { _all: true }
       }),
 
-      prisma.bid.count({
+      prisma.bid.groupBy({
+        by: ['jobId'],
         where: {
           job: {
-            clientId
+            clientId,
+            isDeleted: false
           },
           status: {
             in: ['PENDING', 'SHORTLISTED']
           }
+        },
+        _count: { _all: true }
+      }),
+
+      prisma.job.count({
+        where: {
+          clientId,
+          isDeleted: false,
+          status: {
+            in: ['IN_PROGRESS', 'PENDING_PAYMENT']
+          }
         }
       }),
 
-      prisma.order.findMany({
+      prisma.order.aggregate({
         where: {
-          clientId
+          clientId,
+          status: {
+            notIn: ['PENDING_PAYMENT', 'CANCELLED_REFUNDED']
+          }
         },
-        include: dashboardOrderInclude,
-        orderBy: {
-          updatedAt: 'desc'
+        _sum: { totalAmount: true }
+      }),
+
+      prisma.order.aggregate({
+        where: {
+          clientId,
+          status: {
+            in: ACTIVE_ORDER_STATUSES
+          }
+        },
+        _sum: { totalAmount: true }
+      }),
+
+      prisma.order.count({
+        where: {
+          clientId,
+          status: 'COMPLETED'
         }
       }),
 
@@ -107,136 +129,396 @@ exports.getClientDashboard = async (req, res) => {
           userId: clientId,
           isRead: false
         }
+      }),
+
+      prisma.order.findMany({
+        where: {
+          clientId,
+          status: 'DELIVERED',
+          deliverables: {
+            some: {
+              reviewStatus: 'PENDING_REVIEW'
+            }
+          }
+        },
+        include: dashboardOrderInclude,
+        orderBy: { updatedAt: 'desc' },
+        take: 5
+      }),
+
+      prisma.order.findMany({
+        where: {
+          clientId,
+          status: 'PENDING_PAYMENT'
+        },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          },
+          job: {
+            select: {
+              id: true,
+              title: true,
+              status: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
+
+      prisma.job.findMany({
+        where: {
+          clientId,
+          isDeleted: false,
+          status: {
+            in: ['IN_PROGRESS', 'PENDING_PAYMENT']
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          status: true,
+          budget: true,
+          deadlineDate: true,
+          timeline: true,
+          updatedAt: true,
+          _count: {
+            select: { bids: true }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 4
+      }),
+
+      prisma.order.findMany({
+        where: {
+          clientId,
+          status: {
+            in: ACTIVE_ORDER_STATUSES
+          },
+          deadline: {
+            gte: now
+          }
+        },
+        select: {
+          id: true,
+          status: true,
+          deadline: true,
+          seller: {
+            select: { fullName: true }
+          },
+          job: {
+            select: {
+              id: true,
+              title: true
+            }
+          }
+        },
+        orderBy: { deadline: 'asc' },
+        take: 5
+      }),
+
+      prisma.job.findMany({
+        where: {
+          clientId,
+          isDeleted: false,
+          deadlineDate: {
+            gte: now
+          },
+          status: {
+            in: ['OPEN', 'IN_PROGRESS']
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          deadlineDate: true
+        },
+        orderBy: { deadlineDate: 'asc' },
+        take: 5
+      }),
+
+      prisma.orderActivityEvent.findMany({
+        where: {
+          order: {
+            clientId
+          }
+        },
+        include: {
+          order: {
+            select: {
+              id: true,
+              job: {
+                select: {
+                  id: true,
+                  title: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 8
+      }),
+
+      prisma.message.findMany({
+        where: {
+          orderId: {
+            not: null
+          },
+          order: {
+            clientId
+          }
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          },
+          order: {
+            select: {
+              id: true,
+              job: {
+                select: {
+                  id: true,
+                  title: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['orderId'],
+        take: 5
+      }),
+
+      prisma.order.findMany({
+        where: {
+          clientId,
+          status: 'COMPLETED',
+          reviews: {
+            none: {
+              reviewerId: clientId
+            }
+          }
+        },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              fullName: true
+            }
+          },
+          client: {
+            select: { id: true }
+          },
+          job: {
+            select: {
+              id: true,
+              title: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 4
+      }),
+
+      prisma.user.findMany({
+        where: {
+          role: 'STUDENT_FREELANCER',
+          isSuspended: false,
+          isBanned: false,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          averageRating: true,
+          totalReviews: true,
+          profile: {
+            select: {
+              avatarUrl: true,
+              tagline: true,
+              category: true,
+              hourlyRate: true
+            }
+          }
+        },
+        orderBy: [
+          { averageRating: 'desc' },
+          { totalReviews: 'desc' },
+          { createdAt: 'desc' }
+        ],
+        take: 4
       })
     ]);
 
-    const activeJobs = jobs.filter((job) =>
-      ['IN_PROGRESS', 'PENDING_PAYMENT'].includes(String(job.status).toUpperCase())
+    const jobCounts = jobStatusGroups.reduce((acc, row) => {
+      acc[String(row.status || '').toUpperCase()] = row._count._all;
+      return acc;
+    }, {});
+
+    const proposalJobsData = proposalGroups
+      .sort((a, b) => b._count._all - a._count._all)
+      .slice(0, 5);
+
+    const proposalJobIds = proposalJobsData.map((row) => row.jobId);
+
+    const proposalJobs = proposalJobIds.length
+      ? await prisma.job.findMany({
+          where: {
+            id: { in: proposalJobIds },
+            clientId,
+            isDeleted: false
+          },
+          select: {
+            id: true,
+            title: true,
+            status: true
+          }
+        })
+      : [];
+
+    const proposalCountByJob = new Map(
+      proposalJobsData.map((row) => [row.jobId, row._count._all])
     );
 
-    const activeOrders = orders.filter((order) =>
-      ACTIVE_ORDER_STATUSES.includes(order.status)
-    );
-
-    const activeProjectIds = new Set(
-      activeOrders
-        .map((order) => order.job?.id)
-        .filter(Boolean)
-    );
-
-    const activeProjects = jobs
-      .filter((job) => {
-        const status = String(job.status || '').toUpperCase();
-        return (
-          activeProjectIds.has(job.id) ||
-          status === 'IN_PROGRESS' ||
-          status === 'PENDING_PAYMENT'
-        );
-      })
-      .slice(0, 4)
-      .map((job) => ({
-        id: job.id,
-        title: job.title,
-        category: job.category,
-        status: job.status,
-        budget: job.budget,
-        deadlineDate: job.deadlineDate,
-        timeline: job.timeline,
-        proposalCount: job.bids.length,
-        updatedAt: job.updatedAt
-      }));
-
-    const proposalJobs = jobs
-      .map((job) => ({
-        ...job,
-        pendingProposalCount: job.bids.filter((bid) =>
-          ['PENDING', 'SHORTLISTED'].includes(bid.status)
-        ).length
-      }))
-      .filter((job) => job.pendingProposalCount > 0)
-      .sort((a, b) => b.pendingProposalCount - a.pendingProposalCount)
-      .slice(0, 5)
+    const proposalJobsOrdered = proposalJobs
+      .sort(
+        (a, b) =>
+          (proposalCountByJob.get(b.id) || 0) -
+          (proposalCountByJob.get(a.id) || 0)
+      )
       .map((job) => ({
         id: job.id,
         title: job.title,
         status: job.status,
-        pendingProposalCount: job.pendingProposalCount
+        pendingProposalCount: proposalCountByJob.get(job.id) || 0
       }));
 
-    const deliveryApprovalItems = orders
-      .filter((order) =>
-        order.status === 'DELIVERED' &&
-        order.deliverables?.[0]?.reviewStatus === 'PENDING_REVIEW'
-      )
-      .slice(0, 5)
-      .map((order) => ({
+    const activeProjectData = activeProjects.map((job) => ({
+      id: job.id,
+      title: job.title,
+      category: job.category,
+      status: job.status,
+      budget: job.budget,
+      deadlineDate: job.deadlineDate,
+      timeline: job.timeline,
+      proposalCount: job._count.bids,
+      updatedAt: job.updatedAt
+    }));
+
+    const deliveryItems = deliveryApprovalItems.map((order) => ({
+      orderId: order.id,
+      projectId: order.job?.id || null,
+      projectTitle: order.job?.title || 'Project',
+      studentName: order.seller?.fullName || 'Student',
+      amount: order.totalAmount,
+      deliverableVersion: order.deliverables?.[0]?.version || null,
+      submittedAt: order.deliverables?.[0]?.submittedAt || null
+    }));
+
+    const paymentActionItems = paymentItems.map((order) => ({
+      orderId: order.id,
+      projectId: order.job?.id || null,
+      projectTitle: order.job?.title || 'Project',
+      studentName: order.seller?.fullName || 'Student',
+      amount: order.totalAmount,
+      createdAt: order.createdAt
+    }));
+
+    const deadlines = [
+      ...deadlineOrders.map((order) => ({
         orderId: order.id,
         projectId: order.job?.id || null,
         projectTitle: order.job?.title || 'Project',
         studentName: order.seller?.fullName || 'Student',
-        amount: order.totalAmount,
-        deliverableVersion: order.deliverables[0].version,
-        submittedAt: order.deliverables[0].submittedAt
-      }));
+        status: order.status,
+        deadline: order.deadline
+      })),
+      ...deadlineProjects
+        .filter(
+          (job) => !deadlineOrders.some((order) => order.job?.id === job.id)
+        )
+        .map((job) => ({
+          orderId: null,
+          projectId: job.id,
+          projectTitle: job.title,
+          studentName: null,
+          status: job.status,
+          deadline: job.deadlineDate
+        }))
+    ]
+      .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+      .slice(0, 5);
 
-    const paymentItems = orders
-      .filter((order) => order.status === 'PENDING_PAYMENT')
-      .slice(0, 5)
-      .map((order) => ({
-        orderId: order.id,
-        projectId: order.job?.id || null,
-        projectTitle: order.job?.title || 'Project',
-        studentName: order.seller?.fullName || 'Student',
-        amount: order.totalAmount,
-        createdAt: order.createdAt
-      }));
+    const recentActivity = recentActivityEvents.map((event) => ({
+      id: event.id,
+      type: event.type,
+      message: event.message,
+      createdAt: event.createdAt,
+      orderId: event.order.id,
+      projectId: event.order.job?.id || null,
+      projectTitle: event.order.job?.title || 'Project'
+    }));
 
-    const totalSpend = orders
-      .filter((order) =>
-        order.status !== 'PENDING_PAYMENT' &&
-        order.status !== 'CANCELLED_REFUNDED'
-      )
-      .reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
+    const recentConversations = recentConversationMessages.map((message) => ({
+      orderId: message.order.id,
+      projectId: message.order.job?.id || null,
+      projectTitle: message.order.job?.title || 'Project',
+      senderName: message.sender?.fullName || 'Participant',
+      message: message.content || 'Attachment',
+      createdAt: message.createdAt
+    }));
 
-    const escrowAmount = orders
-      .filter((order) => ACTIVE_ORDER_STATUSES.includes(order.status))
-      .reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
-
-    const completedProjects = orders.filter(
-      (order) => order.status === 'COMPLETED'
-    ).length;
-
-    const projectCounts = {
-      all: jobs.length,
-      drafts: jobs.filter((job) => String(job.status).toUpperCase() === 'DRAFT').length,
-      published: jobs.filter((job) => String(job.status).toUpperCase() === 'OPEN').length,
-      inProgress: jobs.filter((job) =>
-        String(job.status).toUpperCase() === 'IN_PROGRESS'
-      ).length,
-      completed: jobs.filter((job) =>
-        String(job.status).toUpperCase() === 'COMPLETED'
-      ).length,
-      cancelled: jobs.filter((job) =>
-        String(job.status).toUpperCase() === 'CANCELLED'
-      ).length
-    };
+    const pendingReviews = pendingReviewOrders.map((order) => ({
+      orderId: order.id,
+      projectId: order.job?.id || null,
+      projectTitle: order.job?.title || `Order #${order.id.slice(0, 8)}`,
+      studentName: order.seller?.fullName || 'Student',
+      totalAmount: order.totalAmount
+    }));
 
     return res.json({
       summary: {
-        activeProjects: activeJobs.length,
-        pendingProposals: proposalAggregate,
-        totalSpend,
-        escrowAmount,
+        activeProjects: activeProjectCount,
+        pendingProposals: proposalGroups.reduce(
+          (sum, row) => sum + row._count._all,
+          0
+        ),
+        totalSpend: Number(totalSpendAggregate._sum.totalAmount || 0),
+        escrowAmount: Number(escrowAggregate._sum.totalAmount || 0),
         completedProjects,
         unreadNotifications
       },
-      projectCounts,
-      attention: {
-        proposalJobs,
-        deliveryApprovalItems,
-        paymentItems
+      projectCounts: {
+        all: Object.values(jobCounts).reduce((sum, value) => sum + value, 0),
+        drafts: jobCounts.DRAFT || 0,
+        published: jobCounts.OPEN || 0,
+        inProgress: jobCounts.IN_PROGRESS || 0,
+        completed: jobCounts.COMPLETED || 0,
+        cancelled: jobCounts.CANCELLED || 0
       },
-      activeProjects
+      attention: {
+        proposalJobs: proposalJobsOrdered,
+        deliveryApprovalItems: deliveryItems,
+        paymentItems: paymentActionItems
+      },
+      deadlines,
+      recentActivity,
+      recentConversations,
+      pendingReviews,
+      recommendedStudents,
+      activeProjects: activeProjectData
     });
   } catch (err) {
     console.error('Client Dashboard Error:', err);
