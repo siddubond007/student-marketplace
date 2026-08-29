@@ -93,6 +93,37 @@ export default function PublicJobDetailsPage() {
     ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Recently';
 
+  const formatDate = (value) => {
+    if (!value) return 'Not specified';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not specified';
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const budgetTypeLabel = formatEnumLabel(job.budgetType, 'Budget');
+  const budgetSummary = String(job.budgetType || '').toUpperCase() === 'FIXED'
+    ? `${job.currency || 'INR'} ${Number(job.fixedBudget ?? job.budget ?? 0).toLocaleString('en-IN')}`
+    : job.minimumBudget != null && job.maximumBudget != null
+      ? `${job.currency || 'INR'} ${Number(job.minimumBudget).toLocaleString('en-IN')} - ${Number(job.maximumBudget).toLocaleString('en-IN')}`
+      : `${job.currency || 'INR'} ${Number(job.budget ?? 0).toLocaleString('en-IN')}`;
+
+  const startSummary = job.startPreference === 'SPECIFIC_DATE'
+    ? formatDate(job.startDate)
+    : startLabel;
+
+  const deadlineSummary = job.deadlineType === 'SPECIFIC_DATE'
+    ? formatDate(job.deadlineDate)
+    : formatEnumLabel(job.deadlineType || job.timeline, 'Flexible');
+
+  const locationParts = [job.preferredState, job.preferredCity].filter(Boolean);
+  const displayLocation = locationParts.length
+    ? locationParts.join(', ')
+    : (job.locationPreferences || 'Anywhere in India');
+
+  const displayLanguages = Array.isArray(job.preferredLanguages) && job.preferredLanguages.length
+    ? job.preferredLanguages.join(', ')
+    : (job.languagePreferences || 'English');
+
   return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -156,6 +187,67 @@ export default function PublicJobDetailsPage() {
             </h1>
           </div>
 
+          {/* Project Facts */}
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">Project Snapshot</div>
+                <h2 className="text-xl font-bold text-white">Key project details</h2>
+              </div>
+              <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
+                {budgetTypeLabel}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Budget</div>
+                <div className="text-base font-bold text-white">{budgetSummary}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Start</div>
+                <div className="text-base font-semibold text-slate-200">{startSummary}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Deadline</div>
+                <div className="text-base font-semibold text-slate-200">{deadlineSummary}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Location</div>
+                <div className="text-base font-semibold text-slate-200 break-words">{displayLocation}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Languages</div>
+                <div className="text-base font-semibold text-slate-200 break-words">{displayLanguages}</div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Review window</div>
+                <div className="text-base font-semibold text-slate-200">{job.reviewWindow ? `${job.reviewWindow} days` : 'Not specified'}</div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-5">
+              <span className="px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+                {projectTypeLabel}
+              </span>
+              {job.ndaRequired && (
+                <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
+                  NDA required
+                </span>
+              )}
+              {job.visibility && (
+                <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-xs font-semibold">
+                  {formatEnumLabel(job.visibility)}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Overview Panel */}
           <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -165,6 +257,23 @@ export default function PublicJobDetailsPage() {
               {job.description || 'No description provided'}
             </div>
           </div>
+
+          {Array.isArray(job.screeningQuestions) && job.screeningQuestions.length > 0 && (
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+              <div className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">Before applying</div>
+              <h2 className="text-xl font-bold text-white mb-5">Client screening questions</h2>
+              <div className="space-y-3">
+                {job.screeningQuestions.map((question, index) => (
+                  <div key={index} className="flex items-start gap-3 p-4 rounded-2xl bg-slate-900/40 border border-white/5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-300 shrink-0">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-slate-300">{question}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Deliverables & Requirements Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
