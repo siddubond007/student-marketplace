@@ -250,6 +250,104 @@ exports.verifyPayment = async (req, res) => {
   }
 };
 
+
+// Get a single Order Workspace
+exports.getOrderById = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        client: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            averageRating: true,
+            totalReviews: true,
+            role: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+                tagline: true,
+                bio: true,
+                college: true,
+                skills: true,
+                badges: true
+              }
+            }
+          }
+        },
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            averageRating: true,
+            totalReviews: true,
+            role: true,
+            profile: {
+              select: {
+                avatarUrl: true,
+                tagline: true,
+                bio: true,
+                college: true,
+                skills: true,
+                badges: true
+              }
+            }
+          }
+        },
+        job: true,
+        gig: {
+          include: {
+            categoryRef: true,
+            subcategoryRef: true
+          }
+        },
+        GigPackage: true,
+        deliverables: {
+          orderBy: { submittedAt: 'desc' }
+        },
+        transfer: true,
+        dispute: true,
+        reviews: {
+          select: {
+            id: true,
+            reviewerId: true,
+            revieweeId: true,
+            overallRating: true,
+            communicationRating: true,
+            qualityRating: true,
+            timelinessRating: true,
+            comment: true,
+            createdAt: true
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    const isParticipant =
+      order.clientId === req.user.id ||
+      order.sellerId === req.user.id;
+
+    if (!isParticipant && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    console.error('Get Order Workspace Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Get User's Active Orders
 exports.getMyOrders = async (req, res) => {
   try {
