@@ -93,7 +93,7 @@ export default function App() {
               <Route path="/hire/:categorySlug" element={<HireCategoryPage currentUser={currentUser} />} />
               <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
               <Route path="/jobs" element={<StudentMarketplacePage />} />
-              <Route path="/jobs/:jobId" element={<PublicJobDetailsPage />} />
+              <Route path="/jobs/:jobId" element={<PublicJobDetailsPage currentUser={currentUser} />} />
               <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
               
               {/* User Profiles */}
