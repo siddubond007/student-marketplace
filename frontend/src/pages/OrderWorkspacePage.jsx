@@ -33,9 +33,9 @@ export default function OrderWorkspacePage({ currentUser }) {
 
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
-  const isFunded = ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED', 'IN_REVIEW', 'DISPUTED', 'COMPLETED'].includes(order?.status);
+  const isFunded = ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED', 'DISPUTED', 'COMPLETED'].includes(order?.status);
   const canDeliver = isSeller && ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED'].includes(order?.status);
-  const canApprove = isClient && ['DELIVERED', 'IN_REVIEW'].includes(order?.status);
+  const canApprove = isClient && order?.status === 'DELIVERED';
 
   useEffect(() => {
     API.get(`/orders/${orderId}`)
@@ -259,12 +259,6 @@ export default function OrderWorkspacePage({ currentUser }) {
       tone: 'amber',
       step: 2,
       next: isSeller ? 'Address the revision request and resubmit.' : 'Waiting for the revised delivery.'
-    },
-    IN_REVIEW: {
-      label: 'In Review',
-      tone: 'violet',
-      step: 4,
-      next: isClient ? 'Review and approve the delivery.' : 'Awaiting client review.'
     },
     COMPLETED: {
       label: 'Completed',

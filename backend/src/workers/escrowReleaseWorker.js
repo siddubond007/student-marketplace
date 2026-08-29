@@ -8,7 +8,7 @@ const razorpay = new Razorpay({
 });
 
 async function processMatureOrders() {
-  console.log('🔍 [Auto-Approve Worker] Polling for mature IN_REVIEW orders...');
+  console.log('🔍 [Auto-Approve Worker] Polling for mature DELIVERED orders...');
   try {
     // Highly concurrent, lock-safe query grabbing 50 rows at a time
     const matureOrders = await prisma.$queryRaw`

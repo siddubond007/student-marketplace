@@ -446,7 +446,7 @@ exports.submitDeliverable = async (req, res) => {
 
     if (!['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'REVISION_REQUESTED'].includes(order.status)) {
       return res.status(409).json({
-        error: order.status === 'DELIVERED' || order.status === 'IN_REVIEW'
+        error: order.status === 'DELIVERED'
           ? 'A submitted delivery must be reviewed before another delivery can be submitted.'
           : 'Deliverables can only be submitted after payment has been verified and the project is active.'
       });
@@ -542,7 +542,7 @@ exports.requestRevision = async (req, res) => {
         throw new Error('FORBIDDEN: Only the client can request a revision.');
       }
 
-      if (!['DELIVERED', 'IN_REVIEW'].includes(order.status)) {
+      if (order.status !== 'DELIVERED') {
         throw new Error('BAD_REQUEST: A revision can only be requested while a delivery is under review.');
       }
 
@@ -643,7 +643,7 @@ exports.approveOrder = async (req, res) => {
         throw new Error("BAD_REQUEST: Order is already completed.");
       }
 
-      if (!['DELIVERED', 'IN_REVIEW'].includes(order.status)) {
+      if (order.status !== 'DELIVERED') {
         throw new Error("BAD_REQUEST: Order cannot be approved before deliverables are submitted.");
       }
 
