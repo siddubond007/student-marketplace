@@ -457,6 +457,14 @@ export default function ClientDashboard({ currentUser }) {
             </p>
           </div>
 
+          <Link
+            to="/my-projects"
+            className="text-sm font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1 shrink-0"
+          >
+            View All
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+
         </div>
 
         {dashboardLoading ? (

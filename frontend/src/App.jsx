@@ -19,6 +19,7 @@ const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 const SkillSearchPage = lazy(() => import('./pages/SkillSearchPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ClientProjectDetailsPage = lazy(() => import('./pages/ClientProjectDetailsPage'));
+const ClientProjectsPage = lazy(() => import('./pages/ClientProjectsPage'));
 const ClientProposalsPage = lazy(() => import('./pages/ClientProposalsPage'));
 const StudentMarketplacePage = lazy(() => import('./pages/StudentMarketplacePage'));
 const PublicJobDetailsPage = lazy(() => import('./pages/PublicJobDetailsPage'));
@@ -109,6 +110,7 @@ export default function App() {
               <Route path="/student/orders" element={<StudentOrdersPage currentUser={currentUser} />} />
               <Route path="/student/gigs" element={<StudentGigsPage currentUser={currentUser} />} />
               <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
+              <Route path="/my-projects" element={<ClientProjectsPage />} />
               <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />
               <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />
               <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
