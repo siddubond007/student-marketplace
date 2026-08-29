@@ -53,7 +53,10 @@ export default function PublicJobDetailsPage() {
         coverLetter: proposalText + (portfolioLink ? `\n\nPortfolio: ${portfolioLink}` : '')
       });
 
-      alert(response.data?.message || 'Bid submitted successfully!');
+      setToastMessage({
+        text: response.data?.message || 'Proposal submitted successfully!',
+        type: 'success'
+      });
       
       // Clear form on success
       setProposalText('');
@@ -67,7 +70,10 @@ export default function PublicJobDetailsPage() {
       
     } catch (error) {
       console.error('Bid Error:', error);
-      alert(error.response?.data?.error || 'Failed to submit bid. Please try again.');
+      setToastMessage({
+        text: error.response?.data?.error || 'Failed to submit bid. Please try again.',
+        type: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -367,8 +373,41 @@ export default function PublicJobDetailsPage() {
 
           {/* Place a Bid Form Section */}
           <div id="bid-form" ref={bidFormRef} className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl mt-8 scroll-mt-24">
-            <h2 className="text-xl font-bold text-white mb-2">Place a bid on this project</h2>
-            <p className="text-sm text-gray-400 mb-6">You will be able to edit your bid until the project is awarded to someone.</p>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">Application</div>
+                <h2 className="text-xl font-bold text-white">Place a bid on this project</h2>
+                <p className="text-sm text-gray-400 mt-2">You will be able to edit your bid until the project is awarded to someone.</p>
+              </div>
+              <div className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 font-semibold shrink-0">
+                One proposal per applicant
+              </div>
+            </div>
+
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                <div className="text-xs font-bold text-white">Be specific</div>
+                <div className="text-[11px] text-slate-500 mt-1">Explain exactly how you will solve the client's problem.</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                <div className="text-xs font-bold text-white">Show relevance</div>
+                <div className="text-[11px] text-slate-500 mt-1">Mention experience that directly matches this project.</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                <div className="text-xs font-bold text-white">Set expectations</div>
+                <div className="text-[11px] text-slate-500 mt-1">Give a realistic delivery estimate and clear scope.</div>
+              </div>
+            </div>
+
+            {toastMessage && (
+              <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                toastMessage.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/20 text-red-300'
+              }`}>
+                {toastMessage.text}
+              </div>
+            )}
 
             <form onSubmit={handleBidSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
