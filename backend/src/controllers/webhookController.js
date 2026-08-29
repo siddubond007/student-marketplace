@@ -55,6 +55,21 @@ exports.handleRazorpayWebhook = async (req, res) => {
                 }
               });
 
+              await tx.orderActivityEvent.create({
+                data: {
+                  orderId: order.id,
+                  actorId: null,
+                  type: 'PAYMENT_SECURED',
+                  message: 'Payment captured and funds secured in escrow.',
+                  source: 'RAZORPAY_WEBHOOK',
+                  metadata: {
+                    razorpayOrderId,
+                    razorpayPaymentId,
+                    eventType
+                  }
+                }
+              });
+
               if (order.jobId) {
                 await tx.job.update({
                   where: { id: order.jobId },
