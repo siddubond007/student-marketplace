@@ -655,16 +655,20 @@ export default function StudentDashboard({ currentUser }) {
               <p className="text-xl font-black text-white mt-1">{activeOrders.length}</p>
             </div>
 
-            <div className={`rounded-xl border px-3 py-2.5 min-w-0 ${
-              attentionOrders.length
-                ? 'border-amber-500/20 bg-amber-500/5'
-                : 'border-slate-800 bg-slate-950/40'
-            }`}>
+            <a
+              href="#orders"
+              className={`rounded-xl border px-3 py-2.5 min-w-0 transition ${
+                attentionOrders.length
+                  ? 'border-amber-500/20 bg-amber-500/5 hover:border-amber-400/40'
+                  : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
+              }`}
+              aria-label="Jump to orders requiring attention"
+            >
               <p className="text-[9px] font-black uppercase text-slate-500">Attention</p>
               <p className={`text-xl font-black mt-1 ${attentionOrders.length ? 'text-amber-300' : 'text-white'}`}>
                 {attentionOrders.length}
               </p>
-            </div>
+            </a>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-0">
               <p className="text-[9px] font-black uppercase text-slate-500">Gigs</p>
