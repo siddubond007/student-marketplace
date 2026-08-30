@@ -428,22 +428,39 @@ export default function StudentDashboard({ currentUser }) {
           </div>
 
           <div className="text-3xl font-black text-emerald-400 mt-3">
-            ₹{walletData?.availableBalance ?? 0}.00
+            ₹{Number(walletData?.availableBalance || 0).toLocaleString('en-IN')}
           </div>
 
-          <p className="text-xs text-amber-400 mt-2">
-            ₹{walletData?.pendingBalance ?? 0}.00 pending
+          <p className="text-sm font-bold text-emerald-300 mt-1">
+            Available to withdraw
           </p>
 
-          <p className="text-xs text-slate-500 mt-1">
-            ₹{totalWithdrawn.toFixed(2)} withdrawn
-          </p>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="rounded-xl bg-amber-500/5 border border-amber-500/15 px-3 py-2.5">
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                Pending
+              </p>
+              <p className="text-sm font-black text-amber-300 mt-1">
+                ₹{Number(walletData?.pendingBalance || 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-slate-900/70 border border-slate-800 px-3 py-2.5">
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                Withdrawn
+              </p>
+              <p className="text-sm font-black text-slate-300 mt-1">
+                ₹{Number(totalWithdrawn || 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+          </div>
 
           <button
             onClick={() => setShowWithdrawModal(true)}
-            className="mt-4 w-full py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-xs font-black flex items-center justify-center gap-2"
+            disabled={Number(walletData?.availableBalance || 0) <= 0}
+            className="mt-4 w-full py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-xs font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Withdraw via UPI
+            {Number(walletData?.availableBalance || 0) > 0 ? 'Withdraw via UPI' : 'No Funds Available'}
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
