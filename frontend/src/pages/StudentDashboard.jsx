@@ -713,32 +713,39 @@ export default function StudentDashboard({ currentUser }) {
             {recentNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`rounded-2xl border px-4 py-3 ${
+                className={`rounded-2xl border px-4 py-3 transition ${
                   notification.isRead
                     ? 'border-slate-800 bg-slate-950/30'
-                    : 'border-indigo-500/30 bg-indigo-500/5'
+                    : 'border-indigo-500/30 bg-indigo-500/5 shadow-[0_0_24px_rgba(99,102,241,0.06)]'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                    className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${
                       notification.isRead
                         ? 'bg-slate-700'
                         : 'bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.7)]'
                     }`}
                   />
 
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-white">
-                      {notification.title}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-black text-white">
+                        {notification.title}
+                      </p>
+                      {!notification.isRead && (
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-wider text-indigo-300">
+                          New
+                        </span>
+                      )}
+                    </div>
 
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                    <p className="text-sm leading-6 text-slate-400 mt-1.5 line-clamp-2">
                       {notification.message}
                     </p>
 
-                    <p className="text-[10px] text-slate-600 mt-2">
-                      {new Date(notification.createdAt).toLocaleString()}
+                    <p className="text-xs text-slate-600 mt-2">
+                      {new Date(notification.createdAt).toLocaleString('en-IN')}
                     </p>
                   </div>
                 </div>
