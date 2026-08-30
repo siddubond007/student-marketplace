@@ -537,6 +537,28 @@ export default function UserProfilePage({ currentUser }) {
   if ((profileUser.points || 0) >= 1000)
     earnedBadges.push({ icon: '👑', label: 'Campus Legend' });
 
+  const profileStrengthItems = [
+    Boolean(profileUser.profile?.avatarUrl),
+    Boolean(profileUser.profile?.tagline?.trim()),
+    Boolean(profileUser.profile?.category?.trim()),
+    Boolean(profileUser.profile?.college?.trim()),
+    Boolean(profileUser.profile?.bio?.trim()),
+    Array.isArray(profileUser.profile?.skills) && profileUser.profile.skills.length > 0,
+    portfolioList.length > 0,
+    Boolean(profileUser.profile?.socialLinks && Object.keys(profileUser.profile.socialLinks).length > 0),
+    profileUser.verification?.status === 'APPROVED'
+  ];
+
+  const profileStrength = Math.round(
+    (profileStrengthItems.filter(Boolean).length / profileStrengthItems.length) * 100
+  );
+
+  const profileStrengthLabel =
+    profileStrength >= 90 ? 'Excellent' :
+    profileStrength >= 70 ? 'Strong' :
+    profileStrength >= 50 ? 'Getting there' :
+    'Needs attention';
+
   const isMinorStudent = Boolean(profileUser?.isMinor || (profileUser?.age && profileUser.age < 18));
   const activeInstitutionsList = isMinorStudent ? (typeof ALL_SCHOOLS_DATA !== 'undefined' ? ALL_SCHOOLS_DATA : []) : (typeof INDIAN_COLLEGES !== 'undefined' ? INDIAN_COLLEGES : []);
   const activeProgramsList = isMinorStudent ? (typeof ALL_SCHOOL_PROGRAMS !== 'undefined' ? ALL_SCHOOL_PROGRAMS : []) : (typeof ALL_DEGREES_PROGRAMS !== 'undefined' ? ALL_DEGREES_PROGRAMS : []);
@@ -655,6 +677,30 @@ export default function UserProfilePage({ currentUser }) {
                 <div className="text-sm text-slate-300 pt-1">
                   <span className="text-emerald-400 font-black text-lg">₹{profileUser.profile?.hourlyRate || 499}</span> per hour • Joined {new Date(profileUser.createdAt).toLocaleDateString()}
                 </div>
+
+                {isOwner && (
+                  <div className="mt-3 max-w-xl p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/15">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-black text-slate-300">Profile strength</span>
+                      <span className="text-xs font-black text-indigo-300">
+                        {profileStrength}% · {profileStrengthLabel}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 h-2 rounded-full bg-slate-900 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                        style={{ width: `${profileStrength}%` }}
+                      />
+                    </div>
+
+                    {profileStrength < 100 && (
+                      <p className="text-xs text-slate-500 mt-2">
+                        Complete more profile details to build stronger client trust.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
                   <div className="rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2">
