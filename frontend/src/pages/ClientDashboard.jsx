@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Briefcase, PlusCircle, Trash2, Star, ArrowRight, AlertCircle, CheckCircle2, Clock3, DollarSign, FileText, Users, Bell, ShieldCheck } from 'lucide-react';
+import { Briefcase, PlusCircle, Trash2, Star, ArrowRight, AlertCircle, CheckCircle2, Clock3, DollarSign, FileText, Users, Bell, ShieldCheck, Menu, X, MessageCircle, CalendarDays, WalletCards } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
@@ -204,17 +204,17 @@ export default function ClientDashboard({ currentUser }) {
     `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
   const dashboardSections = [
-    { id: 'overview', label: 'Overview', icon: Briefcase },
-    { id: 'attention', label: 'Needs Attention', icon: AlertCircle },
-    { id: 'projects', label: 'Projects', icon: FileText },
-    { id: 'proposals', label: 'Proposals', icon: Users },
-    { id: 'deadlines', label: 'Deadlines', icon: Clock3 },
-    { id: 'payments', label: 'Payments', icon: DollarSign },
-    { id: 'students', label: 'Students', icon: Users },
-    { id: 'messages', label: 'Messages', icon: Users },
-    { id: 'activity', label: 'Activity', icon: Clock3 },
-    { id: 'reviews', label: 'Reviews', icon: Star },
-    { id: 'account', label: 'Account', icon: ShieldCheck }
+    { id: 'overview', label: 'Overview', icon: Briefcase, group: 'workspace' },
+    { id: 'attention', label: 'Needs Attention', icon: AlertCircle, group: 'workspace' },
+    { id: 'projects', label: 'Projects', icon: FileText, group: 'work' },
+    { id: 'proposals', label: 'Proposals', icon: Users, group: 'work' },
+    { id: 'deadlines', label: 'Deadlines', icon: CalendarDays, group: 'work' },
+    { id: 'payments', label: 'Payments', icon: WalletCards, group: 'financial' },
+    { id: 'students', label: 'Students', icon: Users, group: 'discover' },
+    { id: 'messages', label: 'Messages', icon: MessageCircle, group: 'discover' },
+    { id: 'activity', label: 'Activity', icon: Clock3, group: 'insights' },
+    { id: 'reviews', label: 'Reviews', icon: Star, group: 'insights' },
+    { id: 'account', label: 'Account', icon: ShieldCheck, group: 'account' }
   ];
 
   const selectSection = (section) => {
@@ -241,7 +241,7 @@ export default function ClientDashboard({ currentUser }) {
           className="w-11 h-11 rounded-2xl bg-slate-900 border border-slate-700 text-white text-xl shrink-0"
           aria-label="Open dashboard navigation"
         >
-          ☰
+          <Menu className="w-5 h-5" />
         </button>
       </div>
 
@@ -274,25 +274,47 @@ export default function ClientDashboard({ currentUser }) {
               </button>
             </div>
 
-            <nav className="space-y-1.5">
-              {dashboardSections.map((section) => {
-                const Icon = section.icon;
-                const selected = activeSection === section.id;
+            <nav className="space-y-5">
+              {[
+                ['workspace', 'Workspace'],
+                ['work', 'Manage'],
+                ['financial', 'Financial'],
+                ['discover', 'Discover'],
+                ['insights', 'Insights'],
+                ['account', 'Account']
+              ].map(([group, label]) => {
+                const items = dashboardSections.filter(section => section.group === group);
+                if (items.length === 0) return null;
 
                 return (
-                  <button
-                    type="button"
-                    key={section.id}
-                    onClick={() => selectSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-black transition ${
-                      selected
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {section.label}
-                  </button>
+                  <div key={group}>
+                    <p className="px-3.5 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      {label}
+                    </p>
+
+                    <div className="space-y-1">
+                      {items.map((section) => {
+                        const Icon = section.icon;
+                        const selected = activeSection === section.id;
+
+                        return (
+                          <button
+                            type="button"
+                            key={section.id}
+                            onClick={() => selectSection(section.id)}
+                            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-black transition ${
+                              selected
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-950/30'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{section.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </nav>
@@ -328,7 +350,7 @@ export default function ClientDashboard({ currentUser }) {
                         : 'text-slate-400 hover:text-white hover:bg-slate-900'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     {section.label}
                   </button>
                 );
@@ -341,26 +363,26 @@ export default function ClientDashboard({ currentUser }) {
 
       {activeSection === 'overview' && (
         <section className="space-y-6">
-      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+      <div className="glass-panel p-4 sm:p-5 md:p-8 rounded-3xl border border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 md:gap-6">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-sm font-black text-emerald-400 mb-3">
+          <div className="inline-flex items-center space-x-2 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[10px] sm:text-xs md:text-sm font-black text-emerald-400 mb-2.5">
             <Briefcase className="w-4 h-4" />
-            <span>Verified Client Management Portal</span>
+            <span>Client Management Portal</span>
           </div>
 
-          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
             Welcome back, {currentUser?.fullName}
           </h2>
 
-          <p className="text-base text-slate-400 mt-2">
+          <p className="text-sm sm:text-base text-slate-400 mt-1.5 md:mt-2">
             Manage your projects, hiring, approvals and payments from one place.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5 md:gap-3">
           <button
             onClick={() => setShowPostJobModal(true)}
-            className="px-6 py-3.5 neon-airflow-btn text-white rounded-2xl text-sm font-black shadow-xl flex items-center gap-2"
+            className="px-4 sm:px-5 md:px-6 py-3 md:py-3.5 neon-airflow-btn text-white rounded-2xl text-sm font-black shadow-xl flex items-center gap-2"
           >
             <PlusCircle className="w-5 h-5" />
             <span>Post New Project</span>
@@ -432,7 +454,7 @@ export default function ClientDashboard({ currentUser }) {
               <p className="text-base font-bold text-white mt-1 break-words">
                 {dashboardData?.account?.email || 'Not available'}
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Account email
               </p>
             </div>
@@ -548,7 +570,7 @@ export default function ClientDashboard({ currentUser }) {
           return (
             <div
               key={card.label}
-              className="glass-panel p-5 rounded-3xl border border-slate-800"
+              className="glass-panel p-4 sm:p-5 rounded-3xl border border-slate-800"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-black uppercase tracking-wide text-slate-400">
@@ -557,7 +579,7 @@ export default function ClientDashboard({ currentUser }) {
                 <Icon className="w-5 h-5 text-indigo-400" />
               </div>
 
-              <div className="text-2xl md:text-3xl font-black text-white mt-3">
+              <div className="text-xl sm:text-2xl md:text-3xl font-black text-white mt-2.5 md:mt-3">
                 {dashboardLoading ? '—' : card.value}
               </div>
 
