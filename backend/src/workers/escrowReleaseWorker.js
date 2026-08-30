@@ -57,7 +57,7 @@ async function processMatureOrders() {
             transferRecord.razorpayTransferId &&
             transferRecord.onHold
           ) {
-            await razorpay.transfers.patch(
+            await razorpay.transfers.edit(
               transferRecord.razorpayTransferId,
               { on_hold: false }
             );

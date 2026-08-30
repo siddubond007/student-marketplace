@@ -724,11 +724,41 @@ exports.acceptBid = async (req, res) => {
       key_secret: process.env.RAZORPAY_KEY_SECRET
     });
 
+    const seller = await prisma.user.findUnique({
+      where: { id: bid.studentId },
+      select: {
+        id: true,
+        razorpayAccountId: true
+      }
+    });
+
+    if (!seller) {
+      return res.status(404).json({
+        error: 'Freelancer account not found.'
+      });
+    }
+
+    const linkedAccountId =
+      seller.razorpayAccountId || process.env.DEV_LINKED_ACCOUNT_ID;
+
+    const transferPayload = linkedAccountId
+      ? [{
+          account: linkedAccountId,
+          amount: Math.round(sellerEarnings * 100),
+          currency: 'INR',
+          notes: {
+            purpose: 'Escrow for Project Delivery'
+          },
+          on_hold: true
+        }]
+      : undefined;
+
     // Generate the external gateway order before DB reservation.
     const rzpOrder = await razorpay.orders.create({
       amount: Math.round(bid.proposedAmount * 100),
       currency: 'INR',
-      receipt: `bid_${bid.id}`
+      receipt: `bid_${bid.id}`,
+      transfers: transferPayload
     });
 
     const result = await prisma.$transaction(async (tx) => {
@@ -832,6 +862,22 @@ exports.acceptBid = async (req, res) => {
           deadline
         }
       });
+
+      const razorpayTransfer = Array.isArray(rzpOrder.transfers)
+        ? rzpOrder.transfers[0]
+        : rzpOrder.transfers?.items?.[0];
+
+      if (razorpayTransfer?.id) {
+        await tx.transfer.create({
+          data: {
+            orderId: order.id,
+            razorpayTransferId: razorpayTransfer.id,
+            amount: sellerEarnings,
+            onHold: true,
+            status: 'PENDING'
+          }
+        });
+      }
 
       return { order };
     });

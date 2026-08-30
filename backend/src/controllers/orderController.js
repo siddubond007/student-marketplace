@@ -74,6 +74,22 @@ exports.createOrder = async (req, res) => {
         }
       });
 
+      const razorpayTransfer = Array.isArray(rpOrder.transfers)
+        ? rpOrder.transfers[0]
+        : rpOrder.transfers?.items?.[0];
+
+      if (razorpayTransfer?.id) {
+        await tx.transfer.create({
+          data: {
+            orderId: createdOrder.id,
+            razorpayTransferId: razorpayTransfer.id,
+            amount: sellerEarnings,
+            onHold: true,
+            status: 'PENDING'
+          }
+        });
+      }
+
       await tx.orderActivityEvent.create({
         data: {
           orderId: createdOrder.id,
