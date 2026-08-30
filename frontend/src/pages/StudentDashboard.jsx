@@ -126,7 +126,23 @@ export default function StudentDashboard({ currentUser }) {
     0
   );
 
-  const filteredOrders = orders.filter((order) => {
+  const activeOrders = orders.filter(order =>
+    ['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS'].includes(order.status)
+  );
+
+  const revisionOrders = orders.filter(order => order.status === 'REVISION_REQUESTED');
+  const deliveredOrders = orders.filter(order => order.status === 'DELIVERED');
+  const attentionOrders = [...revisionOrders, ...deliveredOrders];
+
+  const actionStatus = revisionOrders.length > 0
+    ? 'Revision needed'
+    : deliveredOrders.length > 0
+      ? 'Review pending'
+      : activeOrders.length > 0
+        ? 'Work in progress'
+        : 'Ready';
+
+  const filteredOrders = orders.filter(order => {
     const query = orderSearch.trim().toLowerCase();
 
     const matchesSearch =
@@ -598,20 +614,33 @@ export default function StudentDashboard({ currentUser }) {
             </h3>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[92px]">
-              <p className="text-[9px] font-black uppercase text-slate-500">Orders</p>
-              <p className="text-xl font-black text-white mt-1">{orders.length}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-0">
+              <p className="text-[9px] font-black uppercase text-slate-500">Active Work</p>
+              <p className="text-xl font-black text-white mt-1">{activeOrders.length}</p>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[92px]">
+            <div className={`rounded-xl border px-3 py-2.5 min-w-0 ${
+              attentionOrders.length
+                ? 'border-amber-500/20 bg-amber-500/5'
+                : 'border-slate-800 bg-slate-950/40'
+            }`}>
+              <p className="text-[9px] font-black uppercase text-slate-500">Attention</p>
+              <p className={`text-xl font-black mt-1 ${attentionOrders.length ? 'text-amber-300' : 'text-white'}`}>
+                {attentionOrders.length}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-0">
               <p className="text-[9px] font-black uppercase text-slate-500">Gigs</p>
               <p className="text-xl font-black text-white mt-1">{gigs.length}</p>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 min-w-[120px]">
-              <p className="text-[9px] font-black uppercase text-slate-500">Status</p>
-              <p className="text-xs font-black text-emerald-400 mt-2">Ready</p>
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 min-w-0">
+              <p className="text-[9px] font-black uppercase text-slate-500">Available</p>
+              <p className="text-lg font-black text-emerald-300 mt-1">
+                ₹{Number(walletData?.availableBalance || 0).toLocaleString('en-IN')}
+              </p>
             </div>
           </div>
         </div>
