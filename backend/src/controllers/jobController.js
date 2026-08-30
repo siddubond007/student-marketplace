@@ -1084,8 +1084,20 @@ exports.shortlistBid = async (req, res) => {
       });
     }
 
+    const bid = await prisma.bid.findFirst({
+      where: {
+        id: bidId,
+        jobId
+      },
+      select: { id: true }
+    });
+
+    if (!bid) {
+      return res.status(404).json({ error: 'Proposal not found for this project.' });
+    }
+
     const updatedBid = await prisma.bid.update({
-      where: { id: bidId },
+      where: { id: bid.id },
       data: { status: 'SHORTLISTED' }
     });
 
@@ -1110,8 +1122,20 @@ exports.rejectBid = async (req, res) => {
       });
     }
 
+    const bid = await prisma.bid.findFirst({
+      where: {
+        id: bidId,
+        jobId
+      },
+      select: { id: true }
+    });
+
+    if (!bid) {
+      return res.status(404).json({ error: 'Proposal not found for this project.' });
+    }
+
     const updatedBid = await prisma.bid.update({
-      where: { id: bidId },
+      where: { id: bid.id },
       data: { status: 'REJECTED' }
     });
 
