@@ -642,15 +642,43 @@ const expectedCompletionDate = Number(deliveryDays) > 0
                                 </p>
                               </div>
                               
-                              <div className="flex justify-end pt-2">
+                              <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                  <div>
+                                    <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+                                      Final proposal check
+                                    </div>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                      {Number.isFinite(parsedBidAmount) && parsedBidAmount > 0
+                                        ? `You are proposing ₹${parsedBidAmount.toLocaleString('en-IN')} with an estimated ₹${estimatedEarnings.toLocaleString('en-IN')} payout after the platform fee.`
+                                        : 'Enter a valid bid amount to review your estimated earnings.'}
+                                    </p>
+                                  </div>
+
+                                  <span className="shrink-0 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-black text-amber-300">
+                                    One proposal only
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                                <p className="text-xs text-slate-500">
+                                  Your bid amount, delivery time, and proposal will be submitted to the client.
+                                </p>
+
                                 <button
                                   type="submit"
-                              disabled={isSubmitting || proposalText.length < 100}
-                              className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                            >
-                              {isSubmitting ? 'Submitting...' : 'Place Bid'}
-                            </button>
-                          </div>
+                                  disabled={
+                                    isSubmitting ||
+                                    proposalText.length < 100 ||
+                                    !(Number.isFinite(parsedBidAmount) && parsedBidAmount > 0) ||
+                                    !(Number(deliveryDays) > 0)
+                                  }
+                                  className="w-full sm:w-auto py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                                >
+                                  {isSubmitting ? 'Submitting...' : 'Submit Proposal'}
+                                </button>
+                              </div>
                         </form>
           </>
         )}
