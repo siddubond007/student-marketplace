@@ -23,6 +23,7 @@ const ClientProjectsPage = lazy(() => import('./pages/ClientProjectsPage'));
 const ClientProposalsPage = lazy(() => import('./pages/ClientProposalsPage'));
 const StudentMarketplacePage = lazy(() => import('./pages/StudentMarketplacePage'));
 const PublicJobDetailsPage = lazy(() => import('./pages/PublicJobDetailsPage'));
+const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 
 export default function App() {
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="/category/:categorySlug" element={<CategoryHubPage currentUser={currentUser} />} />
               <Route path="/jobs" element={<StudentMarketplacePage />} />
               <Route path="/jobs/:jobId" element={<PublicJobDetailsPage currentUser={currentUser} />} />
+              <Route path="/gigs/:gigId" element={<GigDetailsPage currentUser={currentUser} />} />
               <Route path="/gigs" element={<CategoryHubPage currentUser={currentUser} />} />
               
               {/* User Profiles */}
