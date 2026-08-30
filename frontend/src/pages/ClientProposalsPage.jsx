@@ -685,6 +685,7 @@ export default function ClientProposalsPage() {
                   >
                     Hire Student
                   </button>
+
                 ) : null}
 
                 <Link
