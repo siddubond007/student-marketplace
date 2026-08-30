@@ -310,22 +310,22 @@ export default function StudentDashboard({ currentUser }) {
           </div>
 
           <nav className="mobile-workspace-nav flex lg:block gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
-            <a href="#overview" className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-white text-xs font-black">
+            <a href="#overview" className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-white text-sm font-black">
               <LayoutDashboard className="w-4 h-4 text-indigo-400" />
               Home
             </a>
 
-            <Link to="/student/gigs" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <Link to="/student/gigs" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-sm font-black transition">
               <Briefcase className="w-4 h-4 text-slate-500" />
               My Gigs
             </Link>
 
-            <Link to="/student/orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <Link to="/student/orders" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-sm font-black transition">
               <PackageCheck className="w-4 h-4 text-slate-500" />
               My Orders
             </Link>
 
-            <Link to="/notifications" className="flex items-center justify-between gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <Link to="/notifications" className="flex items-center justify-between gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-sm font-black transition">
               <span className="flex items-center gap-3">
                 <MessageSquare className="w-4 h-4 text-slate-500" />
                 Notifications
@@ -338,7 +338,7 @@ export default function StudentDashboard({ currentUser }) {
               )}
             </Link>
 
-            <a href="#wallet" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-xs font-black transition">
+            <a href="#wallet" className="flex items-center gap-3 px-3 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-900/70 text-sm font-black transition">
               <Wallet className="w-4 h-4 text-slate-500" />
               Payments
             </a>
