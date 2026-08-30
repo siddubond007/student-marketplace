@@ -43,6 +43,9 @@ export default function ClientProjectsPage() {
   const [showPostJobModal, setShowPostJobModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [jobToDelete, setJobToDelete] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [jobToCancel, setJobToCancel] = useState(null);
+  const [cancellingHiring, setCancellingHiring] = useState(false);
 
   const [jobForm, setJobForm] = useState({
     title: '',
@@ -111,6 +114,29 @@ export default function ClientProjectsPage() {
     setShowDeleteModal(true);
   };
 
+  const handleCancelHiring = (id) => {
+    setJobToCancel(id);
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelHiring = async () => {
+    if (!jobToCancel || cancellingHiring) return;
+
+    setCancellingHiring(true);
+
+    try {
+      await API.post(`/jobs/${jobToCancel}/cancel-hiring`);
+      const refreshed = await API.get('/jobs/my-projects');
+      setJobs(refreshed.data || []);
+      setShowCancelModal(false);
+      setJobToCancel(null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to cancel hiring reservation.');
+    } finally {
+      setCancellingHiring(false);
+    }
+  };
+
   const confirmDeleteJob = async () => {
     if (!jobToDelete) return;
 
@@ -140,6 +166,57 @@ export default function ClientProjectsPage() {
 
   const formatCurrency = (value) =>
     `₹${Number(value || 0).toLocaleString('en-IN')}`;
+
+  const getProjectState = (job) => {
+    const orderStatus = job.currentOrder?.status;
+
+    if (orderStatus === 'PENDING_PAYMENT') {
+      return {
+        label: 'Payment Pending',
+        className: 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+      };
+    }
+
+    if (['FUNDED_IN_ESCROW', 'REQUIREMENTS_SUBMITTED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED', 'IN_REVIEW'].includes(orderStatus)) {
+      return {
+        label: 'Hired · In Progress',
+        className: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
+      };
+    }
+
+    if (orderStatus === 'COMPLETED') {
+      return {
+        label: 'Hired · Completed',
+        className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+      };
+    }
+
+    if (orderStatus === 'DISPUTED') {
+      return {
+        label: 'Disputed',
+        className: 'bg-red-500/10 text-red-300 border-red-500/20'
+      };
+    }
+
+    if ((job.status || '').toUpperCase() === 'DRAFT') {
+      return {
+        label: 'Draft',
+        className: 'bg-slate-800 text-slate-300 border-slate-700'
+      };
+    }
+
+    if ((job.status || '').toUpperCase() === 'CANCELLED') {
+      return {
+        label: 'Cancelled',
+        className: 'bg-slate-800 text-slate-400 border-slate-700'
+      };
+    }
+
+    return {
+      label: job.bids?.length ? 'Published · Hiring' : 'Published · Awaiting Proposals',
+      className: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
+    };
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-7 pb-16">
@@ -249,8 +326,8 @@ export default function ClientProjectsPage() {
                       <span className="text-sm uppercase font-black text-indigo-400">
                         {job.category}
                       </span>
-                      <span className="text-sm px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 font-bold">
-                        {getStatusLabel(job)}
+                      <span className={`text-sm px-2.5 py-1 rounded-full border font-bold ${getProjectState(job).className}`}>
+                        {getProjectState(job).label}
                       </span>
                     </div>
 
@@ -271,16 +348,75 @@ export default function ClientProjectsPage() {
                         <p className="text-base font-black text-white mt-1">
                           {job.bids?.length || 0}
                         </p>
+                        {job.bids?.some((bid) => bid.status === 'SHORTLISTED') && (
+                          <p className="text-xs font-bold text-indigo-300 mt-1">
+                            Shortlisted
+                          </p>
+                        )}
                       </div>
 
                       <div>
                         <p className="text-sm text-slate-500">Deadline</p>
-                        <p className="text-base font-bold text-slate-200 mt-1">
-                          {(job.timeline || 'Not specified')
-                            .toLowerCase()
-                            .replaceAll('_', ' ')
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </p>
+                        {(() => {
+                          const deadlineValue =
+                            job.currentOrder?.deadline || job.deadlineDate;
+                          const deadlineDate = deadlineValue ? new Date(deadlineValue) : null;
+                          const now = new Date();
+                          const daysRemaining = deadlineDate && !Number.isNaN(deadlineDate.getTime())
+                            ? Math.round(
+                                (
+                                  Date.UTC(
+                                    deadlineDate.getFullYear(),
+                                    deadlineDate.getMonth(),
+                                    deadlineDate.getDate()
+                                  ) -
+                                  Date.UTC(
+                                    now.getFullYear(),
+                                    now.getMonth(),
+                                    now.getDate()
+                                  )
+                                ) / 86400000
+                              )
+                            : null;
+
+                          const deadlineLabel =
+                            daysRemaining === null
+                              ? (job.timeline || 'Not specified')
+                                  .toLowerCase()
+                                  .replaceAll('_', ' ')
+                                  .replace(/\b\w/g, (c) => c.toUpperCase())
+                              : daysRemaining < 0
+                                ? 'Overdue'
+                                : daysRemaining === 0
+                                  ? 'Due today'
+                                  : daysRemaining === 1
+                                    ? 'Due tomorrow'
+                                    : `${daysRemaining} days left`;
+
+                          const deadlineTone =
+                            daysRemaining !== null && daysRemaining < 0
+                              ? 'text-red-300'
+                              : daysRemaining !== null && daysRemaining <= 3
+                                ? 'text-amber-300'
+                                : 'text-slate-200';
+
+                          return (
+                            <>
+                              <p className={`text-base font-bold mt-1 ${deadlineTone}`}>
+                                {deadlineLabel}
+                              </p>
+                              {deadlineDate && !Number.isNaN(deadlineDate.getTime()) && (
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {deadlineDate.toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
 
                       <div>
@@ -294,28 +430,48 @@ export default function ClientProjectsPage() {
 
                   <div className="flex flex-wrap gap-2 lg:justify-end shrink-0">
                     {String(job.status || '').toUpperCase() === 'DRAFT' ? (
-                      <button
-                        onClick={() => navigate(`/post-job?draftId=${job.id}`)}
-                        className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-white text-sm font-black"
-                      >
-                        Continue Editing
-                      </button>
+                      <>
+                        <button
+                          onClick={() => navigate(`/post-job?draftId=${job.id}`)}
+                          className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-white text-sm font-black"
+                        >
+                          Continue Editing
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="px-4 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white text-sm font-black flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        onClick={() => navigate(`/my-projects/${job.id}`)}
-                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-black"
-                      >
-                        View Project
-                      </button>
-                    )}
+                      <>
+                        <button
+                          onClick={() => navigate(`/my-projects/${job.id}`)}
+                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-black"
+                        >
+                          View Project
+                        </button>
 
-                    <button
-                      onClick={() => handleDeleteJob(job.id)}
-                      className="px-4 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white text-sm font-black flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
+                        {job.currentOrder?.status === 'PENDING_PAYMENT' ? (
+                          <button
+                            onClick={() => handleCancelHiring(job.id)}
+                            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-white text-sm font-black"
+                          >
+                            Cancel Hiring
+                          </button>
+                        ) : !job.currentOrder ? (
+                          <button
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="px-4 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white text-sm font-black flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -375,6 +531,46 @@ export default function ClientProjectsPage() {
                 Publish Project Brief
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <div className="text-xs font-black uppercase tracking-widest text-amber-400 mb-2">
+              Hiring Reservation
+            </div>
+            <h3 className="text-xl font-black text-white mb-3">
+              Cancel Pending Hiring?
+            </h3>
+            <p className="text-base text-slate-400 mb-6">
+              This will release the unpaid hiring reservation and make the project available for hiring again.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (cancellingHiring) return;
+                  setShowCancelModal(false);
+                  setJobToCancel(null);
+                }}
+                disabled={cancellingHiring}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold disabled:opacity-50"
+              >
+                Keep Hiring
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmCancelHiring}
+                disabled={cancellingHiring}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {cancellingHiring ? 'Cancelling…' : 'Cancel Hiring'}
+              </button>
+            </div>
           </div>
         </div>
       )}

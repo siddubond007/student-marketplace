@@ -317,9 +317,22 @@ exports.getMyDrafts = async (req, res) => {
 // 5. GET ALL PROJECTS FOR LOGGED-IN CLIENT (GET /api/jobs/my-projects)
 exports.getMyProjects = async (req, res) => {
   try {
+    const currentOrderStatuses = [
+      'PENDING_PAYMENT',
+      'FUNDED_IN_ESCROW',
+      'REQUIREMENTS_SUBMITTED',
+      'IN_PROGRESS',
+      'DELIVERED',
+      'REVISION_REQUESTED',
+      'IN_REVIEW',
+      'COMPLETED',
+      'DISPUTED'
+    ];
+
     const projects = await prisma.job.findMany({
       where: {
-        clientId: req.user.id
+        clientId: req.user.id,
+        isDeleted: false
       },
       include: {
         client: {
@@ -338,11 +351,51 @@ exports.getMyProjects = async (req, res) => {
             status: true,
             createdAt: true
           }
+        },
+        orders: {
+          where: {
+            status: {
+              not: 'CANCELLED_REFUNDED'
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          select: {
+            id: true,
+            sellerId: true,
+            totalAmount: true,
+            status: true,
+            deadline: true,
+            createdAt: true,
+            updatedAt: true,
+            seller: {
+              select: {
+                id: true,
+                fullName: true
+              }
+            }
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(projects);
+
+    const enrichedProjects = projects.map((project) => {
+      const currentOrder =
+        project.orders.find((order) =>
+          currentOrderStatuses.includes(order.status)
+        ) || null;
+
+      const { orders, ...projectWithoutOrders } = project;
+
+      return {
+        ...projectWithoutOrders,
+        currentOrder
+      };
+    });
+
+    res.json(enrichedProjects);
   } catch (err) {
     console.error('Error in getMyProjects:', err);
     res.status(500).json({ error: err.message });
@@ -841,8 +894,16 @@ exports.cancelHiring = async (req, res) => {
         }
       });
 
+      const reopenedJob = await tx.job.update({
+        where: { id: jobId },
+        data: {
+          status: 'OPEN',
+          isOpen: true
+        }
+      });
+
       return {
-        job: job
+        job: reopenedJob
       };
     });
 
