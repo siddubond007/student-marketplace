@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,11 +12,112 @@ import API from '../services/api';
 
 export default function GigDetailsPage({ currentUser }) {
   const { gigId } = useParams();
+  const navigate = useNavigate();
 
   const [gig, setGig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [error, setError] = useState('');
+  const [purchaseError, setPurchaseError] = useState('');
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const purchaseGig = async () => {
+    if (!currentUser || !selectedPackage?.id) return;
+
+    setPurchaseError('');
+
+    try {
+      const res = await API.post('/orders/gig-purchase', {
+        gigId,
+        gigPackageId: selectedPackage.id
+      });
+
+      const order = res.data?.order;
+
+      if (res.data?.checkoutRequired && order?.razorpayOrderId) {
+        const isLoaded = await loadRazorpay();
+
+        if (!isLoaded) {
+          setPurchaseError('Payment gateway could not be loaded. Please try again.');
+          return;
+        }
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key',
+          amount: Math.round(Number(order.totalAmount || 0) * 100),
+          currency: 'INR',
+          name: 'SkillLaunch Escrow',
+          description: `${gig.title} — ${selectedPackage.tierName}`,
+          order_id: order.razorpayOrderId,
+          handler: async (response) => {
+            try {
+              await API.post(`/orders/${order.id}/verify-payment`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              });
+
+              navigate(`/orders/${order.id}`);
+            } catch (verifyErr) {
+              console.error('Gig payment verification failed:', verifyErr);
+              setPurchaseError(
+                verifyErr?.response?.data?.error ||
+                'Payment was received, but verification could not be completed.'
+              );
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              // The backend keeps the pending order; a later retry can use it.
+            }
+          },
+          prefill: {
+            name: currentUser?.fullName || 'Client Account',
+            email: currentUser?.email || 'client@skilllaunch.com'
+          },
+          theme: {
+            color: '#4f46e5'
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+
+        rzp.on('payment.failed', (response) => {
+          setPurchaseError(
+            response?.error?.description ||
+            'The payment was not completed.'
+          );
+        });
+
+        rzp.open();
+        return;
+      }
+
+      if (order?.id) {
+        navigate(`/orders/${order.id}`);
+      }
+    } catch (err) {
+      console.error('Gig purchase initialization failed:', err);
+      setPurchaseError(
+        err?.response?.data?.error ||
+        'Unable to start the purchase. Please try again.'
+      );
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -288,9 +389,16 @@ export default function GigDetailsPage({ currentUser }) {
                   </span>
                 </div>
 
+                {purchaseError && (
+                  <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-sm font-bold text-red-300">
+                    {purchaseError}
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  disabled={!currentUser}
+                  disabled={!currentUser || !selectedPackage}
+                  onClick={purchaseGig}
                   className="w-full mt-5 px-4 py-3 neon-airflow-btn text-white rounded-xl text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {currentUser ? 'Continue to Purchase' : 'Sign in to Purchase'}
