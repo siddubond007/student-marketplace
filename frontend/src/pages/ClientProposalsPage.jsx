@@ -568,6 +568,29 @@ export default function ClientProposalsPage() {
                   </div>
                 </div>
 
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-black text-amber-300">
+                      {bid.student?.totalReviews > 0
+                        ? `${Number(bid.student.averageRating || 0).toFixed(1)} ★`
+                        : 'New'}
+                      {bid.student?.totalReviews > 0 && (
+                        <span className="text-slate-500 font-semibold ml-1">
+                          ({bid.student.totalReviews})
+                        </span>
+                      )}
+                    </span>
+
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs font-black text-indigo-300">
+                      {bid.student?.ordersAsSeller?.length || 0} completed
+                    </span>
+
+                    {bid.student?.verification?.status === 'APPROVED' && (
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-black text-emerald-300">
+                        ✓ Verified Student
+                      </span>
+                    )}
+                  </div>
+
                 <div className="rounded-2xl bg-slate-900/80 border border-slate-800 px-5 py-3 lg:text-right shrink-0">
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     Proposed Price

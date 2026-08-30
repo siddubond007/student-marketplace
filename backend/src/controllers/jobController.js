@@ -412,7 +412,47 @@ exports.getJobById = async (req, res) => {
         client: { select: { id: true, fullName: true, email: true } },
         bids: {
           include: {
-            student: { select: { id: true, fullName: true, email: true, freeBidsRemaining: true } }
+            student: {
+              select: {
+                id: true,
+                username: true,
+                fullName: true,
+                email: true,
+                freeBidsRemaining: true,
+                points: true,
+                averageRating: true,
+                communicationAvg: true,
+                qualityAvg: true,
+                timelinessAvg: true,
+                totalReviews: true,
+                createdAt: true,
+                profile: {
+                  select: {
+                    avatarUrl: true,
+                    tagline: true,
+                    category: true,
+                    college: true,
+                    hourlyRate: true,
+                    skills: true
+                  }
+                },
+                verification: {
+                  select: {
+                    status: true,
+                    collegeIdStatus: true,
+                    govtIdStatus: true
+                  }
+                },
+                ordersAsSeller: {
+                  where: {
+                    status: 'COMPLETED'
+                  },
+                  select: {
+                    id: true
+                  }
+                }
+              }
+            }
           }
         },
         orders: {
