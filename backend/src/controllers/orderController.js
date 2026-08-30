@@ -719,7 +719,10 @@ exports.approveOrder = async (req, res) => {
 
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
-        data: { status: 'COMPLETED' }
+        data: {
+          status: 'COMPLETED',
+          autoApproveAt: null
+        }
       });
 
       if (order.jobId) {
