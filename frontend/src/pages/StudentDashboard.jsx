@@ -947,44 +947,120 @@ export default function StudentDashboard({ currentUser }) {
           <div className="space-y-4">
             {filteredOrders
               .filter(order => !['PENDING_PAYMENT', 'CANCELLED_REFUNDED'].includes(order.status))
-              .map(order => (
-              <div key={order.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <span className="text-xs font-black uppercase text-indigo-400">Order #{order.id.slice(0, 8)}</span>
-                  <h4 className="text-sm font-bold text-white mt-0.5">Client: {order.client?.fullName}</h4>
-                  <span className="text-xs text-slate-400">Status: {order.status}</span>
-                </div>
-                <div className="flex items-center space-x-4">
+              .map(order => {
+                const statusLabels = {
+                  FUNDED_IN_ESCROW: 'Funded in Escrow',
+                  REQUIREMENTS_SUBMITTED: 'Requirements Submitted',
+                  IN_PROGRESS: 'In Progress',
+                  DELIVERED: 'Delivered — Client Review',
+                  REVISION_REQUESTED: 'Revision Requested',
+                  COMPLETED: 'Completed',
+                  DISPUTED: 'Disputed'
+                };
 
-                  {order.status === "COMPLETED" && (
-                    hasReviewedOrder(order) ? (
-                      <span className="px-3 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl">
-                        Review Submitted
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedOrderId(order.id);
-                          setShowReviewModal(true);
-                        }}
-                        className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl"
-                      >
-                        Leave Review
-                      </button>
-                    )
-                  )}
+                const statusClass =
+                  order.status === 'COMPLETED'
+                    ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                    : order.status === 'REVISION_REQUESTED'
+                      ? 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+                      : order.status === 'DISPUTED'
+                        ? 'text-red-300 bg-red-500/10 border-red-500/20'
+                        : 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20';
 
-                  <div className="text-lg font-black text-emerald-400">₹{order.totalAmount}</div>
+                const daysRemaining = order.deadline
+                  ? Math.ceil((new Date(order.deadline).getTime() - Date.now()) / 86400000)
+                  : null;
 
-                  <Link
-                    to={`/orders/${order.id}`}
-                    className="px-4 py-2 neon-airflow-btn text-white text-xs font-black rounded-xl"
+                const nextAction =
+                  order.status === 'REVISION_REQUESTED'
+                    ? 'Review the requested changes and resubmit.'
+                    : order.status === 'DELIVERED'
+                      ? 'Waiting for client review.'
+                      : order.status === 'COMPLETED'
+                        ? 'Project complete and payout finalized.'
+                        : 'Continue working toward delivery.';
+
+                return (
+                  <div
+                    key={order.id}
+                    className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl hover:border-indigo-500/30 transition"
                   >
-                    Open Project Room →
-                  </Link>
-                </div>
-              </div>
-            ))}
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                            Order #{order.id.slice(0, 8)}
+                          </span>
+                          <span className={`px-2.5 py-1 rounded-full border text-[10px] font-black ${statusClass}`}>
+                            {statusLabels[order.status] || order.status}
+                          </span>
+                        </div>
+
+                        <h4 className="text-base font-black text-white mt-2 truncate">
+                          {order.job?.title || order.gig?.title || 'Client Project'}
+                        </h4>
+
+                        <p className="text-sm text-slate-400 mt-1">
+                          Client: {order.client?.fullName || 'Client'}
+                        </p>
+
+                        <p className="text-sm text-slate-500 mt-2">
+                          {nextAction}
+                        </p>
+
+                        {daysRemaining != null && order.status !== 'COMPLETED' && (
+                          <p className={`text-xs font-bold mt-2 ${
+                            daysRemaining < 0 ? 'text-red-300' : 'text-slate-500'
+                          }`}>
+                            {daysRemaining < 0
+                              ? `${Math.abs(daysRemaining)} day(s) overdue`
+                              : `${daysRemaining} day(s) remaining`}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+                        <div className="sm:text-right">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Order Value
+                          </p>
+                          <p className="text-xl font-black text-emerald-400 mt-1">
+                            ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Expected payout ₹{Number(order.sellerEarnings || 0).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+
+                        {order.status === 'COMPLETED' && (
+                          hasReviewedOrder(order) ? (
+                            <span className="px-3 py-2 bg-emerald-600/20 border border-emerald-500/20 text-emerald-300 text-xs font-black rounded-xl">
+                              Review Submitted
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedOrderId(order.id);
+                                setShowReviewModal(true);
+                              }}
+                              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-black rounded-xl"
+                            >
+                              Leave Review
+                            </button>
+                          )
+                        )}
+
+                        <Link
+                          to={`/orders/${order.id}`}
+                          className="px-4 py-2.5 neon-airflow-btn text-white text-xs font-black rounded-xl text-center"
+                        >
+                          Open Project Room →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         )}
       </div>
