@@ -1437,9 +1437,29 @@ export default function UserProfilePage({ currentUser }) {
           <div className="space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Performance Metrics</h4>
             <div className="space-y-3 text-sm font-bold text-slate-300">
-              <div className="flex justify-between"><span>On time delivery</span><span className="text-emerald-400">100%</span></div>
-              <div className="flex justify-between"><span>On budget</span><span className="text-emerald-400">100%</span></div>
-              <div className="flex justify-between"><span>Reputation Points</span><span className="text-pink-400">{profileUser.points || 50} pts</span></div>
+              <div className="flex justify-between items-center">
+                <span>Completion rate</span>
+                <span className={completionRate >= 90 ? 'text-emerald-400' : completionRate >= 70 ? 'text-amber-400' : 'text-red-400'}>
+                  {completionRate}%
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Completed projects</span>
+                <span className="text-white">{completedProjects}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Client rating</span>
+                <span className="text-amber-400">
+                  {avgRating ? `${avgRating} / 5` : 'New'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Reputation points</span>
+                <span className="text-pink-400">{profileUser.points || 50} pts</span>
+              </div>
             </div>
           </div>
 
