@@ -796,12 +796,36 @@ const expectedCompletionDate = Number(deliveryDays) > 0
 
                 {/* Apply CTA */}
                 <div className="pt-4 space-y-3">
+                  {!job.viewerBid && currentUser?.role === 'STUDENT_FREELANCER' && job.isOpen && job.status === 'OPEN' && (
+                    <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                      <div className="text-[10px] uppercase tracking-wider text-emerald-300 font-black">
+                        Before you bid
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        <div>
+                          <div className="text-[9px] uppercase tracking-wider text-slate-600 font-black">Fee</div>
+                          <div className="text-sm font-black text-white mt-1">10% platform fee</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] uppercase tracking-wider text-slate-600 font-black">Commitment</div>
+                          <div className="text-sm font-black text-white mt-1">Amount + delivery</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <a
                     href="#bid-form"
                     onClick={scrollToBidForm}
                     className="flex items-center justify-center w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-900 text-sm font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                   >
-                    {currentUser && (job.clientId === currentUser.id || job.client?.id === currentUser.id) ? 'View Project' : job.viewerBid ? 'View your proposal' : (!job.isOpen || job.status !== 'OPEN') ? 'Applications closed' : 'Bid on this project'}
+                    {currentUser && (job.clientId === currentUser.id || job.client?.id === currentUser.id)
+                      ? 'View Project'
+                      : job.viewerBid
+                        ? 'View your proposal'
+                        : (!job.isOpen || job.status !== 'OPEN')
+                          ? 'Applications closed'
+                          : 'Bid on this project'}
                   </a>
                 </div>
               </div>
