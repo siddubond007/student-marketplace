@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Clock3, Users, ShieldCheck } from 'lucide-react';
 import API from '../services/api';
 
 export default function ClientProposalsPage() {
@@ -320,23 +321,185 @@ export default function ClientProposalsPage() {
     );
   }
 
+  const bids = job.bids || [];
+  const proposalPriority = {
+    SHORTLISTED: 0,
+    PENDING: 1,
+    HIRED: 2,
+    REJECTED: 3
+  };
+  const sortedBids = [...bids].sort((a, b) => {
+    const aPriority = proposalPriority[String(a.status || 'PENDING').toUpperCase()] ?? 99;
+    const bPriority = proposalPriority[String(b.status || 'PENDING').toUpperCase()] ?? 99;
+
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority;
+    }
+
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+
+  const pendingCount = bids.filter((bid) => bid.status === 'PENDING').length;
+  const shortlistedCount = bids.filter((bid) => bid.status === 'SHORTLISTED').length;
+  const rejectedCount = bids.filter((bid) => bid.status === 'REJECTED').length;
+  const hiredCount = bids.filter((bid) => bid.status === 'HIRED').length;
+
+  const projectStatus = String(job.status || '').toUpperCase();
+  const orderStatus = pendingPaymentOrder?.status || (
+    orders.find((order) => order.jobId === projectId && order.status !== 'CANCELLED_REFUNDED')?.status
+  );
+
+  const getWorkflowBanner = () => {
+    if (hasVerifiedHire) {
+      return {
+        label: 'Hiring locked',
+        title: 'Freelancer hired — project is now in progress',
+        message: 'Payment has been verified and the selected freelancer cannot be changed from this proposal workspace.',
+        className: 'border-emerald-400/20 bg-emerald-500/5',
+        iconClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+      };
+    }
+
+    if (hasPendingPayment) {
+      return {
+        label: 'Payment pending',
+        title: 'Complete payment to secure the selected freelancer',
+        message: 'Your unpaid hiring reservation is still active. Return to the checkout flow to finish hiring or cancel the reservation.',
+        className: 'border-amber-400/20 bg-amber-500/5',
+        iconClass: 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+      };
+    }
+
+    if (projectStatus !== 'OPEN') {
+      return {
+        label: 'Project unavailable',
+        title: 'This project is not currently accepting hiring actions',
+        message: 'The project lifecycle has moved beyond active proposal review.',
+        className: 'border-slate-700 bg-slate-950/40',
+        iconClass: 'bg-slate-800 border-slate-700 text-slate-300'
+      };
+    }
+
+    return {
+      label: 'Hiring workspace',
+      title: 'Compare proposals and choose the right student freelancer',
+      message: 'Shortlist strong candidates first, review their profiles, then start the secure payment flow when you are ready to hire.',
+      className: 'border-indigo-400/20 bg-indigo-500/5',
+      iconClass: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+    };
+  };
+
+  const workflowBanner = getWorkflowBanner();
+
   return (
     <>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-7 pb-16">
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
-        <h1 className="text-3xl font-black text-white">
-          Proposals
-        </h1>
+        <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="min-w-0">
+              <Link
+                to={`/my-projects/${projectId}`}
+                className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Project
+              </Link>
 
-        <p className="text-slate-400 mt-2">
-          {job.title}
-        </p>
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <BriefcaseBusiness className="w-5 h-5 text-indigo-400" />
+                </div>
 
-        <div className="mt-3 text-slate-300">
-          Total Proposals: {job.bids?.length || 0}
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest text-indigo-400">
+                    Hiring Workspace
+                  </p>
+                  <h1 className="text-3xl md:text-4xl font-black text-white mt-1 break-words">
+                    Proposals
+                  </h1>
+                  <p className="text-sm md:text-base text-slate-400 mt-1 break-words">
+                    {job.title}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0">
+              <Link
+                to={`/my-projects/${projectId}`}
+                className="w-full lg:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-white text-sm font-black inline-flex items-center justify-center gap-2"
+              >
+                View Project
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div className={`glass-panel p-5 md:p-6 rounded-3xl border ${workflowBanner.className}`}>
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${workflowBanner.iconClass}`}>
+              {hasVerifiedHire ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : hasPendingPayment ? (
+                <Clock3 className="w-5 h-5" />
+              ) : (
+                <ShieldCheck className="w-5 h-5" />
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                {workflowBanner.label}
+              </p>
+              <h2 className="text-xl font-black text-white mt-1">
+                {workflowBanner.title}
+              </h2>
+              <p className="text-sm leading-6 text-slate-400 mt-1">
+                {workflowBanner.message}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-panel p-5 md:p-6 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-indigo-400" />
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-500">
+              Proposal Summary
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-xs font-bold text-slate-500">Total</p>
+              <p className="text-xl font-black text-white mt-1">{bids.length}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-xs font-bold text-slate-500">Pending</p>
+              <p className="text-xl font-black text-white mt-1">{pendingCount}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-xs font-bold text-slate-500">Shortlisted</p>
+              <p className="text-xl font-black text-indigo-300 mt-1">{shortlistedCount}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-xs font-bold text-slate-500">Hired</p>
+              <p className="text-xl font-black text-emerald-300 mt-1">{hiredCount}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-4 text-xs font-bold">
+            <span className="px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-300">
+              {rejectedCount} Rejected
+            </span>
+            {orderStatus && (
+              <span className="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+                Order: {orderStatus.replaceAll('_', ' ')}
+              </span>
+            )}
+          </div>
+        </div>
 
       {!job.bids?.length ? (
         <div className="glass-panel p-10 rounded-3xl border border-slate-800 text-center">
@@ -349,98 +512,139 @@ export default function ClientProposalsPage() {
           </p>
         </div>
       ) : (
-        job.bids.map(bid => (
-          <div
-            key={bid.id}
-            className="glass-panel p-6 rounded-3xl border border-slate-800"
-          >
-            <div className="flex justify-between flex-wrap gap-4">
+        sortedBids.map(bid => {
+          const bidStatus = String(bid.status || 'PENDING').toUpperCase();
+          const bidStatusMeta = {
+            PENDING: {
+              label: 'Pending Review',
+              className: 'bg-slate-800 border-slate-700 text-slate-300'
+            },
+            SHORTLISTED: {
+              label: 'Shortlisted',
+              className: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+            },
+            REJECTED: {
+              label: 'Rejected',
+              className: 'bg-red-500/10 border-red-500/20 text-red-300'
+            },
+            HIRED: {
+              label: 'Hired',
+              className: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+            }
+          }[bidStatus] || {
+            label: bidStatus,
+            className: 'bg-slate-800 border-slate-700 text-slate-300'
+          };
 
-              <div>
-                <h3 className="text-xl font-bold text-white">
-                  {bid.student?.fullName || 'Student'}
-                </h3>
+          return (
+            <div
+              key={bid.id}
+              className="p-5 md:p-6 bg-slate-950/50 border border-slate-800 rounded-2xl"
+            >
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                      Student Proposal
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full border text-xs font-black ${bidStatusMeta.className}`}>
+                      {bidStatusMeta.label}
+                    </span>
+                  </div>
 
-                <div className="text-slate-400 mt-2">
-                  Submitted:
-                  {' '}
-                  {new Date(bid.createdAt).toLocaleDateString()}
+                  <h3 className="text-xl md:text-2xl font-black text-white mt-2 break-words">
+                    {bid.student?.fullName || 'Student'}
+                  </h3>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 mt-2">
+                    <span>
+                      Submitted {new Date(bid.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <span>Delivery · {bid.deliveryDays} days</span>
+                  </div>
                 </div>
 
-                <div className="mt-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-700 text-white">
-                    {bid.status || 'PENDING'}
+                <div className="rounded-2xl bg-slate-900/80 border border-slate-800 px-5 py-3 lg:text-right shrink-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Proposed Price
+                  </p>
+                  <p className="text-2xl font-black text-indigo-300 mt-1">
+                    ₹{Number(bid.proposedAmount || 0).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-slate-900/50 border border-slate-800 p-4 md:p-5">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Cover Letter
+                </h4>
+                <p className="text-sm md:text-base leading-7 text-slate-300 whitespace-pre-wrap mt-2 break-words">
+                  {bid.coverLetter || 'No cover letter provided.'}
+                </p>
+              </div>
+
+              <div className="mt-5 flex gap-3 flex-wrap">
+
+                {bidStatus === 'SHORTLISTED' ? (
+                  <span className="px-4 py-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-black">
+                    ✓ Shortlisted
                   </span>
-                </div>
-              </div>
+                ) : bidStatus === 'REJECTED' ? (
+                  <span className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm font-black">
+                    Proposal Rejected
+                  </span>
+                ) : bidStatus !== 'HIRED' ? (
+                  <>
+                    <button
+                      disabled={hasActiveHiringLock}
+                      onClick={() => updateProposalStatus(bid.id, 'shortlist-bid')}
+                      className={`px-4 py-2.5 rounded-xl text-white text-sm font-black ${hasActiveHiringLock ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-60' : 'bg-amber-600 hover:bg-amber-500'}`}
+                    >
+                      Shortlist
+                    </button>
 
-              <div className="text-right">
-                <div className="text-indigo-400 font-black text-xl">
-                  ₹{bid.proposedAmount}
-                </div>
+                    <button
+                      disabled={hasActiveHiringLock}
+                      onClick={() => updateProposalStatus(bid.id, 'reject-bid')}
+                      className={`px-4 py-2.5 rounded-xl text-white text-sm font-black ${hasActiveHiringLock ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500'}`}
+                    >
+                      Reject
+                    </button>
+                  </>
+                ) : null}
 
-                <div className="text-slate-400">
-                  {bid.deliveryDays} Days
-                </div>
-              </div>
+                {hasVerifiedHire ? (
+                  <span className="px-4 py-2.5 bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 rounded-xl text-sm font-black">
+                    {bidStatus === 'HIRED' ? '✓ Hired for This Project' : 'Project Already Hired'}
+                  </span>
+                ) : hasPendingPayment ? (
+                  <span className="px-4 py-2.5 bg-amber-500/15 border border-amber-400/30 text-amber-300 rounded-xl text-sm font-black">
+                    Payment Pending
+                  </span>
+                ) : ['PENDING', 'SHORTLISTED'].includes(bidStatus) ? (
+                  <button
+                    onClick={() => hireStudent(bid.id, bid.proposedAmount)}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white text-sm font-black"
+                  >
+                    Hire Student
+                  </button>
+                ) : null}
 
-            </div>
-
-            <div className="mt-5">
-              <h4 className="text-white font-bold mb-2">
-                Cover Letter
-              </h4>
-
-              <p className="text-slate-300 whitespace-pre-wrap">
-                {bid.coverLetter}
-              </p>
-            </div>
-
-            <div className="mt-5 flex gap-3 flex-wrap">
-
-              <button
-                disabled={hasActiveHiringLock}
-                onClick={() => updateProposalStatus(bid.id, 'shortlist-bid')}
-                className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${hasActiveHiringLock ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-60' : 'bg-amber-600 hover:bg-amber-500'}`}
-              >
-                Shortlist
-              </button>
-
-              <button
-                disabled={hasActiveHiringLock}
-                onClick={() => updateProposalStatus(bid.id, 'reject-bid')}
-                className={`px-4 py-2 rounded-xl text-white text-sm font-bold ${hasActiveHiringLock ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-60' : 'bg-red-600 hover:bg-red-500'}`}
-              >
-                Reject
-              </button>
-
-              {hasVerifiedHire ? (
-                <span className="px-4 py-2 bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 rounded-xl text-sm font-bold">
-                  {bid.status === 'HIRED' ? '✓ Hired for This Project' : 'Project Already Hired'}
-                </span>
-              ) : hasPendingPayment ? (
-                <span className="px-4 py-2 bg-amber-500/15 border border-amber-400/30 text-amber-300 rounded-xl text-sm font-bold">
-                  Payment Pending
-                </span>
-              ) : (
-                <button
-                  onClick={() => hireStudent(bid.id, bid.proposedAmount)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white text-sm font-bold"
+                <Link
+                  to={`/u/${bid.student?.id}`}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-black"
                 >
-                  Hire Student
-                </button>
-              )}
+                  View Student Profile
+                </Link>
 
-              <Link
-                to={`/u/${bid.student?.id}`}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-bold"
-              >
-                View Student Profile
-              </Link>
-
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
 
       </div>
