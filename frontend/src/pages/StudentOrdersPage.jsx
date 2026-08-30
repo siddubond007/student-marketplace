@@ -207,6 +207,12 @@ export default function StudentOrdersPage({ currentUser }) {
               (review) => review.reviewerId === currentUser?.id
             );
 
+            const latestDeliverable = Array.isArray(order.deliverables)
+              ? [...order.deliverables].sort(
+                  (a, b) => Number(b.version || 0) - Number(a.version || 0)
+                )[0]
+              : null;
+
             return (
               <article
                 key={order.id}
@@ -231,8 +237,26 @@ export default function StudentOrdersPage({ currentUser }) {
                     </h2>
 
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Created {new Date(order.createdAt).toLocaleDateString()}
+                      Created {new Date(order.createdAt).toLocaleDateString('en-IN')}
                     </p>
+
+                    {latestDeliverable && (
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black text-indigo-300">
+                          Delivery v{latestDeliverable.version || 1}
+                        </span>
+
+                        <span className="text-[10px] text-slate-500">
+                          {latestDeliverable.reviewStatus === 'REVISION_REQUESTED'
+                            ? 'Changes requested'
+                            : latestDeliverable.reviewStatus === 'APPROVED'
+                              ? 'Approved'
+                              : latestDeliverable.reviewStatus === 'PENDING_REVIEW'
+                                ? 'Awaiting review'
+                                : 'Delivery submitted'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
