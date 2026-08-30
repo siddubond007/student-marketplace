@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Briefcase, PlusCircle, Trash2, Star, ArrowRight, AlertCircle, CheckCircle2, Clock3, DollarSign, FileText, Users, Bell } from 'lucide-react';
+import { Briefcase, PlusCircle, Trash2, Star, ArrowRight, AlertCircle, CheckCircle2, Clock3, DollarSign, FileText, Users, Bell, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
@@ -43,9 +43,10 @@ export default function ClientDashboard({ currentUser }) {
     timelinessRating: 5,
     comment: ""
   });
-  const [filter, setFilter] = useState('ALL');
 
   const [showPostJobModal, setShowPostJobModal] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const [jobForm, setJobForm] = useState({
     title: '',
@@ -202,10 +203,148 @@ export default function ClientDashboard({ currentUser }) {
   const formatCurrency = (value) =>
     `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
-  return (
-    <div className="space-y-7 pb-16">
+  const dashboardSections = [
+    { id: 'overview', label: 'Overview', icon: Briefcase },
+    { id: 'attention', label: 'Needs Attention', icon: AlertCircle },
+    { id: 'projects', label: 'Projects', icon: FileText },
+    { id: 'proposals', label: 'Proposals', icon: Users },
+    { id: 'deadlines', label: 'Deadlines', icon: Clock3 },
+    { id: 'payments', label: 'Payments', icon: DollarSign },
+    { id: 'students', label: 'Students', icon: Users },
+    { id: 'messages', label: 'Messages', icon: Users },
+    { id: 'activity', label: 'Activity', icon: Clock3 },
+    { id: 'reviews', label: 'Reviews', icon: Star },
+    { id: 'account', label: 'Account', icon: ShieldCheck }
+  ];
 
-      <div className="glass-panel p-7 md:p-8 rounded-3xl border border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+  const selectSection = (section) => {
+    setActiveSection(section);
+    setMobileNavOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const sectionVisible = (section) =>
+    activeSection === 'overview'
+      ? section === 'overview' || section === 'attention'
+      : activeSection === section;
+
+  return (
+    <div className="pb-16">
+      <div className="lg:hidden flex items-center justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-wider text-indigo-400">
+            Client Workspace
+          </p>
+          <p className="text-lg font-black text-white truncate">
+            {dashboardSections.find(s => s.id === activeSection)?.label || 'Overview'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          className="w-11 h-11 rounded-2xl bg-slate-900 border border-slate-700 text-white text-xl shrink-0"
+          aria-label="Open dashboard navigation"
+        >
+          ☰
+        </button>
+      </div>
+
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        >
+          <aside
+            className="w-[82%] max-w-sm h-full bg-slate-950 border-r border-slate-800 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                  Client Workspace
+                </p>
+                <h2 className="text-xl font-black text-white mt-1">
+                  Dashboard
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 text-slate-300"
+                aria-label="Close dashboard navigation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <nav className="space-y-1.5">
+              {dashboardSections.map((section) => {
+                const Icon = section.icon;
+                const selected = activeSection === section.id;
+
+                return (
+                  <button
+                    type="button"
+                    key={section.id}
+                    onClick={() => selectSection(section.id)}
+                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-black transition ${
+                      selected
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
+        <aside className="hidden lg:block">
+          <div className="glass-panel p-3 rounded-3xl border border-slate-800 sticky top-24">
+            <div className="px-3 py-3 border-b border-slate-800 mb-2">
+              <p className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                Client Workspace
+              </p>
+              <h2 className="text-lg font-black text-white mt-1">
+                Dashboard
+              </h2>
+            </div>
+
+            <nav className="space-y-1">
+              {dashboardSections.map((section) => {
+                const Icon = section.icon;
+                const selected = activeSection === section.id;
+
+                return (
+                  <button
+                    type="button"
+                    key={section.id}
+                    onClick={() => selectSection(section.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-black transition ${
+                      selected
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        <main className="min-w-0 space-y-6">
+
+      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-sm font-black text-emerald-400 mb-3">
             <Briefcase className="w-4 h-4" />
@@ -257,7 +396,117 @@ export default function ClientDashboard({ currentUser }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className={`${sectionVisible('account') ? '' : 'hidden'} glass-panel p-5 md:p-6 rounded-3xl border border-slate-800`} data-dashboard-section="account">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-indigo-400" />
+            <div>
+              <h3 className="text-lg md:text-xl font-black text-white">
+                Account & Verification
+              </h3>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Your contact details, identity status and account state.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to={`/profile/${dashboardData?.account?.id || ''}`}
+            className="text-sm font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1 shrink-0"
+          >
+            Manage Verification
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {dashboardLoading ? (
+          <div className="py-5 text-center text-sm text-slate-500">
+            Loading account details…
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-sm font-bold text-slate-500">Email</p>
+              <p className="text-base font-bold text-white mt-1 break-words">
+                {dashboardData?.account?.email || 'Not available'}
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Account email
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <p className="text-sm font-bold text-slate-500">Phone</p>
+              <p className="text-base font-bold text-white mt-1">
+                {dashboardData?.account?.phone || 'Not added'}
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                {dashboardData?.account?.phone ? 'Phone on account' : 'Add a phone number in your profile'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-500">
+                    Government Identity
+                  </p>
+                  <p className="text-base font-bold text-white mt-1">
+                    Identity verification
+                  </p>
+                </div>
+
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-black shrink-0 ${
+                    dashboardData?.account?.verification?.govtIdStatus === 'APPROVED'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : dashboardData?.account?.verification?.govtIdStatus === 'PENDING' &&
+                        dashboardData?.account?.verification?.hasGovtId
+                        ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700'
+                  }`}
+                >
+                  {dashboardData?.account?.verification?.govtIdStatus === 'APPROVED' ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : dashboardData?.account?.verification?.govtIdStatus === 'PENDING' &&
+                    dashboardData?.account?.verification?.hasGovtId ? (
+                    <Clock3 className="w-4 h-4" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+
+                  {dashboardData?.account?.verification?.govtIdStatus === 'APPROVED'
+                    ? 'Verified'
+                    : dashboardData?.account?.verification?.govtIdStatus === 'PENDING' &&
+                      dashboardData?.account?.verification?.hasGovtId
+                      ? 'Under Review'
+                      : 'Not Submitted'}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-500">
+                    Account Status
+                  </p>
+                  <p className="text-base font-bold text-white mt-1">
+                    Client Account
+                  </p>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Active
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={`${sectionVisible('overview') ? '' : 'hidden'} grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4`} data-dashboard-section="overview">
         {[
           {
             label: 'Active Projects',
@@ -314,7 +563,7 @@ export default function ClientDashboard({ currentUser }) {
         })}
       </div>
 
-      <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+      <div className={`${sectionVisible('attention') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="attention">
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2">
@@ -344,8 +593,8 @@ export default function ClientDashboard({ currentUser }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {attentionItems.map((item) => {
+          <div className="space-y-2.5">
+            {attentionItems.slice(0, 3).map((item) => {
               const itemIcon =
                 item.type === 'DELIVERY'
                   ? CheckCircle2
@@ -359,7 +608,7 @@ export default function ClientDashboard({ currentUser }) {
                 <Link
                   key={item.key}
                   to={item.href}
-                  className="group flex items-center justify-between gap-4 p-4 md:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-950 transition"
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 md:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-950 transition"
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
@@ -390,7 +639,7 @@ export default function ClientDashboard({ currentUser }) {
         )}
       </div>
 
-      <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+      <div className={`${sectionVisible('projects') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="projects">
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <h3 className="text-xl font-black text-white">Active Projects</h3>
@@ -493,7 +742,7 @@ export default function ClientDashboard({ currentUser }) {
 
 
       {attention.proposalJobs.length > 0 && (
-        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className={`${sectionVisible('proposals') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="proposals">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div>
               <div className="flex items-center gap-2">
@@ -512,8 +761,8 @@ export default function ClientDashboard({ currentUser }) {
             </span>
           </div>
 
-          <div className="space-y-3">
-            {attention.proposalJobs.slice(0, 4).map((project) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {attention.proposalJobs.slice(0, 3).map((project) => (
               <Link
                 key={project.id}
                 to={`/my-projects/${project.id}/proposals`}
@@ -546,7 +795,7 @@ export default function ClientDashboard({ currentUser }) {
       )}
 
       {dashboardData?.deadlines?.length > 0 && (
-        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className={`${sectionVisible('deadlines') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="deadlines">
           <div className="flex items-center gap-2 mb-5">
             <Clock3 className="w-5 h-5 text-amber-400" />
             <div>
@@ -559,8 +808,8 @@ export default function ClientDashboard({ currentUser }) {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {dashboardData.deadlines.map((item) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {dashboardData.deadlines.slice(0, 3).map((item) => {
               const deadline = new Date(item.deadline);
               const daysRemaining = Math.ceil(
                 (deadline.getTime() - Date.now()) / 86400000
@@ -618,7 +867,7 @@ export default function ClientDashboard({ currentUser }) {
         </div>
       )}
 
-      <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+      <div className={`${sectionVisible('payments') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="payments">
         <div className="flex items-center gap-2 mb-5">
           <DollarSign className="w-5 h-5 text-emerald-400" />
           <div>
@@ -631,7 +880,7 @@ export default function ClientDashboard({ currentUser }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
             <p className="text-sm text-slate-500">In Escrow</p>
             <p className="text-2xl font-black text-white mt-1">
@@ -691,7 +940,7 @@ export default function ClientDashboard({ currentUser }) {
       </div>
 
       {dashboardData?.recommendedStudents?.length > 0 && (
-        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className={`${sectionVisible('students') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="students">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-400" />
@@ -715,10 +964,12 @@ export default function ClientDashboard({ currentUser }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {dashboardData.recommendedStudents.slice(0, 4).map((student) => (
+            {dashboardData.recommendedStudents.slice(0, 4).map((student, index) => (
               <div
                 key={student.id}
-                className="rounded-2xl bg-slate-950/60 border border-slate-800 p-5"
+                className={`rounded-2xl bg-slate-950/60 border border-slate-800 p-5 ${
+                  index > 1 ? 'hidden sm:block' : ''
+                }`}
               >
                 <div className="flex items-center gap-3">
                   {student.profile?.avatarUrl ? (
@@ -780,7 +1031,7 @@ export default function ClientDashboard({ currentUser }) {
       )}
 
       {dashboardData?.recentConversations?.length > 0 && (
-        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className={`${sectionVisible('messages') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="messages">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-5 h-5 text-indigo-400" />
             <div>
@@ -794,11 +1045,13 @@ export default function ClientDashboard({ currentUser }) {
           </div>
 
           <div className="space-y-3">
-            {dashboardData.recentConversations.slice(0, 5).map((conversation) => (
+            {dashboardData.recentConversations.slice(0, 5).map((conversation, index) => (
               <Link
                 key={conversation.orderId}
                 to={`/orders/${conversation.orderId}`}
-                className="group flex items-center gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+                className={`group flex items-center gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition ${
+                  index > 2 ? 'hidden sm:flex' : ''
+                }`}
               >
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5 text-indigo-400" />
@@ -834,7 +1087,7 @@ export default function ClientDashboard({ currentUser }) {
       )}
 
       {dashboardData?.recentActivity?.length > 0 && (
-        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+        <div className={`${sectionVisible('activity') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="activity">
           <div className="flex items-center gap-2 mb-5">
             <Clock3 className="w-5 h-5 text-indigo-400" />
             <div>
@@ -847,8 +1100,8 @@ export default function ClientDashboard({ currentUser }) {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {dashboardData.recentActivity.slice(0, 6).map((event) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {dashboardData.recentActivity.slice(0, 6).map((event, index) => {
               const href = event.projectId
                 ? `/my-projects/${event.projectId}`
                 : `/orders/${event.orderId}`;
@@ -857,7 +1110,9 @@ export default function ClientDashboard({ currentUser }) {
                 <Link
                   key={event.id}
                   to={href}
-                  className="group flex items-start gap-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+                  className={`group flex items-start gap-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition ${
+                    index > 2 ? 'hidden sm:flex' : ''
+                  }`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                     <Clock3 className="w-4 h-4 text-indigo-400" />
@@ -894,7 +1149,7 @@ export default function ClientDashboard({ currentUser }) {
         const pendingReviews = dashboardData?.pendingReviews || [];
 
         return (
-          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
+          <div className={`${sectionVisible('reviews') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="reviews">
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5 text-amber-400" />
               <div>
@@ -919,10 +1174,12 @@ export default function ClientDashboard({ currentUser }) {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingReviews.map((order) => (
+                {pendingReviews.slice(0, 4).map((order, index) => (
                   <div
-                    key={order.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800"
+                    key={order.orderId}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 ${
+                      index > 1 ? 'hidden sm:flex' : ''
+                    }`}
                   >
                     <div className="min-w-0">
                       <p className="text-base font-bold text-white truncate">
@@ -945,7 +1202,7 @@ export default function ClientDashboard({ currentUser }) {
                       </button>
 
                       <Link
-                        to={`/orders/${order.id}`}
+                        to={`/orders/${order.orderId}`}
                         className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-black rounded-xl"
                       >
                         Open
@@ -959,7 +1216,7 @@ export default function ClientDashboard({ currentUser }) {
         );
       })()}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className={`${sectionVisible('overview') ? '' : 'hidden'} grid grid-cols-1 lg:grid-cols-2 gap-5`} data-dashboard-section="overview">
         <div className="glass-panel p-6 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-5 h-5 text-indigo-400" />
@@ -1013,6 +1270,9 @@ export default function ClientDashboard({ currentUser }) {
 
           </div>
         </div>
+      </div>
+
+        </main>
       </div>
 
       {showPostJobModal && (

@@ -50,7 +50,15 @@ const io = new Server(server, {
   }
 });
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('API origin not allowed'));
+  },
+  credentials: true
+}));
 
 // 🛡️ OWASP Security Headers (crossOriginResourcePolicy: false allows serving static upload images)
 app.use(helmet({ crossOriginResourcePolicy: false }));

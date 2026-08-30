@@ -62,7 +62,8 @@ exports.getClientDashboard = async (req, res) => {
       recentActivityEvents,
       recentConversationMessages,
       pendingReviewOrders,
-      recommendedStudents
+      recommendedStudents,
+      clientAccount
     ] = await Promise.all([
       prisma.job.groupBy({
         by: ['status'],
@@ -359,6 +360,25 @@ exports.getClientDashboard = async (req, res) => {
           { createdAt: 'desc' }
         ],
         take: 4
+      }),
+
+      prisma.user.findUnique({
+        where: { id: clientId },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          verification: {
+            select: {
+              status: true,
+              collegeIdStatus: true,
+              govtIdStatus: true,
+              idCardUrl: true,
+              nationalIdUrl: true
+            }
+          }
+        }
       })
     ]);
 
@@ -518,6 +538,17 @@ exports.getClientDashboard = async (req, res) => {
       recentConversations,
       pendingReviews,
       recommendedStudents,
+      account: {
+        id: clientAccount?.id || clientId,
+        fullName: clientAccount?.fullName || null,
+        email: clientAccount?.email || null,
+        phone: clientAccount?.phone || null,
+        verification: {
+          status: clientAccount?.verification?.status || null,
+          govtIdStatus: clientAccount?.verification?.govtIdStatus || null,
+          hasGovtId: Boolean(clientAccount?.verification?.nationalIdUrl)
+        }
+      },
       activeProjects: activeProjectData
     });
   } catch (err) {
