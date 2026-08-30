@@ -944,31 +944,56 @@ export default function OrderWorkspacePage({ currentUser }) {
                 {order?.deliverables?.length ? (
                   <div className="space-y-3">
                     {order.deliverables.map((d, index) => {
-                      const statusLabel = String(d.reviewStatus || 'PENDING_REVIEW')
+                      const version = d.version ?? order.deliverables.length - index;
+                      const isLatest = index === 0;
+                      const status = d.reviewStatus || 'PENDING_REVIEW';
+                      const statusLabel = String(status)
                         .replace(/_/g, ' ')
                         .toLowerCase()
                         .replace(/\b\w/g, c => c.toUpperCase());
 
-                      const statusClass = d.reviewStatus === 'REVISION_REQUESTED'
+                      const statusClass = status === 'REVISION_REQUESTED'
                         ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-                        : d.reviewStatus === 'APPROVED'
+                        : status === 'APPROVED'
                           ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          : d.reviewStatus === 'DISPUTE_RESOLVED'
+                          : status === 'DISPUTE_RESOLVED' || status === 'DISPUTED'
                             ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                            : d.reviewStatus === 'DISPUTED'
-                              ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                              : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300';
+                            : 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300';
 
                       return (
-                        <div key={d.id || index} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                        <div
+                          key={d.id || index}
+                          className={`relative p-5 rounded-2xl border ${
+                            isLatest
+                              ? 'bg-indigo-500/5 border-indigo-500/20'
+                              : 'bg-slate-950 border-slate-800'
+                          }`}
+                        >
+                          {index < order.deliverables.length - 1 && (
+                            <div className="absolute left-5 top-full h-3 border-l border-dashed border-slate-700" />
+                          )}
+
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                            <div>
-                              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
-                                Delivery Version
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                  Delivery Version {version}
+                                </div>
+                                {isLatest && (
+                                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-wider text-indigo-300">
+                                    Latest
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-sm font-black text-white mt-1">
-                                Version {d.version ?? order.deliverables.length - index}
+
+                              <div className="text-sm font-black text-white mt-2">
+                                {status === 'REVISION_REQUESTED'
+                                  ? 'Changes requested on this delivery'
+                                  : status === 'APPROVED'
+                                    ? 'Delivery approved'
+                                    : 'Delivery submitted for review'}
                               </div>
+
                               <div className="text-sm text-slate-500 mt-1">
                                 Submitted {d.submittedAt
                                   ? new Date(d.submittedAt).toLocaleString('en-IN')
