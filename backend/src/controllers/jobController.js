@@ -414,6 +414,51 @@ exports.getJobById = async (req, res) => {
           include: {
             student: { select: { id: true, fullName: true, email: true, freeBidsRemaining: true } }
           }
+        },
+        orders: {
+          where: {
+            status: {
+              not: 'CANCELLED_REFUNDED'
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          select: {
+            id: true,
+            sellerId: true,
+            totalAmount: true,
+            status: true,
+            deadline: true,
+            requirements: true,
+            createdAt: true,
+            updatedAt: true,
+            seller: {
+              select: {
+                id: true,
+                fullName: true
+              }
+            },
+            activityEvents: {
+              select: {
+                id: true,
+                type: true,
+                message: true,
+                source: true,
+                createdAt: true,
+                actor: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    role: true
+                  }
+                }
+              },
+              orderBy: {
+                createdAt: 'asc'
+              }
+            }
+          }
         }
       }
     });
