@@ -591,6 +591,36 @@ export default function ClientProposalsPage() {
                     )}
                   </div>
 
+                  <div className="mt-4 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {bid.student?.profile?.category && (
+                        <span className="text-xs font-bold text-slate-300">
+                          {bid.student.profile.category}
+                        </span>
+                      )}
+
+                      {bid.student?.profile?.college && (
+                        <span className="text-xs text-slate-500">
+                          · {bid.student.profile.college}
+                        </span>
+                      )}
+                    </div>
+
+                    {Array.isArray(bid.student?.profile?.skills) &&
+                      bid.student.profile.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {bid.student.profile.skills.slice(0, 5).map((skill, index) => (
+                            <span
+                              key={`${skill}-${index}`}
+                              className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+
                 <div className="rounded-2xl bg-slate-900/80 border border-slate-800 px-5 py-3 lg:text-right shrink-0">
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                     Proposed Price
