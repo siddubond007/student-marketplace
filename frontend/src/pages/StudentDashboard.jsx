@@ -118,6 +118,15 @@ export default function StudentDashboard({ currentUser }) {
     (profileCompletion / profileChecklist.length) * 100
   );
 
+  const missingProfileItems = [
+    !profileData?.profile?.avatarUrl && 'Profile photo',
+    !profileData?.profile?.tagline?.trim() && 'Tagline',
+    !profileData?.profile?.category?.trim() && 'Category',
+    !profileData?.profile?.college?.trim() && 'College',
+    !profileData?.profile?.bio?.trim() && 'Bio',
+    !(Array.isArray(profileData?.profile?.skills) && profileData.profile.skills.length > 0) && 'Skills'
+  ].filter(Boolean);
+
   const totalWithdrawn = payoutHistory.reduce(
     (total, payout) =>
       payout.status === 'APPROVED'
@@ -578,17 +587,26 @@ export default function StudentDashboard({ currentUser }) {
                 Keep your profile complete and client-ready.
               </p>
 
-              <div className="mt-3 max-w-xs">
-                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+              <div className="mt-3 max-w-md">
+                <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider">
                   <span className="text-slate-500">Profile readiness</span>
-                  <span className="text-indigo-400">{profileCompletionPercent}%</span>
+                  <span className={profileCompletionPercent === 100 ? 'text-emerald-400' : 'text-indigo-400'}>
+                    {profileCompletionPercent}%
+                  </span>
                 </div>
-                <div className="mt-1.5 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+
+                <div className="mt-1.5 h-2 rounded-full bg-slate-800 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                     style={{ width: `${profileCompletionPercent}%` }}
                   />
                 </div>
+
+                <p className="text-xs text-slate-500 mt-2">
+                  {profileCompletionPercent === 100
+                    ? 'Your profile is complete and client-ready.'
+                    : `${missingProfileItems.length} item${missingProfileItems.length === 1 ? '' : 's'} still needed: ${missingProfileItems.slice(0, 3).join(', ')}${missingProfileItems.length > 3 ? '…' : ''}`}
+                </p>
               </div>
             </div>
           </div>
