@@ -415,7 +415,7 @@ export default function OrderWorkspacePage({ currentUser }) {
     <div className="space-y-6 pb-16">
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-xs font-bold text-indigo-400 hover:underline"
+        className="inline-flex items-center gap-2 text-sm font-bold text-indigo-400 hover:underline"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Portal</span>
@@ -424,13 +424,13 @@ export default function OrderWorkspacePage({ currentUser }) {
       <section className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-7">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-indigo-400">
               Order Workspace
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white mt-2 break-words">
+            <h1 className="text-3xl md:text-4xl font-black text-white mt-2 break-words">
               {projectTitle}
             </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center gap-2 mt-3 text-sm text-slate-400">
               <span>Order #{orderId?.slice(0, 8)}</span>
               <span>•</span>
               <span>{isClient ? 'Client view' : isSeller ? 'Freelancer view' : 'Administrator view'}</span>
@@ -446,7 +446,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 aria-label="Open collaboration chat"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
+                <span className="text-xs font-black uppercase tracking-widest">
                   Chat
                 </span>
               </button>
@@ -460,13 +460,13 @@ export default function OrderWorkspacePage({ currentUser }) {
             </div>
 
             <div className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-950/70">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                 Escrow
               </div>
               <div className="text-sm font-black text-white mt-1">
                 {order?.totalAmount != null ? `₹${Number(order.totalAmount).toLocaleString('en-IN')}` : '—'}
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
+              <div className="text-sm text-slate-400 mt-0.5">
                 {order?.status === 'COMPLETED'
                   ? 'Payout released'
                   : order?.status === 'CANCELLED_REFUNDED'
@@ -478,7 +478,7 @@ export default function OrderWorkspacePage({ currentUser }) {
             </div>
 
             <div className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-950/70">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                 Deadline
               </div>
               <div className="text-sm font-black text-white mt-1">
@@ -524,7 +524,7 @@ export default function OrderWorkspacePage({ currentUser }) {
               <button
                 type="button"
                 onClick={() => document.getElementById('delivery-center')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-5 py-3 neon-airflow-btn text-white text-xs font-black rounded-xl"
+                className="px-5 py-3 neon-airflow-btn text-white text-sm font-black rounded-xl"
               >
                 Submit Deliverables
               </button>
@@ -535,7 +535,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 <button
                   type="button"
                   onClick={handleApprove}
-                  className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black rounded-xl"
+                  className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-black rounded-xl"
                 >
                   Approve & Release
                 </button>
@@ -543,7 +543,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 <button
                   type="button"
                   onClick={() => setShowRevisionModal(true)}
-                  className="px-5 py-3 border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-black rounded-xl"
+                  className="px-5 py-3 border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm font-black rounded-xl"
                 >
                   Request Revision
                 </button>
@@ -551,7 +551,7 @@ export default function OrderWorkspacePage({ currentUser }) {
             )}
 
             {isClient && order?.status === 'PENDING_PAYMENT' && (
-              <div className="px-5 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-xs font-bold text-amber-300">
+              <div className="px-5 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm font-bold text-amber-300">
                 Payment required to continue
               </div>
             )}
@@ -565,19 +565,19 @@ export default function OrderWorkspacePage({ currentUser }) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Order ID</div>
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">Order ID</div>
               <div className="text-[11px] font-bold text-slate-300 mt-1 break-all">{order?.id || orderId || '—'}</div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Category</div>
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">Category</div>
               <div className="text-[11px] font-bold text-slate-300 mt-1">
                 {order?.job?.category || order?.gig?.category || 'Not specified'}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Created</div>
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">Created</div>
               <div className="text-[11px] font-bold text-slate-300 mt-1">
                 {order?.createdAt
                   ? new Date(order.createdAt).toLocaleDateString('en-IN', {
@@ -590,7 +590,7 @@ export default function OrderWorkspacePage({ currentUser }) {
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Project Type</div>
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">Project Type</div>
               <div className="text-[11px] font-bold text-slate-300 mt-1">
                 {order?.job?.projectType
                   ? String(order.job.projectType).replace(/_/g, ' ')
@@ -605,14 +605,14 @@ export default function OrderWorkspacePage({ currentUser }) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                 Project Progress
               </div>
               <div className="text-sm font-bold text-white mt-1">
                 {meta.label}
               </div>
             </div>
-            <div className="text-[10px] font-bold text-slate-500">
+            <div className="text-sm font-bold text-slate-400">
               Step {Math.min(meta.step + 1, progressSteps.length)} / {progressSteps.length}
             </div>
           </div>
@@ -633,7 +633,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                         : 'border-slate-800 bg-slate-950/60'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-2 ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black mb-2 ${
                     current
                       ? 'bg-indigo-500 text-white'
                       : complete
@@ -642,7 +642,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                   }`}>
                     {complete ? '✓' : index + 1}
                   </div>
-                  <div className={`text-[10px] font-black ${
+                  <div className={`text-sm font-black ${
                     current ? 'text-white' : complete ? 'text-slate-300' : 'text-slate-500'
                   }`}>
                     {step}
@@ -660,33 +660,33 @@ export default function OrderWorkspacePage({ currentUser }) {
             <div className="flex items-center gap-3 mb-4">
               <FileText className="w-5 h-5 text-indigo-400" />
               <div>
-                <h2 className="text-sm font-black text-white">Project Details</h2>
-                <p className="text-[10px] text-slate-500 mt-0.5">Authoritative project context</p>
+                <h2 className="text-lg font-black text-white">Project Details</h2>
+                <p className="text-sm text-slate-500 mt-0.5">Authoritative project context</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                   Description
                 </div>
-                <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                <p className="text-base leading-7 text-slate-300 whitespace-pre-wrap">
                   {order?.job?.description || order?.gig?.description || 'No project description provided.'}
                 </p>
               </div>
 
               <div>
-                <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                   Requirements / Scope
                 </div>
-                <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                <p className="text-base leading-7 text-slate-300 whitespace-pre-wrap">
                   {order?.job?.requirements || order?.requirements || 'No additional requirements recorded.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                     Skills
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -702,7 +702,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 </div>
 
                 <div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                     Deliverables
                   </div>
                   <p className="text-sm text-slate-300">
@@ -715,7 +715,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
                     References
                   </div>
                   {order?.job?.referenceLinks?.length ? (
@@ -740,7 +740,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 </div>
 
                 <div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
                     Attachments / External Links
                   </div>
                   <div className="space-y-2">
@@ -806,7 +806,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                       ? 'Resubmit Revised Deliverables'
                       : 'Delivery Center'}
                   </h2>
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-sm text-slate-500 mt-1">
                     {order?.status === 'REVISION_REQUESTED'
                       ? 'Submit a new delivery version addressing the client’s requested changes.'
                       : 'Submit your completed project for client review.'}
@@ -819,18 +819,18 @@ export default function OrderWorkspacePage({ currentUser }) {
                     value={deliverLink}
                     onChange={e => setDeliverLink(e.target.value)}
                     placeholder="Google Drive / GitHub Deliverable Link"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white"
                   />
                   <textarea
                     rows="3"
                     value={deliverNote}
                     onChange={e => setDeliverNote(e.target.value)}
                     placeholder="Delivery notes..."
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white"
                   />
                   <button
                     type="submit"
-                    className="w-full py-3 neon-airflow-btn text-white text-xs font-black rounded-xl"
+                    className="w-full py-3 neon-airflow-btn text-white text-sm font-black rounded-xl"
                   >
                     Submit Deliverables
                   </button>
@@ -861,39 +861,39 @@ export default function OrderWorkspacePage({ currentUser }) {
                         <div key={d.id || index} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                             <div>
-                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                                 Delivery Version
                               </div>
                               <div className="text-sm font-black text-white mt-1">
                                 Version {d.version ?? order.deliverables.length - index}
                               </div>
-                              <div className="text-[10px] text-slate-500 mt-1">
+                              <div className="text-sm text-slate-500 mt-1">
                                 Submitted {d.submittedAt
                                   ? new Date(d.submittedAt).toLocaleString('en-IN')
                                   : '—'}
                               </div>
                             </div>
 
-                            <span className={`self-start px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider ${statusClass}`}>
+                            <span className={`self-start px-3 py-1.5 rounded-lg border text-xs font-black uppercase tracking-wider ${statusClass}`}>
                               {statusLabel}
                             </span>
                           </div>
 
                           <div className="mt-4">
-                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                            <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                               Delivery Notes
                             </div>
-                            <div className="text-xs text-slate-300 whitespace-pre-wrap">
+                            <div className="text-base leading-7 text-slate-300 whitespace-pre-wrap">
                               {d.message || 'No delivery notes provided.'}
                             </div>
                           </div>
 
                           {d.revisionReason && (
                             <div className="mt-4 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-amber-300">
+                              <div className="text-xs font-black uppercase tracking-widest text-amber-300">
                                 Revision Reason
                               </div>
-                              <div className="text-xs text-slate-300 mt-1 whitespace-pre-wrap">
+                              <div className="text-sm leading-6 text-slate-300 mt-1 whitespace-pre-wrap">
                                 {d.revisionReason}
                               </div>
                             </div>
@@ -901,7 +901,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                           {d.driveLinks?.length > 0 && (
                             <div className="mt-4">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                              <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
                                 Links
                               </div>
                               <div className="space-y-1">
@@ -922,7 +922,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                           {d.fileUrls?.length > 0 && (
                             <div className="mt-4">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                              <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
                                 Files
                               </div>
                               <div className="space-y-1">
@@ -964,7 +964,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                 { label: 'Freelancer', user: order?.seller }
               ].map(({ label, user }) => (
                 <div key={label} className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                     {label}
                   </div>
                   <div className="flex items-center gap-3 mt-3">
@@ -984,13 +984,13 @@ export default function OrderWorkspacePage({ currentUser }) {
                       <div className="text-sm font-black text-white truncate">
                         {user?.fullName || 'Unknown user'}
                       </div>
-                      <div className="text-[10px] text-slate-500 truncate">
+                      <div className="text-sm text-slate-400 truncate">
                         {user?.username ? `@${user.username}` : user?.profile?.tagline || 'Marketplace participant'}
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-3 text-[10px]">
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                     <div className="p-2.5 rounded-xl bg-slate-900">
                       <div className="text-slate-500">Rating</div>
                       <div className="font-black text-white mt-1">
@@ -1010,9 +1010,9 @@ export default function OrderWorkspacePage({ currentUser }) {
           </section>
 
           <section className="glass-panel p-6 rounded-3xl border border-slate-800">
-            <h2 className="text-sm font-black text-white mb-4">Payment Center</h2>
+            <h2 className="text-lg font-black text-white mb-4">Payment Center</h2>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-base">
               <div className="flex justify-between gap-4">
                 <span className="text-slate-500">Project price</span>
                 <span className="font-black text-white">
@@ -1096,10 +1096,10 @@ export default function OrderWorkspacePage({ currentUser }) {
           </section>
 
           <section className="glass-panel p-6 rounded-3xl border border-slate-800">
-            <h2 className="text-sm font-black text-white mb-4">Financial Outcome</h2>
+            <h2 className="text-lg font-black text-white mb-4">Financial Outcome</h2>
 
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                 Current Outcome
               </div>
 
@@ -1119,7 +1119,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                             : 'Financial outcome is not yet available.'}
               </div>
 
-              <div className="mt-3 text-[10px] text-slate-500">
+              <div className="mt-3 text-sm leading-6 text-slate-400">
                 This summary reflects the order state and any persisted transfer record. It does not infer a gateway refund or transfer when no corresponding record exists.
               </div>
             </div>
@@ -1171,7 +1171,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                 return myReview ? (
                   <div className="mt-4 p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                       Your Review
                     </div>
                     <div className="text-sm font-black text-white mt-2">
@@ -1259,7 +1259,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                   <div className="mt-4 space-y-3 text-xs">
                     <div>
-                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                      <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                         Reason
                       </div>
                       <div className="text-slate-300 mt-1 whitespace-pre-wrap">
@@ -1269,7 +1269,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                     {order.dispute.evidence && (
                       <div>
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                           Evidence
                         </div>
                         <a
@@ -1285,7 +1285,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                     {order.dispute.sellerReason && (
                       <div className="pt-3 border-t border-slate-800">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                           Freelancer Response
                         </div>
                         <div className="text-slate-300 mt-1 whitespace-pre-wrap">
@@ -1296,7 +1296,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                     {order.dispute.sellerEvidence && (
                       <div>
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                           Freelancer Evidence
                         </div>
                         <a
@@ -1312,14 +1312,14 @@ export default function OrderWorkspacePage({ currentUser }) {
 
                     {order.dispute.adminDecision && (
                       <div className="pt-3 border-t border-slate-800">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
                           Resolution
                         </div>
                         <div className="text-white font-bold mt-1">
                           {order.dispute.adminDecision}
                         </div>
                         {order.dispute.resolvedAt && (
-                          <div className="text-[10px] text-slate-500 mt-1">
+                          <div className="text-sm text-slate-500 mt-1">
                             Resolved {new Date(order.dispute.resolvedAt).toLocaleString('en-IN')}
                           </div>
                         )}
@@ -1384,20 +1384,20 @@ export default function OrderWorkspacePage({ currentUser }) {
                           {event.message}
                         </div>
 
-                        <div className="text-[10px] text-slate-500 mt-1">
+                        <div className="text-sm text-slate-500 mt-1">
                           {event.actor?.fullName
                             ? `${event.actor.fullName}${event.actor.role ? ` · ${event.actor.role.replace(/_/g, ' ')}` : ''}`
                             : 'System'}
                         </div>
 
                         {event.source && (
-                          <div className="text-[9px] text-slate-600 mt-1 uppercase tracking-wider">
+                          <div className="text-xs text-slate-500 mt-1 uppercase tracking-wider">
                             {event.source.replace(/_/g, ' ')}
                           </div>
                         )}
                       </div>
 
-                      <div className="text-[10px] text-slate-500 sm:text-right shrink-0">
+                      <div className="text-sm text-slate-400 sm:text-right shrink-0">
                         {event.createdAt
                           ? new Date(event.createdAt).toLocaleString('en-IN')
                           : '—'}
