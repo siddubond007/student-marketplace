@@ -136,7 +136,15 @@ export default function StudentDashboard({ currentUser }) {
       order.status?.toLowerCase().includes(query);
 
     const matchesFilter =
-      orderFilter === 'ALL' || order.status === orderFilter;
+      orderFilter === 'ALL'
+        || order.status === orderFilter
+        || (orderFilter === 'ACTIVE' && [
+          'FUNDED_IN_ESCROW',
+          'REQUIREMENTS_SUBMITTED',
+          'IN_PROGRESS',
+          'DELIVERED',
+          'REVISION_REQUESTED'
+        ].includes(order.status));
 
     return matchesSearch && matchesFilter;
   });
@@ -853,11 +861,14 @@ export default function StudentDashboard({ currentUser }) {
                 className="appearance-none w-full sm:w-40 pl-9 pr-8 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500/40"
               >
                 <option value="ALL">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="ACTIVE">Active</option>
+                <option value="ACTIVE">Active Work</option>
+                <option value="FUNDED_IN_ESCROW">Funded</option>
                 <option value="IN_PROGRESS">In Progress</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="REVISION_REQUESTED">Revision</option>
                 <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="DISPUTED">Disputed</option>
+                <option value="CANCELLED_REFUNDED">Cancelled</option>
               </select>
             </div>
           </div>
