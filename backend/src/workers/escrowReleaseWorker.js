@@ -154,6 +154,7 @@ async function processMatureOrders() {
           await tx.notification.create({
             data: {
               userId: order.sellerId,
+              orderId: order.id,
               title: "Auto-Approved",
               message: `Client review period expired. ₹${order.sellerEarnings} escrow released to your wallet.`,
               type: "ORDER_AUTO_APPROVED"

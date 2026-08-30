@@ -515,6 +515,7 @@ exports.submitDeliverable = async (req, res) => {
       await tx.notification.create({
         data: {
           userId: order.clientId,
+          orderId,
           title: "Deliverable Submitted",
           message: `A freelancer has submitted delivery version ${nextVersion} for your review. The 5-day approval timer has started.`,
           type: "DELIVERABLE_SUBMITTED"
@@ -605,6 +606,7 @@ exports.requestRevision = async (req, res) => {
       await tx.notification.create({
         data: {
           userId: order.sellerId,
+          orderId,
           title: 'Revision Requested',
           message: `The client requested changes to delivery version ${latestDeliverable.version}.`,
           type: 'REVISION_REQUESTED'
@@ -777,6 +779,7 @@ exports.approveOrder = async (req, res) => {
       await tx.notification.create({
         data: {
           userId: order.sellerId,
+          orderId,
           title: "Order Approved",
           message: `Your order has been approved and ₹${order.sellerEarnings} has been added to your wallet.`,
           type: "ORDER_APPROVED"

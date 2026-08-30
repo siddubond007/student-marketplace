@@ -167,6 +167,18 @@ export default function NotificationPage() {
                     <p className="text-xs text-slate-600 mt-2">
                       {new Date(n.createdAt).toLocaleString('en-IN')}
                     </p>
+
+                    {n.orderId && (
+                      <Link
+                        to={`/orders/${n.orderId}`}
+                        onClick={() => {
+                          if (!n.isRead) markAsRead(n.id);
+                        }}
+                        className="inline-flex items-center gap-1.5 mt-3 text-xs font-black text-indigo-300 hover:text-indigo-200 transition"
+                      >
+                        Open Project Room →
+                      </Link>
+                    )}
                   </div>
 
                   {!n.isRead && (
