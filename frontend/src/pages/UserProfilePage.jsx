@@ -882,7 +882,19 @@ export default function UserProfilePage({ currentUser }) {
                 <div className="space-y-3">
                   <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl">
                     <div className="text-base font-bold text-white">{profileUser.profile?.college || 'College Student'}</div>
-                    <span className="text-xs text-emerald-400 font-bold block mt-1">✓ Student Status Verified</span>
+                    {profileUser.verification?.collegeIdStatus === 'APPROVED' ? (
+                      <span className="text-xs text-emerald-400 font-bold block mt-1">
+                        ✓ College ID verified
+                      </span>
+                    ) : profileUser.verification?.collegeIdStatus === 'PENDING' ? (
+                      <span className="text-xs text-amber-400 font-bold block mt-1">
+                        Verification under review
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-semibold block mt-1">
+                        College listed on profile
+                      </span>
+                    )}
                   </div>
                   {educationList.map(item => (
                     <div key={item.id} className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl flex justify-between items-start">
