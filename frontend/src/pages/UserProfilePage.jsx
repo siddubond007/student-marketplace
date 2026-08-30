@@ -1089,89 +1089,50 @@ export default function UserProfilePage({ currentUser }) {
                 </div>
               </div>
 
-              {/* Graphical Performance Analytics Card */}
+              {/* Performance Overview */}
               <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
                   <div>
                     <h3 className="text-xl font-black text-white flex items-center space-x-2">
                       <TrendingUp className="w-5 h-5 text-indigo-400" />
-                      <span>Work Progression & Performance Analytics</span>
+                      <span>Performance Overview</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Visual representation of project output, success rate, and earnings over time.</p>
+                    <p className="text-sm text-slate-400 mt-1">
+                      A summary based on completed orders, client reviews, and current workload.
+                    </p>
                   </div>
-                  <span className="px-3 py-1 bg-indigo-950 border border-indigo-800/60 rounded-xl text-xs font-black text-indigo-300">
-                    Live Telemetry
+
+                  <span className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs font-black text-indigo-300">
+                    Based on actual profile data
                   </span>
                 </div>
 
-                {/* SVG Performance Curve Graph */}
-                <div className="space-y-2 pt-2">
-                  <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-                    <span className="flex items-center space-x-1.5"><Activity className="w-4 h-4 text-emerald-400" /><span>Performance Output Velocity</span></span>
-                    <span className="text-emerald-400">Peak Performance Index: 100%</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">Completed</div>
+                    <div className="text-2xl font-black text-white mt-2">{completedProjects}</div>
+                    <div className="text-xs text-slate-500 mt-1">projects finished</div>
                   </div>
 
-                  <div className="h-60 w-full bg-slate-950/80 border border-slate-800/90 rounded-2xl p-4 relative flex flex-col justify-between overflow-hidden">
-                    {/* SVG Area Chart */}
-                    <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                      <defs>
-                        <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.45" />
-                          <stop offset="100%" stopColor="#ec4899" stopOpacity="0.02" />
-                        </linearGradient>
-                        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#6366f1" />
-                          <stop offset="50%" stopColor="#a855f7" />
-                          <stop offset="100%" stopColor="#ec4899" />
-                        </linearGradient>
-                      </defs>
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">Completion</div>
+                    <div className="text-2xl font-black text-emerald-300 mt-2">{completionRate}%</div>
+                    <div className="text-xs text-slate-500 mt-1">successful outcomes</div>
+                  </div>
 
-                      {/* Grid Lines */}
-                      <line x1="0" y1="30" x2="500" y2="30" stroke="#1e293b" strokeDasharray="4" />
-                      <line x1="0" y1="75" x2="500" y2="75" stroke="#1e293b" strokeDasharray="4" />
-                      <line x1="0" y1="120" x2="500" y2="120" stroke="#1e293b" strokeDasharray="4" />
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">Rating</div>
+                    <div className="text-2xl font-black text-amber-300 mt-2">{avgRating || 'New'}</div>
+                    <div className="text-xs text-slate-500 mt-1">{reviewsCount} client reviews</div>
+                  </div>
 
-                      {/* Area Fill */}
-                      <path
-                        d="M 0,130 Q 80,120 150,95 T 300,60 T 420,35 T 500,20 L 500,150 L 0,150 Z"
-                        fill="url(#perfGrad)"
-                      />
-
-                      {/* Line Curve */}
-                      <path
-                        d="M 0,130 Q 80,120 150,95 T 300,60 T 420,35 T 500,20"
-                        fill="none"
-                        stroke="url(#lineGrad)"
-                        strokeWidth="3.5"
-                      />
-
-                      {/* Data Point Nodes */}
-                      {[
-                        { cx: 0, cy: 130, label: 'Mar' },
-                        { cx: 100, cy: 110, label: 'Apr' },
-                        { cx: 200, cy: 80, label: 'May' },
-                        { cx: 300, cy: 60, label: 'Jun' },
-                        { cx: 400, cy: 35, label: 'Jul' },
-                        { cx: 500, cy: 20, label: 'Aug' }
-                      ].map((pt, i) => (
-                        <g key={i}>
-                          <circle cx={pt.cx} cy={pt.cy} r="5" fill="#030712" stroke="#a855f7" strokeWidth="2.5" />
-                          <circle cx={pt.cx} cy={pt.cy} r="2" fill="#fff" />
-                        </g>
-                      ))}
-                    </svg>
-
-                    {/* Timeline Labels */}
-                    <div className="flex justify-between text-[11px] font-bold text-slate-500 pt-2 border-t border-slate-900">
-                      <span>Mar 2026</span>
-                      <span>Apr 2026</span>
-                      <span>May 2026</span>
-                      <span>Jun 2026</span>
-                      <span>Jul 2026</span>
-                      <span className="text-pink-400 font-black">Aug 2026 (Current)</span>
-                    </div>
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">Active</div>
+                    <div className="text-2xl font-black text-indigo-300 mt-2">{inProgressProjects}</div>
+                    <div className="text-xs text-slate-500 mt-1">projects in progress</div>
                   </div>
                 </div>
+              </div>
 
                 {/* Outcome Distribution Breakdown Bars */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
@@ -1253,7 +1214,6 @@ export default function UserProfilePage({ currentUser }) {
                   </div>
                 </div>
               </div>
-            </div>
           )}
 
 
