@@ -1,11 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
-const Razorpay = require('razorpay');
-
 const prisma = new PrismaClient();
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_for_dev',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_secret'
-});
+const { releaseTransfer } = require('../services/escrowService');
 
 async function processMatureOrders() {
   console.log('🔍 [Auto-Approve Worker] Polling for mature DELIVERED orders...');
@@ -57,10 +52,13 @@ async function processMatureOrders() {
             transferRecord.razorpayTransferId &&
             transferRecord.onHold
           ) {
-            await razorpay.transfers.edit(
-              transferRecord.razorpayTransferId,
-              { on_hold: false }
-            );
+            const releaseResult = await releaseTransfer(transferRecord);
+
+            if (!releaseResult.released) {
+              throw new Error(
+                `ESCROW_RELEASE_NOT_COMPLETED: ${releaseResult.reason}`
+              );
+            }
 
             await tx.transfer.update({
               where: { id: transferRecord.id },

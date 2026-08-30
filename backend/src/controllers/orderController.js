@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const Razorpay = require('razorpay');
+const { releaseTransfer } = require('../services/escrowService');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_for_dev',
@@ -683,6 +684,28 @@ exports.approveOrder = async (req, res) => {
 
       if (!latestDeliverable) {
         throw new Error("BAD_REQUEST: Order cannot be approved without a submitted delivery.");
+      }
+
+      const transferRecord = await tx.transfer.findUnique({
+        where: { orderId }
+      });
+
+      if (transferRecord?.razorpayTransferId && transferRecord.onHold) {
+        const releaseResult = await releaseTransfer(transferRecord);
+
+        if (!releaseResult.released) {
+          throw new Error(
+            `ESCROW_RELEASE_NOT_COMPLETED: ${releaseResult.reason}`
+          );
+        }
+
+        await tx.transfer.update({
+          where: { id: transferRecord.id },
+          data: {
+            onHold: false,
+            status: 'RELEASED'
+          }
+        });
       }
 
       const updatedDeliverable = await tx.deliverable.update({
