@@ -223,11 +223,6 @@ export default function ClientDashboard({ currentUser }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const sectionVisible = (section) =>
-    activeSection === 'overview'
-      ? section === 'overview' || section === 'attention'
-      : activeSection === section;
-
   return (
     <div className="pb-16">
       <div className="lg:hidden flex items-center justify-between gap-3 mb-4">
@@ -344,6 +339,8 @@ export default function ClientDashboard({ currentUser }) {
 
         <main className="min-w-0 space-y-6">
 
+      {activeSection === 'overview' && (
+        <section className="space-y-6">
       <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-sm font-black text-emerald-400 mb-3">
@@ -396,7 +393,12 @@ export default function ClientDashboard({ currentUser }) {
         </div>
       )}
 
-      <div className={`${sectionVisible('account') ? '' : 'hidden'} glass-panel p-5 md:p-6 rounded-3xl border border-slate-800`} data-dashboard-section="account">
+        </section>
+      )}
+
+      {activeSection === 'account' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-5 md:p-6 rounded-3xl border border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-5 h-5 text-indigo-400" />
@@ -504,9 +506,13 @@ export default function ClientDashboard({ currentUser }) {
             </div>
           </div>
         )}
-      </div>
+          </div>
 
-      <div className={`${sectionVisible('overview') ? '' : 'hidden'} grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4`} data-dashboard-section="overview">
+          </section>
+        )}
+
+      {activeSection === 'overview' && (
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
             label: 'Active Projects',
@@ -562,8 +568,11 @@ export default function ClientDashboard({ currentUser }) {
           );
         })}
       </div>
+      )}
 
-      <div className={`${sectionVisible('attention') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="attention">
+
+      {activeSection === 'attention' && (
+        <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2">
@@ -638,8 +647,13 @@ export default function ClientDashboard({ currentUser }) {
           </div>
         )}
       </div>
+      )}
 
-      <div className={`${sectionVisible('projects') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="projects">
+
+
+      {activeSection === 'projects' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <h3 className="text-xl font-black text-white">Active Projects</h3>
@@ -738,11 +752,13 @@ export default function ClientDashboard({ currentUser }) {
             ))}
           </div>
         )}
-      </div>
+          </div>
+        </section>
+      )}
 
-
-      {attention.proposalJobs.length > 0 && (
-        <div className={`${sectionVisible('proposals') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="proposals">
+      {activeSection === 'proposals' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div>
               <div className="flex items-center gap-2">
@@ -786,16 +802,30 @@ export default function ClientDashboard({ currentUser }) {
             ))}
           </div>
 
+          {attention.proposalJobs.length === 0 && (
+            <div className="py-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <Users className="w-7 h-7 text-slate-500 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No proposals waiting for review.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                New student proposals will appear here when they arrive.
+              </p>
+            </div>
+          )}
+
           {attention.proposalJobs.length > 4 && (
             <p className="text-sm text-slate-500 mt-4 text-center">
               Showing the projects with the most proposal activity.
             </p>
           )}
-        </div>
+          </div>
+        </section>
       )}
 
-      {dashboardData?.deadlines?.length > 0 && (
-        <div className={`${sectionVisible('deadlines') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="deadlines">
+      {activeSection === 'deadlines' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-2 mb-5">
             <Clock3 className="w-5 h-5 text-amber-400" />
             <div>
@@ -864,10 +894,25 @@ export default function ClientDashboard({ currentUser }) {
               );
             })}
           </div>
-        </div>
+
+          {dashboardData?.deadlines?.length === 0 && (
+            <div className="py-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <Clock3 className="w-7 h-7 text-slate-500 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No upcoming deadlines.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Important project and delivery deadlines will appear here.
+              </p>
+            </div>
+          )}
+          </div>
+        </section>
       )}
 
-      <div className={`${sectionVisible('payments') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="payments">
+      {activeSection === 'payments' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
         <div className="flex items-center gap-2 mb-5">
           <DollarSign className="w-5 h-5 text-emerald-400" />
           <div>
@@ -912,7 +957,7 @@ export default function ClientDashboard({ currentUser }) {
           </div>
         </div>
 
-        {attention.paymentItems.length > 0 && (
+        {attention.paymentItems.length > 0 ? (
           <div className="mt-5 pt-5 border-t border-slate-800 space-y-3">
             {attention.paymentItems.slice(0, 3).map((item) => (
               <Link
@@ -936,11 +981,26 @@ export default function ClientDashboard({ currentUser }) {
               </Link>
             ))}
           </div>
+        ) : (
+          <div className="mt-5 pt-5 border-t border-slate-800">
+            <div className="py-7 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <CheckCircle2 className="w-7 h-7 text-emerald-400 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No payments are waiting.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Your current payment and escrow activity is up to date.
+              </p>
+            </div>
+          </div>
         )}
-      </div>
+          </div>
+        </section>
+      )}
 
-      {dashboardData?.recommendedStudents?.length > 0 && (
-        <div className={`${sectionVisible('students') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="students">
+      {activeSection === 'students' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-400" />
@@ -1027,11 +1087,32 @@ export default function ClientDashboard({ currentUser }) {
               </div>
             ))}
           </div>
-        </div>
+
+          {(!dashboardData?.recommendedStudents || dashboardData.recommendedStudents.length === 0) && (
+            <div className="py-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <Users className="w-7 h-7 text-slate-500 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No recommended students yet.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Explore the talent marketplace to find student freelancers.
+              </p>
+              <Link
+                to="/talent-search"
+                className="mt-4 inline-flex items-center gap-1.5 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black"
+              >
+                Explore Talent
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+          </div>
+        </section>
       )}
 
-      {dashboardData?.recentConversations?.length > 0 && (
-        <div className={`${sectionVisible('messages') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="messages">
+      {activeSection === 'messages' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-2 mb-5">
             <Users className="w-5 h-5 text-indigo-400" />
             <div>
@@ -1083,11 +1164,32 @@ export default function ClientDashboard({ currentUser }) {
               </Link>
             ))}
           </div>
-        </div>
+
+          {(!dashboardData?.recentConversations || dashboardData.recentConversations.length === 0) && (
+            <div className="py-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <Users className="w-7 h-7 text-slate-500 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No project conversations yet.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Messages from your active project rooms will appear here.
+              </p>
+              <Link
+                to="/my-projects"
+                className="mt-4 inline-flex items-center gap-1.5 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-black"
+              >
+                View Projects
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+          </div>
+        </section>
       )}
 
-      {dashboardData?.recentActivity?.length > 0 && (
-        <div className={`${sectionVisible('activity') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="activity">
+      {activeSection === 'activity' && (
+        <section className="space-y-6">
+          <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-2 mb-5">
             <Clock3 className="w-5 h-5 text-indigo-400" />
             <div>
@@ -1142,14 +1244,28 @@ export default function ClientDashboard({ currentUser }) {
               );
             })}
           </div>
-        </div>
+
+          {(!dashboardData?.recentActivity || dashboardData.recentActivity.length === 0) && (
+            <div className="py-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
+              <Clock3 className="w-7 h-7 text-slate-500 mx-auto mb-2" />
+              <p className="text-base font-bold text-slate-200">
+                No recent activity.
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Updates from your projects and orders will appear here.
+              </p>
+            </div>
+          )}
+          </div>
+        </section>
       )}
 
-      {(() => {
+      {activeSection === 'reviews' && (() => {
         const pendingReviews = dashboardData?.pendingReviews || [];
 
         return (
-          <div className={`${sectionVisible('reviews') ? '' : 'hidden'} glass-panel p-6 md:p-7 rounded-3xl border border-slate-800`} data-dashboard-section="reviews">
+          <section className="space-y-6">
+            <div className="glass-panel p-6 md:p-7 rounded-3xl border border-slate-800">
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5 text-amber-400" />
               <div>
@@ -1212,11 +1328,13 @@ export default function ClientDashboard({ currentUser }) {
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          </section>
         );
       })()}
 
-      <div className={`${sectionVisible('overview') ? '' : 'hidden'} grid grid-cols-1 lg:grid-cols-2 gap-5`} data-dashboard-section="overview">
+      {activeSection === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="glass-panel p-6 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-5 h-5 text-indigo-400" />
@@ -1271,6 +1389,8 @@ export default function ClientDashboard({ currentUser }) {
           </div>
         </div>
       </div>
+
+      )}
 
         </main>
       </div>
