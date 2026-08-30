@@ -6,6 +6,7 @@ const { requireAuth } = require('../middlewares/authMiddleware');
 router.get('/', requireAuth, orderController.getMyOrders);
 router.get('/:orderId', requireAuth, orderController.getOrderById);
 router.post('/', requireAuth, orderController.createOrder);
+router.post('/gig-purchase', requireAuth, orderController.createGigOrder);
 router.post('/:orderId/verify-payment', requireAuth, orderController.verifyPayment);
 router.post('/:orderId/deliver', requireAuth, orderController.submitDeliverable);
 router.post('/:orderId/approve', requireAuth, orderController.approveOrder);

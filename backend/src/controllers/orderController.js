@@ -119,6 +119,172 @@ exports.createOrder = async (req, res) => {
   }
 }
 
+// Create a gig purchase order from a server-validated gig package.
+exports.createGigOrder = async (req, res) => {
+  try {
+    if (req.user.role !== 'CLIENT' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only clients can purchase gigs.' });
+    }
+
+    const { gigId, gigPackageId, requirements } = req.body;
+
+    if (!gigId || !gigPackageId) {
+      return res.status(400).json({ error: 'Gig and package are required.' });
+    }
+
+    const gig = await prisma.gig.findFirst({
+      where: { id: gigId, isDeleted: false },
+      include: {
+        packages: {
+          where: { id: gigPackageId },
+          take: 1
+        }
+      }
+    });
+
+    if (!gig || gig.packages.length === 0) {
+      return res.status(404).json({ error: 'Gig package not found or unavailable.' });
+    }
+
+    if (gig.sellerId === req.user.id) {
+      return res.status(400).json({ error: 'You cannot purchase your own gig.' });
+    }
+
+    const selectedPackage = gig.packages[0];
+    const amount = Number(selectedPackage.price);
+    const days = Number(selectedPackage.deliveryDays);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'This gig package has an invalid price.' });
+    }
+
+    if (!Number.isInteger(days) || days <= 0) {
+      return res.status(400).json({ error: 'This gig package has an invalid delivery period.' });
+    }
+
+    const platformFee = Number((amount * 0.06).toFixed(2));
+    const sellerEarnings = Number((amount - platformFee).toFixed(2));
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + days);
+
+    const seller = await prisma.user.findUnique({
+      where: { id: gig.sellerId },
+      select: { id: true, razorpayAccountId: true }
+    });
+
+    if (!seller) {
+      return res.status(404).json({ error: 'Freelancer account not found.' });
+    }
+
+    const linkedAccountId =
+      seller.razorpayAccountId || process.env.DEV_LINKED_ACCOUNT_ID;
+
+    const transfers = linkedAccountId
+      ? [{
+          account: linkedAccountId,
+          amount: Math.round(sellerEarnings * 100),
+          currency: 'INR',
+          notes: { purpose: 'Escrow for Gig Purchase' },
+          on_hold: true
+        }]
+      : undefined;
+
+    const rpOrder = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `gig_${gig.id.slice(0, 8)}_${Date.now()}`,
+      transfers
+    });
+
+    const order = await prisma.$transaction(async (tx) => {
+      const existingPending = await tx.order.findFirst({
+        where: {
+          clientId: req.user.id,
+          gigId: gig.id,
+          gigPackageId: selectedPackage.id,
+          status: 'PENDING_PAYMENT'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true }
+      });
+
+      if (existingPending) {
+        throw new Error('PENDING_GIG_PURCHASE_EXISTS');
+      }
+
+      const createdOrder = await tx.order.create({
+        data: {
+          clientId: req.user.id,
+          sellerId: gig.sellerId,
+          gigId: gig.id,
+          gigPackageId: selectedPackage.id,
+          totalAmount: amount,
+          platformFee,
+          sellerEarnings,
+          status: 'PENDING_PAYMENT',
+          razorpayOrderId: rpOrder.id,
+          deadline,
+          requirements:
+            requirements?.trim() ||
+            `Purchase of ${selectedPackage.tierName} package for ${gig.title}.`
+        }
+      });
+
+      const razorpayTransfer = Array.isArray(rpOrder.transfers)
+        ? rpOrder.transfers[0]
+        : rpOrder.transfers?.items?.[0];
+
+      if (razorpayTransfer?.id) {
+        await tx.transfer.create({
+          data: {
+            orderId: createdOrder.id,
+            razorpayTransferId: razorpayTransfer.id,
+            amount: sellerEarnings,
+            onHold: true,
+            status: 'PENDING'
+          }
+        });
+      }
+
+      await tx.orderActivityEvent.create({
+        data: {
+          orderId: createdOrder.id,
+          actorId: req.user.id,
+          type: 'ORDER_CREATED',
+          message: `Gig purchase created for ${selectedPackage.tierName} package.`,
+          source: 'GIG_ORDER_CONTROLLER',
+          metadata: {
+            gigId: gig.id,
+            gigPackageId: selectedPackage.id,
+            packagePrice: amount,
+            deliveryDays: days,
+            razorpayOrderId: rpOrder.id
+          }
+        }
+      });
+
+      return createdOrder;
+    });
+
+    return res.status(201).json({
+      message: 'Gig purchase checkout initialized.',
+      order,
+      razorpayOrderId: rpOrder.id,
+      checkoutRequired: true
+    });
+  } catch (err) {
+    console.error('Create Gig Order Error:', err);
+
+    if (err.message === 'PENDING_GIG_PURCHASE_EXISTS') {
+      return res.status(409).json({
+        error: 'A payment attempt is already pending for this gig package.'
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to initialize gig purchase.' });
+  }
+};
+
 // Verify Razorpay Checkout payment and activate the hiring state.
 exports.verifyPayment = async (req, res) => {
   try {
