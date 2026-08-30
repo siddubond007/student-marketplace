@@ -787,8 +787,19 @@ export default function UserProfilePage({ currentUser }) {
                       <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
                       <div className="absolute bottom-4 left-4 right-4">
-                        <span className="text-sm font-black text-white block">{item.title}</span>
-                        <span className="text-xs text-pink-400 font-bold">{item.category}</span>
+                        <span className="text-base font-black text-white block">{item.title}</span>
+                        <span className="text-sm text-pink-400 font-bold">{item.category || 'Portfolio Project'}</span>
+
+                        {item.link && (
+                          <a
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-2 text-xs font-black text-white hover:text-indigo-300 transition"
+                          >
+                            View Project ↗
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}
