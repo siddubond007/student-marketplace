@@ -322,37 +322,59 @@ export default function ClientDashboard({ currentUser }) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-6">
+      <div className="grid lg:grid-cols-[240px_minmax(0,1fr)] gap-6">
         <aside className="hidden lg:block">
-          <div className="glass-panel p-3 rounded-3xl border border-slate-800 sticky top-24">
-            <div className="px-3 py-3 border-b border-slate-800 mb-2">
-              <p className="text-xs font-black uppercase tracking-wider text-indigo-400">
+          <div className="glass-panel p-3.5 rounded-3xl border border-slate-800 sticky top-24">
+            <div className="px-3.5 py-3.5 border-b border-slate-800 mb-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
                 Client Workspace
               </p>
-              <h2 className="text-lg font-black text-white mt-1">
+              <h2 className="text-xl font-black text-white mt-1">
                 Dashboard
               </h2>
             </div>
 
-            <nav className="space-y-1">
-              {dashboardSections.map((section) => {
-                const Icon = section.icon;
-                const selected = activeSection === section.id;
+            <nav className="space-y-4">
+              {[
+                ['workspace', 'Workspace'],
+                ['work', 'Manage'],
+                ['financial', 'Financial'],
+                ['discover', 'Discover'],
+                ['insights', 'Insights'],
+                ['account', 'Account']
+              ].map(([group, label]) => {
+                const items = dashboardSections.filter(section => section.group === group);
+                if (items.length === 0) return null;
 
                 return (
-                  <button
-                    type="button"
-                    key={section.id}
-                    onClick={() => selectSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-black transition ${
-                      selected
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    {section.label}
-                  </button>
+                  <div key={group}>
+                    <p className="px-3.5 mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      {label}
+                    </p>
+
+                    <div className="space-y-1">
+                      {items.map((section) => {
+                        const Icon = section.icon;
+                        const selected = activeSection === section.id;
+
+                        return (
+                          <button
+                            type="button"
+                            key={section.id}
+                            onClick={() => selectSection(section.id)}
+                            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-black transition ${
+                              selected
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-950/30'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                            }`}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{section.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </nav>
