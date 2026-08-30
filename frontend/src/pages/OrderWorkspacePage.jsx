@@ -1501,37 +1501,66 @@ export default function OrderWorkspacePage({ currentUser }) {
               {[...order.activityEvents]
                 .slice()
                 .reverse()
-                .map((event, index) => (
-                  <div key={event.id || index} className="relative">
-                    <div className="absolute -left-[1.15rem] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-400 ring-4 ring-slate-950" />
+                .map((event, index) => {
+                  const isLatest = index === 0;
+                  const eventSource = event.source
+                    ? event.source.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                    : 'System Activity';
 
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-xs font-black text-white">
-                          {event.message}
-                        </div>
+                  return (
+                    <div key={event.id || index} className="relative">
+                      <div className={`absolute -left-[1.15rem] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-slate-950 ${
+                        isLatest ? 'bg-indigo-300' : 'bg-slate-600'
+                      }`} />
 
-                        <div className="text-sm text-slate-500 mt-1">
-                          {event.actor?.fullName
-                            ? `${event.actor.fullName}${event.actor.role ? ` · ${event.actor.role.replace(/_/g, ' ')}` : ''}`
-                            : 'System'}
-                        </div>
+                      <div className={`p-4 rounded-2xl border ${
+                        isLatest
+                          ? 'bg-indigo-500/5 border-indigo-500/20'
+                          : 'bg-slate-950/50 border-slate-800'
+                      }`}>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`text-[9px] font-black uppercase tracking-widest ${
+                                isLatest ? 'text-indigo-300' : 'text-slate-500'
+                              }`}>
+                                {eventSource}
+                              </span>
 
-                        {event.source && (
-                          <div className="text-xs text-slate-500 mt-1 uppercase tracking-wider">
-                            {event.source.replace(/_/g, ' ')}
+                              {isLatest && (
+                                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[9px] font-black uppercase tracking-wider text-indigo-300">
+                                  Latest
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-sm font-black text-white mt-2 leading-6">
+                              {event.message}
+                            </div>
+
+                            <div className="text-sm text-slate-400 mt-1">
+                              {event.actor?.fullName
+                                ? `${event.actor.fullName}${event.actor.role ? ` · ${event.actor.role.replace(/_/g, ' ')}` : ''}`
+                                : 'System'}
+                            </div>
                           </div>
-                        )}
-                      </div>
 
-                      <div className="text-sm text-slate-400 sm:text-right shrink-0">
-                        {event.createdAt
-                          ? new Date(event.createdAt).toLocaleString('en-IN')
-                          : '—'}
+                          <div className="text-xs text-slate-500 sm:text-right shrink-0">
+                            {event.createdAt
+                              ? new Date(event.createdAt).toLocaleString('en-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : '—'}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           ) : (
             <div className="p-5 rounded-2xl border border-dashed border-slate-800 text-xs text-slate-500">
