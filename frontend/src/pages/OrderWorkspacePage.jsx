@@ -668,19 +668,19 @@ export default function OrderWorkspacePage({ currentUser }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <div className="text-xs font-black uppercase tracking-widest text-slate-400">Order ID</div>
-              <div className="text-[11px] font-bold text-slate-300 mt-1 break-all">{order?.id || orderId || '—'}</div>
+              <div className="text-sm font-bold text-slate-300 mt-1 break-all">{order?.id || orderId || '—'}</div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <div className="text-xs font-black uppercase tracking-widest text-slate-400">Category</div>
-              <div className="text-[11px] font-bold text-slate-300 mt-1">
+              <div className="text-sm font-bold text-slate-300 mt-1">
                 {order?.job?.category || order?.gig?.category || 'Not specified'}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <div className="text-xs font-black uppercase tracking-widest text-slate-400">Created</div>
-              <div className="text-[11px] font-bold text-slate-300 mt-1">
+              <div className="text-sm font-bold text-slate-300 mt-1">
                 {order?.createdAt
                   ? new Date(order.createdAt).toLocaleDateString('en-IN', {
                       day: '2-digit',
@@ -693,7 +693,7 @@ export default function OrderWorkspacePage({ currentUser }) {
 
             <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
               <div className="text-xs font-black uppercase tracking-widest text-slate-400">Project Type</div>
-              <div className="text-[11px] font-bold text-slate-300 mt-1">
+              <div className="text-sm font-bold text-slate-300 mt-1">
                 {order?.job?.projectType
                   ? String(order.job.projectType).replace(/_/g, ' ')
                   : order?.gig
@@ -1257,7 +1257,7 @@ export default function OrderWorkspacePage({ currentUser }) {
               <h2 className="text-sm font-black text-white mb-4">Completion Center</h2>
 
               <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                <div className="text-[9px] font-black uppercase tracking-widest text-emerald-300">
+                <div className="text-xs font-black uppercase tracking-widest text-emerald-300">
                   Transaction Complete
                 </div>
 
@@ -1265,7 +1265,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                   Order completed successfully.
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-[10px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-sm">
                   <div>
                     <div className="text-slate-500">Order ID</div>
                     <div className="text-slate-200 font-bold break-all mt-1">{order.id}</div>
@@ -1310,7 +1310,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitReview} className="mt-4 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-indigo-300">
+                    <div className="text-xs font-black uppercase tracking-widest text-indigo-300">
                       Leave Your Review
                     </div>
 
@@ -1351,7 +1351,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                     <button
                       type="submit"
                       disabled={submittingReview}
-                      className="w-full py-3 neon-airflow-btn text-white text-xs font-black rounded-xl disabled:opacity-50"
+                      className="w-full py-3 neon-airflow-btn text-white text-sm font-black rounded-xl disabled:opacity-50"
                     >
                       {submittingReview ? 'Submitting Review...' : 'Submit Review'}
                     </button>
@@ -1377,7 +1377,7 @@ export default function OrderWorkspacePage({ currentUser }) {
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-500 text-right">
+                    <div className="text-xs text-slate-500 text-right">
                       Opened {order.dispute.createdAt
                         ? new Date(order.dispute.createdAt).toLocaleString('en-IN')
                         : '—'}
