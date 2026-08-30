@@ -481,7 +481,10 @@ export default function ClientDashboard({ currentUser }) {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+            <Link
+              to={`/profile/${dashboardData?.account?.id || ''}`}
+              className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4 hover:border-indigo-500/40 transition"
+            >
               <p className="text-sm font-bold text-slate-500">Phone</p>
               <p className="text-base font-bold text-white mt-1">
                 {dashboardData?.account?.phone || 'Not added'}
@@ -489,9 +492,17 @@ export default function ClientDashboard({ currentUser }) {
               <p className="text-sm text-slate-500 mt-1">
                 {dashboardData?.account?.phone ? 'Phone on account' : 'Add a phone number in your profile'}
               </p>
-            </div>
+              {!dashboardData?.account?.phone && (
+                <span className="inline-flex items-center gap-1 mt-3 text-sm font-black text-indigo-400">
+                  Add phone <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
+            </Link>
 
-            <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
+            <Link
+              to={`/profile/${dashboardData?.account?.id || ''}`}
+              className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4 hover:border-indigo-500/40 transition"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold text-slate-500">
@@ -529,7 +540,12 @@ export default function ClientDashboard({ currentUser }) {
                       : 'Not Submitted'}
                 </span>
               </div>
-            </div>
+              {dashboardData?.account?.verification?.govtIdStatus !== 'APPROVED' && (
+                <span className="inline-flex items-center gap-1 mt-3 text-sm font-black text-indigo-400">
+                  Verify identity <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
+            </Link>
 
             <div className="rounded-2xl bg-slate-950/50 border border-slate-800 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -755,7 +771,7 @@ export default function ClientDashboard({ currentUser }) {
                       </span>
                     </div>
 
-                    <h4 className="text-lg font-black text-white mt-2 truncate">
+                    <h4 className="text-lg font-black text-white mt-2 leading-snug line-clamp-2 break-words">
                       {project.title}
                     </h4>
                   </div>
@@ -829,7 +845,7 @@ export default function ClientDashboard({ currentUser }) {
                 className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
               >
                 <div className="min-w-0">
-                  <p className="text-base font-bold text-white truncate">
+                  <p className="text-base font-bold text-white leading-snug line-clamp-2 break-words">
                     {project.title}
                   </p>
                   <p className="text-sm text-slate-400 mt-1">
@@ -894,17 +910,39 @@ export default function ClientDashboard({ currentUser }) {
                 : `/my-projects/${item.projectId}`;
 
               const urgency =
-                daysRemaining <= 1
-                  ? 'text-red-400'
-                  : daysRemaining <= 3
-                    ? 'text-amber-400'
-                    : 'text-slate-300';
+                daysRemaining < 0
+                  ? {
+                      text: 'text-red-300',
+                      badge: 'bg-red-500/10 border-red-500/30',
+                      label: 'Overdue'
+                    }
+                  : daysRemaining <= 1
+                    ? {
+                        text: 'text-red-300',
+                        badge: 'bg-red-500/10 border-red-500/20',
+                        label: daysRemaining === 0 ? 'Due today' : 'Due tomorrow'
+                      }
+                    : daysRemaining <= 3
+                      ? {
+                          text: 'text-amber-300',
+                          badge: 'bg-amber-500/10 border-amber-500/20',
+                          label: `${daysRemaining} days left`
+                        }
+                      : {
+                          text: 'text-slate-300',
+                          badge: 'bg-slate-900/70 border-slate-800',
+                          label: `${daysRemaining} days left`
+                        };
 
               return (
                 <Link
                   key={`${item.orderId || 'project'}-${item.projectId}`}
                   to={href}
-                  className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 transition"
+                  className={`group flex items-center justify-between gap-4 p-4 rounded-2xl border transition hover:border-indigo-500/40 ${
+                    daysRemaining < 0
+                      ? 'bg-red-950/20 border-red-500/20'
+                      : 'bg-slate-950/60 border-slate-800'
+                  }`}
                 >
                   <div className="min-w-0">
                     <p className="text-base font-bold text-white truncate">
@@ -919,13 +957,9 @@ export default function ClientDashboard({ currentUser }) {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className={`text-sm font-black ${urgency}`}>
-                      {daysRemaining === 0
-                        ? 'Due today'
-                        : daysRemaining === 1
-                          ? 'Due tomorrow'
-                          : `${daysRemaining} days left`}
-                    </p>
+                    <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-sm font-black ${urgency.text} ${urgency.badge}`}>
+                      {urgency.label}
+                    </span>
                     <p className="text-sm text-slate-500 mt-1">
                       {deadline.toLocaleDateString('en-IN', {
                         day: 'numeric',
