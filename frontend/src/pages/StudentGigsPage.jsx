@@ -118,6 +118,9 @@ export default function StudentGigsPage({ currentUser }) {
             {myGigs.map((gig) => {
               const firstPackage = gig.packages?.[0];
 
+              const packageCount = gig.packages?.length || 0;
+              const orderCount = gig.orders?.length || 0;
+
               return (
                 <article
                   key={gig.id}
@@ -131,43 +134,75 @@ export default function StudentGigsPage({ currentUser }) {
                     />
                   </div>
 
-                  <div className="p-4">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
-                      {gig.category || 'Service'}
-                    </span>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-black uppercase tracking-wider text-cyan-400">
+                        {gig.category || 'Service'}
+                      </span>
 
-                    <h3 className="text-sm font-black text-white mt-2 line-clamp-2">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-300">
+                        Published
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-black text-white mt-2 line-clamp-2">
                       {gig.title}
                     </h3>
 
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-3">
+                    <p className="text-sm leading-6 text-slate-400 mt-2 line-clamp-3">
                       {gig.description}
                     </p>
 
                     <div className="grid grid-cols-2 gap-3 mt-5">
                       <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-                        <p className="text-[9px] font-black uppercase text-slate-600">
-                          Starting
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                          Starting price
                         </p>
-                        <p className="text-lg font-black text-emerald-400 mt-1">
-                          ₹{firstPackage?.price ?? 0}
+                        <p className="text-xl font-black text-emerald-400 mt-1">
+                          ₹{Number(firstPackage?.price || 0).toLocaleString('en-IN')}
                         </p>
                       </div>
 
                       <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-                        <p className="text-[9px] font-black uppercase text-slate-600">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
                           Delivery
                         </p>
-                        <p className="text-sm font-black text-white mt-2">
+                        <p className="text-base font-black text-white mt-1">
                           {firstPackage?.deliveryDays ?? '-'} days
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-4">
-                      <PackageCheck className="w-4 h-4 text-indigo-400" />
-                      <span className="text-[10px] font-black text-slate-500">
-                        Published {new Date(gig.createdAt).toLocaleDateString()}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                          Packages
+                        </p>
+                        <p className="text-sm font-black text-white mt-1">
+                          {packageCount || 1}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                          Orders
+                        </p>
+                        <p className="text-sm font-black text-white mt-1">
+                          {orderCount}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 mt-4">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PackageCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <span className="text-xs text-slate-500 truncate">
+                          Published {new Date(gig.createdAt).toLocaleDateString('en-IN')}
+                        </span>
+                      </div>
+
+                      <span className="text-xs font-bold text-cyan-300">
+                        {gig.subcategory || gig.category || 'Service'}
                       </span>
                     </div>
                   </div>
