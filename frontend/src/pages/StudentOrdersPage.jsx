@@ -16,7 +16,9 @@ const FILTERS = [
 const ACTIVE_STATUSES = [
   'FUNDED_IN_ESCROW',
   'REQUIREMENTS_SUBMITTED',
-  'IN_PROGRESS'
+  'IN_PROGRESS',
+  'DELIVERED',
+  'REVISION_REQUESTED'
 ];
 
 export default function StudentOrdersPage({ currentUser }) {

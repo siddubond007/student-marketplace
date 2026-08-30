@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft, Paperclip, X, History, MessageCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, FileText, Send, AlertTriangle, ArrowLeft, Paperclip, X, History, MessageCircle, Clock3, Wallet, ClipboardCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { io as createSocket } from 'socket.io-client';
@@ -411,6 +411,20 @@ export default function OrderWorkspacePage({ currentUser }) {
     ? Math.ceil((new Date(order.deadline).getTime() - Date.now()) / 86400000)
     : null;
 
+  const reviewHoursRemaining = order?.autoApproveAt && order?.status === 'DELIVERED'
+    ? Math.max(0, Math.ceil((new Date(order.autoApproveAt).getTime() - Date.now()) / 3600000))
+    : null;
+
+  const reviewDeadlineLabel = order?.autoApproveAt
+    ? new Date(order.autoApproveAt).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    : null;
+
   return (
     <div className="space-y-6 pb-16">
       <Link
@@ -557,6 +571,94 @@ export default function OrderWorkspacePage({ currentUser }) {
             )}
           </div>
         </div>
+
+        {isSeller && (
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div className="p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-300">
+                <ClipboardCheck className="w-4 h-4" />
+                Your next step
+              </div>
+              <div className="text-sm font-black text-white mt-2">{meta.next}</div>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                <Wallet className="w-4 h-4" />
+                Expected earnings
+              </div>
+              <div className="text-2xl font-black text-emerald-300 mt-1">
+                ₹{Number(order?.sellerEarnings || 0).toLocaleString('en-IN')}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                {order?.status === 'COMPLETED' ? 'Payout finalized' : isFunded ? 'Secured for this order' : 'Awaiting payment'}
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl border border-slate-800 bg-slate-950/60">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <Clock3 className="w-4 h-4" />
+                {order?.status === 'DELIVERED' ? 'Client review' : 'Delivery deadline'}
+              </div>
+              <div className={`text-xl font-black mt-1 ${
+                order?.status === 'DELIVERED'
+                  ? 'text-amber-300'
+                  : daysRemaining != null && daysRemaining < 0
+                    ? 'text-red-300'
+                    : 'text-white'
+              }`}>
+                {order?.status === 'DELIVERED'
+                  ? reviewHoursRemaining == null
+                    ? 'Awaiting review'
+                    : reviewHoursRemaining < 24
+                      ? `${reviewHoursRemaining}h remaining`
+                      : `${Math.ceil(reviewHoursRemaining / 24)}d remaining`
+                  : daysRemaining == null
+                    ? 'No deadline'
+                    : daysRemaining < 0
+                      ? `${Math.abs(daysRemaining)}d overdue`
+                      : `${daysRemaining}d remaining`}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {order?.status === 'DELIVERED' && reviewDeadlineLabel
+                  ? `Auto-approval target: ${reviewDeadlineLabel}`
+                  : order?.deadline
+                    ? `Due ${new Date(order.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+                    : 'Plan your delivery from the scope above.'}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {isSeller && order?.status === 'REVISION_REQUESTED' && (
+          <section className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-300 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">Revision action required</div>
+                <div className="text-base font-black text-white mt-1">Address the client feedback, then submit a new delivery version.</div>
+                <p className="text-sm leading-6 text-slate-300 mt-2 whitespace-pre-wrap">
+                  {order?.deliverables?.[0]?.revisionReason || 'Review the latest client feedback in the Delivery Center before resubmitting.'}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {isSeller && order?.status === 'DELIVERED' && (
+          <section className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-start gap-3">
+              <Clock3 className="w-5 h-5 text-amber-300 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">Client review in progress</div>
+                <div className="text-base font-black text-white mt-1">Your delivery is submitted. No further action is required unless the client requests a revision.</div>
+                <p className="text-sm text-slate-400 mt-2">
+                  If the client does not act before the review deadline, the order can proceed through the automatic approval flow.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <div className="pt-5 border-t border-slate-800">
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
