@@ -24,6 +24,7 @@ const disputeRoutes = require('./routes/disputeRoutes');
 const clientDashboardRoutes = require('./routes/clientDashboardRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const { moderateMessage } = require('./services/moderationService');
+const { startEscrowReleaseWorker } = require('./workers/escrowReleaseWorker');
 
 const app = express();
 const server = http.createServer(app);
@@ -321,6 +322,9 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
+
+startEscrowReleaseWorker();
+
 server.listen(PORT, () => {
   console.log(`🚀 API Server running on http://localhost:${PORT}`);
 });

@@ -173,10 +173,20 @@ async function processMatureOrders() {
   }
 }
 
-// Start the continuous polling loop (runs every 60 seconds)
 const POLLING_INTERVAL = 60 * 1000;
-console.log('🚀 [Auto-Approve Worker] Initialized. Heartbeat interval:', POLLING_INTERVAL, 'ms');
-setInterval(processMatureOrders, POLLING_INTERVAL);
 
-// Initial run
-processMatureOrders();
+function startEscrowReleaseWorker() {
+  console.log(
+    '🚀 [Auto-Approve Worker] Initialized. Heartbeat interval:',
+    POLLING_INTERVAL,
+    'ms'
+  );
+
+  processMatureOrders();
+  return setInterval(processMatureOrders, POLLING_INTERVAL);
+}
+
+module.exports = {
+  processMatureOrders,
+  startEscrowReleaseWorker
+};
