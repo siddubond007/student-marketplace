@@ -1140,9 +1140,9 @@ export default function ClientDashboard({ currentUser }) {
                   <div>
                     <p className="text-sm text-slate-500">Rating</p>
                     <p className="text-base font-black text-white mt-0.5">
-                      {Number(student.averageRating || 0).toFixed(1)} ★
+                      {student.totalReviews > 0 ? `${Number(student.averageRating || 0).toFixed(1)} ★` : 'New'}
                       <span className="text-sm text-slate-500 font-medium ml-1">
-                        ({student.totalReviews || 0})
+                        {student.totalReviews > 0 ? `(${student.totalReviews})` : 'No reviews yet'}
                       </span>
                     </p>
                   </div>
