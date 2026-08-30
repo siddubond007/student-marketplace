@@ -1286,6 +1286,17 @@ export default function ClientDashboard({ currentUser }) {
                 ? `/my-projects/${event.projectId}`
                 : `/orders/${event.orderId}`;
 
+                const activityMeta =
+                  event.type === 'PAYMENT_RELEASED' || event.type === 'ORDER_APPROVED'
+                    ? { icon: DollarSign, tone: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
+                    : event.type === 'REVISION_REQUESTED'
+                      ? { icon: AlertCircle, tone: 'text-amber-400 bg-amber-500/10 border-amber-500/20' }
+                      : event.type === 'DELIVERABLE_SUBMITTED'
+                        ? { icon: CheckCircle2, tone: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20' }
+                        : { icon: Clock3, tone: 'text-slate-300 bg-slate-500/10 border-slate-500/20' };
+
+                const ActivityIcon = activityMeta.icon;
+
               return (
                 <Link
                   key={event.id}
@@ -1294,8 +1305,8 @@ export default function ClientDashboard({ currentUser }) {
                     index > 2 ? 'hidden sm:flex' : ''
                   }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                    <Clock3 className="w-4 h-4 text-indigo-400" />
+                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${activityMeta.tone}`}>
+                    <ActivityIcon className="w-4 h-4" />
                   </div>
 
                   <div className="min-w-0 flex-1">
