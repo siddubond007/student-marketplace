@@ -1233,7 +1233,8 @@ export default function UserProfilePage({ currentUser }) {
 
                       <div className="p-4 bg-slate-950 border border-slate-800/90 rounded-2xl text-center space-y-1">
                         <ShieldCheck className="w-5 h-5 text-emerald-400 mx-auto" />
-                        <div className="text-lg font-black text-white">{profileUser.points || 50} pts</div>\n                        <div className={`text-[10px] font-black ${getReputationLevel(profileUser.points || 50).color}`}>{getReputationLevel(profileUser.points || 50).title}</div>
+                        <div className="text-lg font-black text-white">{profileUser.points || 50} pts</div>
+                        <div className={`text-[10px] font-black ${getReputationLevel(profileUser.points || 50).color}`}>{getReputationLevel(profileUser.points || 50).title}</div>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Reputation</div>
                       </div>
                     </div>
