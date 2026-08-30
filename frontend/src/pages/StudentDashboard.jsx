@@ -829,31 +829,40 @@ export default function StudentDashboard({ currentUser }) {
                       {gig.description}
                     </p>
 
-                    <div className="flex items-center justify-between gap-3 mt-4">
-                      <div>
-                        <p className="text-[10px] uppercase font-black text-slate-600">
-                          Starting at
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2.5">
+                        <p className="text-[9px] uppercase font-black tracking-wider text-slate-600">
+                          Starting price
                         </p>
-                        <p className="text-lg font-black text-emerald-400">
-                          ₹{firstPackage?.price ?? 0}
+                        <p className="text-lg font-black text-emerald-400 mt-1">
+                          ₹{Number(firstPackage?.price || 0).toLocaleString('en-IN')}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-[10px] uppercase font-black text-slate-600">
+                      <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2.5">
+                        <p className="text-[9px] uppercase font-black tracking-wider text-slate-600">
                           Delivery
                         </p>
-                        <p className="text-xs font-black text-white">
+                        <p className="text-sm font-black text-white mt-1">
                           {firstPackage?.deliveryDays ?? '-'} days
                         </p>
                       </div>
                     </div>
 
+                    <div className="flex items-center justify-between gap-3 mt-4">
+                      <span className="text-xs text-slate-500">
+                        {gig.subcategory || gig.category || 'Student service'}
+                      </span>
+                      <span className="text-xs font-bold text-cyan-300">
+                        {gig.packages?.length || 1} package{gig.packages?.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
                     <Link
                       to={`/gigs`}
-                      className="block mt-4 w-full text-center px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-white text-[11px] font-black transition"
+                      className="block mt-4 w-full text-center px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-white text-xs font-black transition"
                     >
-                      View My Gigs
+                      Manage My Gigs →
                     </Link>
                   </div>
                 </article>
