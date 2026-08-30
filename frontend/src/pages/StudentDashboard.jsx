@@ -1118,13 +1118,41 @@ export default function StudentDashboard({ currentUser }) {
                   {job.description}
                 </p>
 
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-[10px] font-bold text-slate-400">
-                    {job.bids?.length || 0} proposals
-                  </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+                  <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2.5">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                      Budget
+                    </p>
+                    <p className="text-sm font-black text-emerald-300 mt-1">
+                      ₹{Number(job.budget || 0).toLocaleString('en-IN')}
+                    </p>
+                  </div>
 
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-[10px] font-bold text-slate-400">
-                    {job.client?.fullName || 'Client'}
+                  <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2.5">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                      Proposals
+                    </p>
+                    <p className="text-sm font-black text-white mt-1">
+                      {job.bids?.length || 0}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-3 py-2.5 col-span-2 sm:col-span-1">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                      Client
+                    </p>
+                    <p className="text-sm font-black text-white mt-1 truncate">
+                      {job.client?.fullName || 'Client'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 mt-4">
+                  <span className="text-xs text-slate-500">
+                    Review the scope before bidding.
+                  </span>
+                  <span className="text-xs font-bold text-indigo-300">
+                    {job.category || 'Open project'}
                   </span>
                 </div>
 
