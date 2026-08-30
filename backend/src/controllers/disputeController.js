@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const { releaseTransfer } = require('../services/escrowService');
 
 exports.createDispute = async (req, res) => {
   try {
@@ -169,34 +170,67 @@ exports.resolveDispute = async (req, res) => {
         select: { id: true, version: true }
       });
 
-      await prisma.$transaction([
-        ...(latestDeliverable ? [
-          prisma.deliverable.update({
+      await prisma.$transaction(async (tx) => {
+        const lockedOrders = await tx.$queryRaw`
+          SELECT id
+          FROM "Order"
+          WHERE id = ${dispute.orderId}
+          FOR UPDATE
+        `;
+
+        if (!lockedOrders || lockedOrders.length === 0) {
+          throw new Error('ESCROW_RELEASE_ORDER_NOT_FOUND');
+        }
+
+        const transferRecord = await tx.transfer.findUnique({
+          where: { orderId: dispute.orderId }
+        });
+
+        if (transferRecord?.razorpayTransferId && transferRecord.onHold) {
+          const result = await releaseTransfer(transferRecord);
+
+          if (!result.released) {
+            throw new Error(
+              `ESCROW_RELEASE_NOT_COMPLETED: ${result.reason}`
+            );
+          }
+
+          await tx.transfer.update({
+            where: { id: transferRecord.id },
+            data: {
+              onHold: false,
+              status: 'RELEASED'
+            }
+          });
+        }
+
+        if (latestDeliverable) {
+          await tx.deliverable.update({
             where: { id: latestDeliverable.id },
             data: {
               reviewStatus: 'DISPUTE_RESOLVED',
               reviewedAt: new Date(),
               reviewedById: req.user.id
             }
-          })
-        ] : []),
+          });
+        }
 
-        prisma.order.update({
+        await tx.order.update({
           where: { id: dispute.orderId },
           data: { status: 'COMPLETED' }
-        }),
+        });
 
-        ...(dispute.order.jobId ? [
-          prisma.job.update({
+        if (dispute.order.jobId) {
+          await tx.job.update({
             where: { id: dispute.order.jobId },
             data: {
               status: 'COMPLETED',
               isOpen: false
             }
-          })
-        ] : []),
+          });
+        }
 
-        prisma.wallet.upsert({
+        await tx.wallet.upsert({
           where: { userId: dispute.order.sellerId },
           create: {
             userId: dispute.order.sellerId,
@@ -207,17 +241,18 @@ exports.resolveDispute = async (req, res) => {
               increment: dispute.order.sellerEarnings
             }
           }
-        }),
+        });
 
-        prisma.dispute.update({
+        await tx.dispute.update({
           where: { id },
           data: {
             status: 'RESOLVED',
             adminDecision: decision,
             resolvedAt: new Date()
           }
-        }),
-        prisma.orderActivityEvent.create({
+        });
+
+        await tx.orderActivityEvent.create({
           data: {
             orderId: dispute.orderId,
             actorId: req.user.id,
@@ -229,8 +264,8 @@ exports.resolveDispute = async (req, res) => {
               decision
             }
           }
-        })
-      ]);
+        });
+      });
 
     } else if (decision === 'REFUND_CLIENT') {
 
