@@ -655,6 +655,28 @@ export default function UserProfilePage({ currentUser }) {
                 <div className="text-sm text-slate-300 pt-1">
                   <span className="text-emerald-400 font-black text-lg">₹{profileUser.profile?.hourlyRate || 499}</span> per hour • Joined {new Date(profileUser.createdAt).toLocaleDateString()}
                 </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
+                  <div className="rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2">
+                    <div className="text-base font-black text-white">{completedProjects}</div>
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-600">Completed</div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2">
+                    <div className="text-base font-black text-emerald-300">{completionRate}%</div>
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-600">Completion</div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2">
+                    <div className="text-base font-black text-amber-300">{avgRating || 'New'}</div>
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-600">Rating</div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-950/70 border border-slate-800 px-3 py-2">
+                    <div className="text-base font-black text-pink-300">{profileUser.points || 50}</div>
+                    <div className="text-[9px] font-black uppercase tracking-wider text-slate-600">Reputation</div>
+                  </div>
+                </div>
               </div>
             </div>
 
