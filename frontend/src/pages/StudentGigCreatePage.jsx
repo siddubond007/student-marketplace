@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   Check,
@@ -7,9 +8,11 @@ import {
   Circle,
   FileEdit,
   Save,
+  Search,
+  X,
   Sparkles
 } from 'lucide-react';
-import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData';
+import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 
 const steps = [
   { id: 1, label: 'Basics', description: 'Service identity' },
@@ -23,6 +26,400 @@ const steps = [
   { id: 9, label: 'Preview', description: 'Review listing' },
   { id: 10, label: 'Submit', description: 'Validate & publish' }
 ];
+
+
+function SearchableSelect({
+  id,
+  label,
+  value,
+  options,
+  placeholder,
+  disabled = false,
+  error,
+  onChange,
+  onOpenChange
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [availableHeight, setAvailableHeight] = useState(288);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    openUp: false
+  });
+  const triggerRef = useRef(null);
+  const optionRefs = useRef([]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const updateDropdownPosition = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportPadding = 16;
+      const gap = 8;
+
+      const spaceAbove = Math.max(
+        0,
+        rect.top - viewportPadding - gap
+      );
+
+      const spaceBelow = Math.max(
+        0,
+        window.innerHeight - rect.bottom - viewportPadding - gap
+      );
+
+      const openUp = spaceBelow < 260 && spaceAbove > spaceBelow;
+      const availableSpace = openUp ? spaceAbove : spaceBelow;
+
+      const dropdownWidth = rect.width;
+      const maxLeft = Math.max(
+        viewportPadding,
+        window.innerWidth - dropdownWidth - viewportPadding
+      );
+
+      setDropdownPosition({
+        top: openUp ? rect.top - gap : rect.bottom + gap,
+        left: Math.min(Math.max(rect.left, viewportPadding), maxLeft),
+        width: dropdownWidth,
+        openUp
+      });
+
+      setAvailableHeight(
+        Math.max(
+          160,
+          Math.min(360, availableSpace)
+        )
+      );
+    };
+
+    updateDropdownPosition();
+
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+    };
+  }, [open]);
+
+  const selectedOption = options.find((option) => option.id === value) || null;
+
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return options;
+    }
+
+    return options.filter((option) =>
+      option.name.toLowerCase().includes(normalizedQuery)
+    );
+  }, [options, query]);
+
+  const activeIndex = filteredOptions.length
+    ? Math.min(highlightedIndex, filteredOptions.length - 1)
+    : 0;
+
+  const setDropdownOpen = (nextOpen) => {
+    setOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+
+    if (nextOpen) {
+      setQuery('');
+      setHighlightedIndex(0);
+      return;
+    }
+
+    setQuery('');
+    setHighlightedIndex(0);
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const handleSelect = (option) => {
+    onChange(option.id);
+    setDropdownOpen(false);
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+
+      if (!filteredOptions.length) return;
+
+      const nextIndex = (activeIndex + 1) % filteredOptions.length;
+      setHighlightedIndex(nextIndex);
+
+      window.requestAnimationFrame(() =>
+        optionRefs.current[nextIndex]?.scrollIntoView({
+          block: 'nearest'
+        })
+      );
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+
+      if (!filteredOptions.length) return;
+
+      const nextIndex =
+        (activeIndex - 1 + filteredOptions.length) % filteredOptions.length;
+
+      setHighlightedIndex(nextIndex);
+
+      window.requestAnimationFrame(() =>
+        optionRefs.current[nextIndex]?.scrollIntoView({
+          block: 'nearest'
+        })
+      );
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+
+      if (filteredOptions[activeIndex]) {
+        handleSelect(filteredOptions[activeIndex]);
+      }
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setDropdownOpen(false);
+    }
+  };
+
+  const renderMatch = (text) => {
+    const normalizedQuery = query.trim();
+
+    if (!normalizedQuery) return text;
+
+    const escapedQuery = normalizedQuery.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    );
+
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'ig'));
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === normalizedQuery.toLowerCase() ? (
+        <mark
+          key={`${part}-${index}`}
+          className="rounded bg-cyan-500/15 px-0.5 text-cyan-200"
+        >
+          {part}
+        </mark>
+      ) : (
+        <span key={`${part}-${index}`}>{part}</span>
+      )
+    );
+  };
+
+  return (
+    <div className="relative space-y-2.5">
+      <label
+        htmlFor={`${id}-trigger`}
+        className="block text-xs font-black uppercase tracking-wider text-slate-300"
+      >
+        {label} <span className="text-pink-500">*</span>
+      </label>
+
+      <div className="relative">
+        <button
+          ref={triggerRef}
+          id={`${id}-trigger`}
+          type="button"
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={`${id}-listbox`}
+          aria-invalid={Boolean(error)}
+          onClick={() => setDropdownOpen(!open)}
+          onKeyDown={(event) => {
+            if (
+              !open &&
+              (event.key === 'ArrowDown' ||
+                event.key === 'Enter' ||
+                event.key === ' ')
+            ) {
+              event.preventDefault();
+              setDropdownOpen(true);
+            }
+          }}
+          className={`w-full min-h-[52px] flex items-center justify-between gap-3 px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-left outline-none transition ${
+            error
+              ? 'border-red-500/50 focus:border-red-400'
+              : open
+                ? 'border-cyan-500'
+                : 'border-slate-800 hover:border-slate-700'
+          } ${
+            disabled
+              ? 'opacity-50 cursor-not-allowed'
+              : 'cursor-pointer'
+          }`}
+        >
+          <span
+            className={`min-w-0 truncate ${
+              selectedOption ? 'text-white' : 'text-slate-500'
+            }`}
+          >
+            {selectedOption?.name || placeholder}
+          </span>
+
+          <ChevronRight
+            className={`w-4 h-4 shrink-0 text-slate-500 transition-transform ${
+              open ? 'rotate-90' : ''
+            }`}
+          />
+        </button>
+
+        {open && !disabled && createPortal(
+          <>
+            <button
+              type="button"
+              aria-label={`Close ${label} dropdown`}
+              onClick={() => setDropdownOpen(false)}
+              className="fixed inset-0 z-[9998] cursor-default"
+            />
+
+            <div
+              id={`${id}-listbox`}
+              role="listbox"
+              aria-label={label}
+              className="fixed z-[9999] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl shadow-black/60 ring-1 ring-white/5"
+              style={{
+                left: `${dropdownPosition.left}px`,
+                width: `${dropdownPosition.width}px`,
+                ...(dropdownPosition.openUp
+                  ? {
+                      bottom: `${window.innerHeight - dropdownPosition.top}px`
+                    }
+                  : {
+                      top: `${dropdownPosition.top}px`
+                    })
+              }}
+            >
+              <div className="border-b border-slate-800 p-2.5">
+                <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3 focus-within:border-cyan-500/50">
+                  <Search className="w-4 h-4 shrink-0 text-slate-500" />
+
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setHighlightedIndex(0);
+                    }}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder={`Search ${label.toLowerCase()}...`}
+                    aria-controls={`${id}-listbox-options`}
+                    className="w-full bg-transparent py-2.5 text-sm text-white placeholder:text-slate-600 outline-none"
+                  />
+
+                  {query && (
+                    <button
+                      type="button"
+                      aria-label={`Clear ${label} search`}
+                      onClick={() => {
+                        setQuery('');
+                        setHighlightedIndex(0);
+                      }}
+                      className="rounded-lg p-1 text-slate-500 hover:bg-slate-800 hover:text-white transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div
+                id={`${id}-listbox-options`}
+                className="overflow-y-auto p-1.5 scrollbar-hide"
+                style={{ maxHeight: `${availableHeight}px` }}
+              >
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((option, index) => {
+                    const isSelected = option.id === value;
+                    const isHighlighted = index === activeIndex;
+
+                    return (
+                      <button
+                        key={option.id}
+                        ref={(element) => {
+                          optionRefs.current[index] = element;
+                        }}
+                        id={`${id}-option-${index}`}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onMouseEnter={() => setHighlightedIndex(index)}
+                        onClick={() => handleSelect(option)}
+                        className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                          isSelected
+                            ? 'bg-cyan-500/10 text-cyan-300'
+                            : isHighlighted
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        }`}
+                      >
+                        <span className="min-w-0 truncate">
+                          {renderMatch(option.name)}
+                        </span>
+
+                        {isSelected && (
+                          <Check className="w-4 h-4 shrink-0 text-cyan-400" />
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-3 py-8 text-center">
+                    <Search className="w-5 h-5 mx-auto text-slate-600" />
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      No {label.toLowerCase()} found.
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-700">
+                      Try a different search term.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-slate-800 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                <span>{filteredOptions.length} of {options.length}</span>
+                <span className="hidden sm:inline">
+                  ↑↓ navigate · Enter select · Esc close
+                </span>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+      </div>
+
+      {error && (
+        <p className="text-xs font-semibold text-red-400">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const HIDDEN_SCROLLBAR_STYLES = `
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 export default function StudentGigCreatePage() {
   const navigate = useNavigate();
@@ -288,134 +685,70 @@ export default function StudentGigCreatePage() {
         </div>
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div className="space-y-2.5">
-              <label
-                htmlFor="gig-category"
-                className="block text-xs font-black uppercase tracking-wider text-slate-300"
-              >
-                Primary category <span className="text-pink-500">*</span>
-              </label>
-              <select
-                id="gig-category"
-                value={basics.categoryId}
-                onChange={(event) =>
-                  handleBasicsChange('categoryId', event.target.value)
-                }
-                aria-invalid={Boolean(fieldErrors.categoryId)}
-                className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition ${
-                  fieldErrors.categoryId
-                    ? 'border-red-500/50 focus:border-red-400'
-                    : 'border-slate-800 focus:border-cyan-500'
-                }`}
-              >
-                <option value="">Select a category…</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.categoryId && (
-                <p className="text-xs font-semibold text-red-400">
-                  {fieldErrors.categoryId}
-                </p>
-              )}
-            </div>
+          <SearchableSelect
+            id="gig-category"
+            label="Primary category"
+            value={basics.categoryId}
+            options={categories}
+            placeholder="Select a category…"
+            error={fieldErrors.categoryId}
+            onChange={(value) => handleBasicsChange('categoryId', value)}
+          />
 
-            <div className="space-y-2.5">
-              <label
-                htmlFor="gig-subcategory"
-                className="block text-xs font-black uppercase tracking-wider text-slate-300"
-              >
-                Subcategory <span className="text-pink-500">*</span>
-              </label>
-              <select
-                id="gig-subcategory"
-                value={basics.subcategoryId}
-                disabled={!basics.categoryId}
-                onChange={(event) =>
-                  handleBasicsChange('subcategoryId', event.target.value)
-                }
-                aria-invalid={Boolean(fieldErrors.subcategoryId)}
-                className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                  fieldErrors.subcategoryId
-                    ? 'border-red-500/50 focus:border-red-400'
-                    : 'border-slate-800 focus:border-cyan-500'
-                }`}
-              >
-                <option value="">
-                  {!basics.categoryId
-                    ? 'Select a category first…'
-                    : 'Select a subcategory…'}
-                </option>
-                {subcategories.map((subcategory) => (
-                  <option key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.subcategoryId && (
-                <p className="text-xs font-semibold text-red-400">
-                  {fieldErrors.subcategoryId}
-                </p>
-              )}
-            </div>
+          <SearchableSelect
+            id="gig-subcategory"
+            label="Subcategory"
+            value={basics.subcategoryId}
+            options={subcategories}
+            disabled={!basics.categoryId}
+            placeholder={
+              basics.categoryId
+                ? 'Select a subcategory…'
+                : 'Select a category first…'
+            }
+            error={fieldErrors.subcategoryId}
+            onChange={(value) => handleBasicsChange('subcategoryId', value)}
+          />
 
-            <div className="space-y-2.5">
-              <label
-                htmlFor="gig-service-type"
-                className="block text-xs font-black uppercase tracking-wider text-slate-300"
-              >
-                Service type <span className="text-pink-500">*</span>
-              </label>
-              <select
-                id="gig-service-type"
-                value={basics.serviceType}
-                disabled={!basics.subcategoryId || serviceTypes.length === 0}
-                onChange={(event) =>
-                  handleBasicsChange('serviceType', event.target.value)
-                }
-                aria-invalid={Boolean(fieldErrors.serviceType)}
-                className={`w-full px-4 py-3.5 bg-slate-950 border rounded-2xl text-sm text-white outline-none transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                  fieldErrors.serviceType
-                    ? 'border-red-500/50 focus:border-red-400'
-                    : 'border-slate-800 focus:border-cyan-500'
-                }`}
-              >
-                <option value="">
-                  {!basics.subcategoryId
-                    ? 'Select a subcategory first…'
-                    : serviceTypes.length === 0
-                      ? 'No service types configured…'
-                      : 'Select a service type…'}
-                </option>
-                {serviceTypes.map((serviceType) => (
-                  <option key={serviceType.id} value={serviceType.id}>
-                    {serviceType.name}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.serviceType ? (
-                <p className="text-xs font-semibold text-red-400">
-                  {fieldErrors.serviceType}
-                </p>
-              ) : (
-                <p className="text-xs leading-5 text-slate-600">
-                  Choose the service that most closely matches what you are offering.
-                </p>
-              )}
-            </div>
+          <SearchableSelect
+            id="gig-service-type"
+            label="Service type"
+            value={basics.serviceType}
+            options={serviceTypes}
+            disabled={!basics.subcategoryId}
+            placeholder={
+              basics.subcategoryId
+                ? 'Select a service type…'
+                : 'Select a subcategory first…'
+            }
+            error={fieldErrors.serviceType}
+            onChange={(value) => handleBasicsChange('serviceType', value)}
+          />
           </div>
 
         {selectedCategory && selectedSubcategory && (
           <div className="mt-6 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
-            <span className="rounded-lg border border-slate-800 bg-slate-950/70 px-2.5 py-1.5">
+            <span className="max-w-full truncate rounded-lg border border-slate-800 bg-slate-950/70 px-2.5 py-1.5">
               {selectedCategory.name}
             </span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-700" />
-            <span className="rounded-lg border border-slate-800 bg-slate-950/70 px-2.5 py-1.5">
+
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-700" />
+
+            <span className="max-w-full truncate rounded-lg border border-slate-800 bg-slate-950/70 px-2.5 py-1.5">
               {selectedSubcategory.name}
             </span>
+
+            {basics.serviceType && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-700" />
+
+                <span className="max-w-full truncate rounded-lg border border-cyan-500/15 bg-cyan-500/5 px-2.5 py-1.5 text-cyan-300/80">
+                  {serviceTypes.find(
+                    (serviceType) => serviceType.id === basics.serviceType
+                  )?.name || basics.serviceType}
+                </span>
+              </>
+            )}
           </div>
         )}
       </section>
@@ -450,7 +783,9 @@ export default function StudentGigCreatePage() {
   );
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] pb-16">
+    <>
+      <style>{HIDDEN_SCROLLBAR_STYLES}</style>
+      <div className="min-h-[calc(100vh-7rem)] pb-16">
       <div className="max-w-[1500px] mx-auto">
         <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
           <header className="border-b border-slate-800 bg-gradient-to-r from-cyan-500/10 via-transparent to-indigo-500/10">
@@ -678,5 +1013,6 @@ export default function StudentGigCreatePage() {
         </section>
       </div>
     </div>
+    </>
   );
 }
