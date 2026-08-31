@@ -11,6 +11,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const StudentOrdersPage = lazy(() => import('./pages/StudentOrdersPage'));
 const StudentGigsPage = lazy(() => import('./pages/StudentGigsPage'));
+const StudentGigCreatePage = lazy(() => import('./pages/StudentGigCreatePage'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const OrderWorkspacePage = lazy(() => import('./pages/OrderWorkspacePage'));
 const CategoryHubPage = lazy(() => import('./pages/CategoryHubPage'));
@@ -111,6 +112,7 @@ export default function App() {
               <Route path="/student/portal" element={<StudentDashboard currentUser={currentUser} />} />
               <Route path="/student/orders" element={<StudentOrdersPage currentUser={currentUser} />} />
               <Route path="/student/gigs" element={<StudentGigsPage currentUser={currentUser} />} />
+              <Route path="/student/gigs/create" element={<StudentGigCreatePage currentUser={currentUser} />} />
               <Route path="/client/portal" element={<ClientDashboard currentUser={currentUser} />} />
               <Route path="/my-projects" element={<ClientProjectsPage />} />
               <Route path="/my-projects/:projectId" element={<ClientProjectDetailsPage />} />

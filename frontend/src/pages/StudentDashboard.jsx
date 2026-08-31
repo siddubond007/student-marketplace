@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Wallet,
   Award,
@@ -55,6 +55,7 @@ function StarRating({ value, onChange }) {
 
 
 export default function StudentDashboard({ currentUser }) {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [profileData, setProfileData] = useState(null);
@@ -67,8 +68,6 @@ export default function StudentDashboard({ currentUser }) {
   const [gigs, setGigs] = useState([]);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [showCreateGigModal, setShowCreateGigModal] = useState(false);
-  const [dbCategories, setDbCategories] = useState([]);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -79,17 +78,6 @@ export default function StudentDashboard({ currentUser }) {
     qualityRating: 5,
     timelinessRating: 5,
     comment: ""
-  });
-
-  const [gigForm, setGigForm] = useState({
-    title: '',
-    category: '',
-    categoryId: '',
-    subcategory: '',
-    subcategoryId: '',
-    description: '',
-    price: '999',
-    deliveryDays: '2'
   });
 
   const [withdrawForm, setWithdrawForm] = useState({ upiId: '', amount: '500' });
@@ -206,7 +194,6 @@ export default function StudentDashboard({ currentUser }) {
 
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
     API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
-    API.get('/categories').then(res => setDbCategories(res.data || [])).catch(() => {});
     API.get('/jobs')
       .then(res => {
         const jobs = res.data || [];
@@ -222,39 +209,6 @@ export default function StudentDashboard({ currentUser }) {
       })
       .catch(() => {});
   }, [currentUser?.id]);
-
-  const handleCreateGig = async (e) => {
-    e.preventDefault();
-    try {
-      let finalCatId = gigForm.categoryId;
-      let finalSubId = gigForm.subcategoryId;
-      if (!finalCatId && gigForm.category) {
-        const c = dbCategories.find(cat => cat.name === gigForm.category);
-        if (c) finalCatId = c.id;
-      }
-      if (!finalSubId && gigForm.subcategory) {
-        const c = dbCategories.find(cat => cat.name === gigForm.category);
-        const s = c?.subcategories?.find(sub => sub.name === gigForm.subcategory);
-        if (s) finalSubId = s.id;
-      }
-
-      const res = await API.post('/gigs', {
-        title: gigForm.title,
-        category: gigForm.category,
-        categoryId: finalCatId || undefined,
-        subcategory: gigForm.subcategory || '',
-        subcategoryId: finalSubId || undefined,
-        description: gigForm.description,
-        packages: [{ tierName: 'Single', price: Number(gigForm.price), deliveryDays: Number(gigForm.deliveryDays), revisions: 2, description: 'Standard Service' }]
-      });
-      setGigs([res.data, ...gigs]);
-      setShowCreateGigModal(false);
-      confetti();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Error publishing gig');
-    }
-  };
-
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -352,7 +306,7 @@ export default function StudentDashboard({ currentUser }) {
           <div className="mt-4 pt-4 border-t border-slate-800">
             <button
               type="button"
-              onClick={() => setShowCreateGigModal(true)}
+              onClick={() => navigate('/student/gigs/create')}
               className="w-full px-3 py-3 rounded-2xl neon-airflow-btn text-white text-xs font-black flex items-center justify-center gap-2"
             >
               <PlusCircle className="w-4 h-4" />
@@ -406,7 +360,7 @@ export default function StudentDashboard({ currentUser }) {
               </Link>
 
               <button
-                onClick={() => setShowCreateGigModal(true)}
+                onClick={() => navigate('/student/gigs/create')}
                 className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black shadow-lg flex items-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
@@ -687,7 +641,7 @@ export default function StudentDashboard({ currentUser }) {
         <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-2">
           <button
             type="button"
-            onClick={() => setShowCreateGigModal(true)}
+            onClick={() => navigate('/student/gigs/create')}
             className="rounded-xl border border-slate-800 bg-slate-950/40 hover:border-indigo-500/40 px-3 py-3 text-left transition"
           >
             <PlusCircle className="w-4 h-4 text-indigo-400" />
@@ -816,7 +770,7 @@ export default function StudentDashboard({ currentUser }) {
 
             <button
               type="button"
-              onClick={() => setShowCreateGigModal(true)}
+              onClick={() => navigate('/student/gigs/create')}
               className="px-3 py-2 rounded-xl neon-airflow-btn text-white text-[11px] font-black"
             >
               + Publish Gig
@@ -975,7 +929,7 @@ export default function StudentDashboard({ currentUser }) {
             <div className="flex flex-wrap justify-center gap-3 mt-6">
               <button
                 type="button"
-                onClick={() => setShowCreateGigModal(true)}
+                onClick={() => navigate('/student/gigs/create')}
                 className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black flex items-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
@@ -1230,36 +1184,6 @@ export default function StudentDashboard({ currentUser }) {
 
 
       {/* Modals */}
-      {showCreateGigModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-4">
-          <div className="neon-border-box max-w-lg w-full p-7 shadow-2xl relative">
-            <button onClick={() => setShowCreateGigModal(false)} className="absolute top-5 right-5 text-slate-400 hover:text-white">✕</button>
-            <h3 className="text-xl font-black text-white mb-4">Publish Student Service Gig</h3>
-            <form onSubmit={handleCreateGig} className="space-y-4">
-              <input required type="text" value={gigForm.title} onChange={e => setGigForm({...gigForm, title: e.target.value})} placeholder="Gig Title (e.g. React Web App)" className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
-              <select required value={gigForm.category} onChange={e => {
-                const catObj = dbCategories.find(c => c.name === e.target.value);
-                setGigForm({...gigForm, category: e.target.value, categoryId: catObj?.id || '', subcategory: '', subcategoryId: ''});
-              }} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white outline-none focus:border-indigo-500">
-                <option value="">Select Category...</option>
-                {dbCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
-              </select>
-              <select required value={gigForm.subcategory} disabled={!gigForm.category} onChange={e => {
-                const catObj = dbCategories.find(c => c.name === gigForm.category);
-                const subObj = catObj?.subcategories?.find(s => s.name === e.target.value);
-                setGigForm({...gigForm, subcategory: e.target.value, subcategoryId: subObj?.id || ''});
-              }} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white outline-none focus:border-indigo-500 disabled:opacity-50">
-                <option value="">{gigForm.category ? 'Select Subcategory...' : 'Select Category First'}</option>
-                {dbCategories.find(c => c.name === gigForm.category)?.subcategories?.map(sub => <option key={sub.id} value={sub.name}>{sub.name}</option>)}
-              </select>
-              <input required type="number" value={gigForm.price} onChange={e => setGigForm({...gigForm, price: e.target.value})} placeholder="Starting Price in ₹" className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
-              <textarea required rows="3" value={gigForm.description} onChange={e => setGigForm({...gigForm, description: e.target.value})} placeholder="Service description..." className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white" />
-              <button type="submit" className="w-full py-3.5 neon-airflow-btn text-white text-xs font-black rounded-2xl uppercase">Publish to Marketplace</button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {showWithdrawModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-4">
           <div className="neon-border-box max-w-md w-full p-7 shadow-2xl relative">

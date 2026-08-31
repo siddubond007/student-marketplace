@@ -65,7 +65,7 @@ export default function StudentGigsPage({ currentUser }) {
             </div>
 
             <Link
-              to="/student/portal#gigs"
+              to="/student/gigs/create"
               className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black flex items-center justify-center gap-2"
             >
               <PlusCircle className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default function StudentGigsPage({ currentUser }) {
           </p>
 
           <Link
-            to="/student/portal#gigs"
+            to="/student/gigs/create"
             className="inline-flex mt-6 px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
