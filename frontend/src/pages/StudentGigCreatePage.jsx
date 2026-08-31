@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
@@ -10,9 +10,11 @@ import {
   Save,
   Search,
   X,
-  Sparkles
+  Sparkles,
+  Plus
 } from 'lucide-react';
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
+import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
 
 const steps = [
   { id: 1, label: 'Basics', description: 'Service identity' },
@@ -430,8 +432,13 @@ export default function StudentGigCreatePage() {
     title: '',
     categoryId: '',
     subcategoryId: '',
-    serviceType: ''
+    serviceType: '',
+    skills: []
   });
+
+  const [skillQuery, setSkillQuery] = useState('');
+  const deferredSkillQuery = useDeferredValue(skillQuery);
+  const [visibleSkillCount, setVisibleSkillCount] = useState(24);
 
   const [touchedFields, setTouchedFields] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
@@ -445,6 +452,37 @@ export default function StudentGigCreatePage() {
     selectedCategoryId,
     selectedSubcategoryId
   );
+
+  const filteredSkills = useMemo(() => {
+    const normalizedQuery = deferredSkillQuery.trim().toLowerCase();
+
+    return ALL_SKILLS_DATABASE.filter((skill) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        skill.toLowerCase().includes(normalizedQuery);
+
+      return matchesQuery && !basics.skills.includes(skill);
+    });
+  }, [deferredSkillQuery, basics.skills]);
+
+  const selectedSkillItems = basics.skills;
+
+  const addSkill = (skill) => {
+    setBasics((previous) => (
+      previous.skills.includes(skill)
+        ? previous
+        : { ...previous, skills: [...previous.skills, skill] }
+    ));
+    setSkillQuery('');
+    setVisibleSkillCount(24);
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setBasics((previous) => ({
+      ...previous,
+      skills: previous.skills.filter((skill) => skill !== skillToRemove)
+    }));
+  };
 
   const selectedCategory = categories.find(
     (category) => category.id === selectedCategoryId
@@ -751,6 +789,187 @@ export default function StudentGigCreatePage() {
             )}
           </div>
         )}
+      </section>
+
+      <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+        <div className="max-w-3xl">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+            Skills & tags
+          </p>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+                Add the skills buyers can search for
+              </h3>
+              <p className="text-sm leading-6 text-slate-500 mt-2">
+                Choose the capabilities that best represent your service. Search the full SkillLaunch catalog; 3–10 relevant skills are recommended.
+              </p>
+            </div>
+
+            <div className="text-right shrink-0">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                {basics.skills.length} selected
+              </p>
+              <p className={`text-[10px] font-bold mt-1 ${
+                basics.skills.length >= 3 && basics.skills.length <= 10
+                  ? 'text-emerald-400'
+                  : 'text-slate-600'
+              }`}>
+                {basics.skills.length >= 3 && basics.skills.length <= 10
+                  ? 'Recommended range'
+                  : '3–10 recommended'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 relative">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/80 px-3.5 transition focus-within:border-cyan-500/60">
+              <Search className="w-4 h-4 shrink-0 text-slate-500" />
+
+              <input
+                id="gig-skills"
+                type="text"
+                value={skillQuery}
+                onChange={(event) => {
+                  setSkillQuery(event.target.value);
+                  setVisibleSkillCount(24);
+                }}
+                placeholder="Search skills (e.g. React, Trading, SEO, Blender, Excel, Figma)…"
+                className="w-full bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
+              />
+
+              {skillQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSkillQuery('');
+                    setVisibleSkillCount(24);
+                  }}
+                  aria-label="Clear skill search"
+                  className="rounded-lg p-1 text-slate-500 hover:bg-slate-800 hover:text-white transition"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between gap-3 px-1">
+              <span className="text-[10px] font-bold text-slate-600">
+                {filteredSkills.length.toLocaleString()} matching skills
+              </span>
+
+              {!skillQuery && (
+                <span className="text-[10px] font-bold text-slate-600">
+                  1,891 skills available
+                </span>
+              )}
+            </div>
+          </div>
+
+          {selectedSkillItems.length > 0 && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                  Selected skills
+                </span>
+                <span className="text-[10px] font-bold text-slate-600">
+                  {selectedSkillItems.length} selected
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedSkillItems.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-200"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(skill)}
+                      aria-label={`Remove ${skill}`}
+                      className="rounded-md p-0.5 text-cyan-400 hover:bg-cyan-500/10 hover:text-white transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
+              <div>
+                <p className="text-xs font-black text-white">
+                  {skillQuery ? 'Search results' : 'Explore skills'}
+                </p>
+                <p className="text-[10px] text-slate-600 mt-0.5">
+                  Click any skill to add it to your gig.
+                </p>
+              </div>
+
+              <span className="text-[10px] font-bold text-slate-600">
+                {filteredSkills.length.toLocaleString()} results
+              </span>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto p-3 scrollbar-hide">
+              {filteredSkills.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {filteredSkills.slice(0, visibleSkillCount).map((skill) => (
+                      <button
+                        key={skill}
+                        type="button"
+                        onClick={() => addSkill(skill)}
+                        className="group flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-900/70 px-3.5 py-2.5 text-left text-xs font-bold text-slate-300 hover:border-cyan-500/30 hover:bg-cyan-500/5 hover:text-cyan-200 transition"
+                      >
+                        <span className="min-w-0 truncate">
+                          {skill}
+                        </span>
+                        <Plus className="w-3.5 h-3.5 shrink-0 text-slate-600 group-hover:text-cyan-400 transition" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {filteredSkills.length > visibleSkillCount && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisibleSkillCount((count) =>
+                          Math.min(count + 24, filteredSkills.length)
+                        )
+                      }
+                      className="mt-3 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 hover:text-cyan-200 transition"
+                    >
+                      Show 24 more · {filteredSkills.length - visibleSkillCount} remaining
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="py-12 text-center">
+                  <Search className="w-5 h-5 mx-auto text-slate-700" />
+                  <p className="mt-2 text-xs font-bold text-slate-500">
+                    No matching skills found.
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-700">
+                    Try another keyword or broader spelling.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {basics.skills.length > 10 && (
+            <div className="mt-3 rounded-xl border border-amber-500/15 bg-amber-500/5 px-3 py-2.5">
+              <p className="text-[10px] font-bold text-amber-300/80">
+                You have more than 10 skills selected. Keep only the most relevant skills for the strongest buyer signal.
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
       {!isBasicsComplete && (
