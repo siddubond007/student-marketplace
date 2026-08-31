@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,7 +9,7 @@ import {
   Save,
   Sparkles
 } from 'lucide-react';
-import API from '../services/api';
+import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData';
 
 const steps = [
   { id: 1, label: 'Basics', description: 'Service identity' },
@@ -24,46 +24,6 @@ const steps = [
   { id: 10, label: 'Submit', description: 'Validate & publish' }
 ];
 
-// Service types do not exist in the current backend taxonomy yet.
-// These are UI-level configuration values keyed by the existing subcategory names.
-const SERVICE_TYPES_BY_SUBCATEGORY = {
-  'Frontend Development': [
-    { id: 'website-frontend', label: 'Website frontend' },
-    { id: 'web-application-ui', label: 'Web application UI' },
-    { id: 'landing-page', label: 'Landing page' }
-  ],
-  'Backend Development': [
-    { id: 'rest-api', label: 'REST API' },
-    { id: 'backend-service', label: 'Backend service' },
-    { id: 'api-integration', label: 'API integration' }
-  ],
-  'Generative AI': [
-    { id: 'prompt-engineering', label: 'Prompt engineering' },
-    { id: 'ai-chatbot', label: 'AI chatbot' },
-    { id: 'llm-integration', label: 'LLM integration' }
-  ],
-  'Data Science': [
-    { id: 'data-analysis', label: 'Data analysis' },
-    { id: 'predictive-modeling', label: 'Predictive modeling' },
-    { id: 'data-insights', label: 'Data insights' }
-  ],
-  'Brand Identity': [
-    { id: 'logo-identity', label: 'Logo & visual identity' },
-    { id: 'brand-guidelines', label: 'Brand guidelines' },
-    { id: 'brand-assets', label: 'Brand asset design' }
-  ],
-  'UI/UX Design': [
-    { id: 'website-ui-ux', label: 'Website UI/UX' },
-    { id: 'mobile-ui-ux', label: 'Mobile app UI/UX' },
-    { id: 'design-system', label: 'Design system' }
-  ],
-  'Legal Support': [
-    { id: 'document-support', label: 'Document support' },
-    { id: 'legal-research', label: 'Legal research' },
-    { id: 'policy-drafting', label: 'Policy drafting' }
-  ]
-};
-
 export default function StudentGigCreatePage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -76,63 +36,26 @@ export default function StudentGigCreatePage() {
     serviceType: ''
   });
 
-  const [categories, setCategories] = useState([]);
-  const [categoryLoading, setCategoryLoading] = useState(true);
-  const [categoryError, setCategoryError] = useState('');
   const [touchedFields, setTouchedFields] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
 
-  useEffect(() => {
-    let cancelled = false;
+  const categories = GIG_CATEGORY_OPTIONS;
+  const selectedCategoryId = basics.categoryId;
+  const selectedSubcategoryId = basics.subcategoryId;
 
-    const loadCategories = async () => {
-      setCategoryLoading(true);
-      setCategoryError('');
-
-      try {
-        const response = await API.get('/categories');
-        if (!cancelled) {
-          setCategories(Array.isArray(response.data) ? response.data : []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setCategories([]);
-          setCategoryError(
-            error?.response?.data?.error || 'Unable to load categories right now.'
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setCategoryLoading(false);
-        }
-      }
-    };
-
-    loadCategories();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const selectedCategory = useMemo(
-    () => categories.find((category) => category.id === basics.categoryId) || null,
-    [categories, basics.categoryId]
+  const subcategories = GIG_SUBCATEGORY_OPTIONS(selectedCategoryId);
+  const serviceTypes = GIG_SERVICE_TYPE_OPTIONS(
+    selectedCategoryId,
+    selectedSubcategoryId
   );
 
-  const subcategories = selectedCategory?.subcategories || [];
+  const selectedCategory = categories.find(
+    (category) => category.id === selectedCategoryId
+  ) || null;
 
-  const selectedSubcategory = useMemo(
-    () =>
-      selectedCategory?.subcategories?.find(
-        (subcategory) => subcategory.id === basics.subcategoryId
-      ) || null,
-    [selectedCategory, basics.subcategoryId]
-  );
-
-  const serviceTypes = selectedSubcategory
-    ? SERVICE_TYPES_BY_SUBCATEGORY[selectedSubcategory.name] || []
-    : [];
+  const selectedSubcategory = subcategories.find(
+    (subcategory) => subcategory.id === selectedSubcategoryId
+  ) || null;
 
   const isTitleLengthValid =
     basics.title.trim().length >= 3 && basics.title.trim().length <= 120;
@@ -364,25 +287,7 @@ export default function StudentGigCreatePage() {
           </p>
         </div>
 
-        {categoryLoading ? (
-          <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-500">
-            Loading available categories…
-          </div>
-        ) : categoryError ? (
-          <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-            <p className="text-sm font-semibold text-red-300">{categoryError}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Category selection is unavailable until the taxonomy can be loaded.
-            </p>
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
-            <p className="text-sm font-semibold text-amber-300">
-              No categories are currently available.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="space-y-2.5">
               <label
                 htmlFor="gig-category"
@@ -486,7 +391,7 @@ export default function StudentGigCreatePage() {
                 </option>
                 {serviceTypes.map((serviceType) => (
                   <option key={serviceType.id} value={serviceType.id}>
-                    {serviceType.label}
+                    {serviceType.name}
                   </option>
                 ))}
               </select>
@@ -494,20 +399,15 @@ export default function StudentGigCreatePage() {
                 <p className="text-xs font-semibold text-red-400">
                   {fieldErrors.serviceType}
                 </p>
-              ) : basics.subcategoryId && serviceTypes.length === 0 ? (
-                <p className="text-xs leading-5 text-amber-400/80">
-                  Service-type options are not configured for this subcategory yet.
-                </p>
               ) : (
                 <p className="text-xs leading-5 text-slate-600">
-                  Choose the closest service format for this listing.
+                  Choose the service that most closely matches what you are offering.
                 </p>
               )}
             </div>
           </div>
-        )}
 
-        {selectedCategory && selectedSubcategory && serviceTypes.length > 0 && (
+        {selectedCategory && selectedSubcategory && (
           <div className="mt-6 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
             <span className="rounded-lg border border-slate-800 bg-slate-950/70 px-2.5 py-1.5">
               {selectedCategory.name}
