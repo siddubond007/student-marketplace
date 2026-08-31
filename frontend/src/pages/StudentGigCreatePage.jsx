@@ -431,6 +431,12 @@ export default function StudentGigCreatePage() {
   const [completedSteps, setCompletedSteps] = useState(() => new Set());
   const [description, setDescription] = useState('');
 
+  const [pricing, setPricing] = useState({
+    basePrice: '',
+    currency: 'INR',
+    packageModel: 'single'
+  });
+
   const [basics, setBasics] = useState({
     title: '',
     categoryId: '',
@@ -510,6 +516,14 @@ export default function StudentGigCreatePage() {
 
   const isDescriptionComplete = descriptionCharacterCount >= 50;
 
+  const basePriceNumber = Number(pricing.basePrice);
+  const isPricingComplete =
+    pricing.packageModel === 'single' &&
+    Boolean(pricing.currency) &&
+    pricing.basePrice !== '' &&
+    Number.isFinite(basePriceNumber) &&
+    basePriceNumber > 0;
+
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
     : descriptionCharacterCount < 50
@@ -543,8 +557,14 @@ export default function StudentGigCreatePage() {
       next.delete(2);
     }
 
+    if (isPricingComplete) {
+      next.add(3);
+    } else {
+      next.delete(3);
+    }
+
     return next;
-  }, [completedSteps, isBasicsComplete, isDescriptionComplete]);
+  }, [completedSteps, isBasicsComplete, isDescriptionComplete, isPricingComplete]);
 
   const currentStepData = steps[currentStep - 1];
 
@@ -689,6 +709,66 @@ export default function StudentGigCreatePage() {
     }));
   };
 
+  const validatePricing = () => {
+    const nextErrors = {};
+    const rawPrice = String(pricing.basePrice).trim();
+
+    if (!rawPrice) {
+      nextErrors.basePrice = 'Enter a base price for your service.';
+    } else if (!Number.isFinite(Number(rawPrice))) {
+      nextErrors.basePrice = 'Enter a valid numeric price.';
+    } else if (!(Number(rawPrice) > 0)) {
+      nextErrors.basePrice = 'Base price must be greater than 0.';
+    }
+
+    if (!pricing.currency) {
+      nextErrors.currency = 'Please select a currency.';
+    }
+
+    if (pricing.packageModel !== 'single') {
+      nextErrors.packageModel = 'Single-price mode is required for GIG-007.';
+    }
+
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+      Object.keys(next).forEach((key) => {
+        if (['basePrice', 'currency', 'packageModel'].includes(key)) {
+          delete next[key];
+        }
+      });
+      return { ...next, ...nextErrors };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      basePrice: true,
+      currency: true,
+      packageModel: true
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handlePricingChange = (field, value) => {
+    setPricing((previous) => ({
+      ...previous,
+      [field]: value
+    }));
+
+    setFieldErrors((previous) => {
+      if (!previous[field]) return previous;
+
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
@@ -697,6 +777,10 @@ export default function StudentGigCreatePage() {
     }
 
     if (currentStep === 2 && !validateDescription()) {
+      return;
+    }
+
+    if (currentStep === 3 && !validatePricing()) {
       return;
     }
 
@@ -1153,6 +1237,189 @@ export default function StudentGigCreatePage() {
     </div>
   );
 
+  const renderPricing = () => {
+    const priceError = touchedFields.basePrice ? fieldErrors.basePrice : null;
+    const currencyError = touchedFields.currency ? fieldErrors.currency : null;
+    const packageModelError = touchedFields.packageModel ? fieldErrors.packageModel : null;
+
+    return (
+      <div className="mt-8 space-y-7">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Service pricing
+            </p>
+
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+              Set a clear starting price for your service
+            </h3>
+
+            <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
+              Give buyers one straightforward price for the service you are offering.
+              Package tiers will be introduced in a later stage.
+            </p>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+              <label
+                htmlFor="gig-base-price"
+                className="text-xs font-black uppercase tracking-wider text-slate-300"
+              >
+                Base price <span className="text-pink-500">*</span>
+              </label>
+
+              <div className="mt-3 flex min-w-0 rounded-xl border border-slate-800 bg-slate-950 focus-within:border-cyan-500/60 overflow-hidden">
+                <span className="inline-flex items-center px-3 border-r border-slate-800 text-sm font-black text-slate-500">
+                  INR
+                </span>
+
+                <input
+                  id="gig-base-price"
+                  name="basePrice"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="1"
+                  value={pricing.basePrice}
+                  onChange={(event) => handlePricingChange('basePrice', event.target.value)}
+                  aria-invalid={Boolean(priceError)}
+                  aria-describedby={priceError ? 'gig-base-price-error' : 'gig-base-price-help'}
+                  className={[
+                    'w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none',
+                    priceError ? 'border-red-500/50' : ''
+                  ].join(' ')}
+                  placeholder="Enter your price"
+                />
+              </div>
+
+              <p id="gig-base-price-help" className="text-xs leading-5 text-slate-600 mt-2">
+                Enter a positive amount for the complete service.
+              </p>
+
+              {priceError && (
+                <p
+                  id="gig-base-price-error"
+                  role="alert"
+                  className="text-xs font-semibold text-red-400 mt-2"
+                >
+                  {priceError}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+              <label
+                htmlFor="gig-currency"
+                className="text-xs font-black uppercase tracking-wider text-slate-300"
+              >
+                Currency <span className="text-pink-500">*</span>
+              </label>
+
+              <select
+                id="gig-currency"
+                name="currency"
+                value={pricing.currency}
+                onChange={(event) => handlePricingChange('currency', event.target.value)}
+                aria-invalid={Boolean(currencyError)}
+                aria-describedby={currencyError ? 'gig-currency-error' : 'gig-currency-help'}
+                className={[
+                  'w-full mt-3 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
+                  currencyError
+                    ? 'border-red-500/50 focus:border-red-400'
+                    : 'border-slate-800 focus:border-cyan-500/60'
+                ].join(' ')}
+              >
+                <option value="INR">INR — Indian Rupee</option>
+              </select>
+
+              <p id="gig-currency-help" className="text-xs leading-5 text-slate-600 mt-2">
+                Your current platform currency is INR.
+              </p>
+
+              {currencyError && (
+                <p
+                  id="gig-currency-error"
+                  role="alert"
+                  className="text-xs font-semibold text-red-400 mt-2"
+                >
+                  {currencyError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl border border-cyan-500/20 bg-cyan-500/10 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-cyan-300" />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                Package model
+              </p>
+
+              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+                Single-price service
+              </h3>
+
+              <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
+                This gig will use one base service price. Basic, Standard, and Premium
+                package configuration will be added in the Packages stage.
+              </p>
+
+              <label
+                htmlFor="gig-package-model"
+                className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 cursor-pointer"
+              >
+                <input
+                  id="gig-package-model"
+                  name="packageModel"
+                  type="radio"
+                  value="single"
+                  checked={pricing.packageModel === 'single'}
+                  onChange={(event) => handlePricingChange('packageModel', event.target.value)}
+                  className="mt-1 h-4 w-4 accent-cyan-400"
+                  aria-invalid={Boolean(packageModelError)}
+                  aria-describedby={packageModelError ? 'gig-package-model-error' : undefined}
+                />
+
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-white">
+                    Single price
+                  </span>
+                  <span className="block text-xs leading-5 text-slate-500 mt-1">
+                    One purchase option for the service.
+                  </span>
+                </span>
+              </label>
+
+              {packageModelError && (
+                <p
+                  id="gig-package-model-error"
+                  role="alert"
+                  className="text-xs font-semibold text-red-400 mt-2"
+                >
+                  {packageModelError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {!isPricingComplete && (
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
+            <p className="text-xs font-bold text-slate-400">
+              Complete the required pricing details before continuing.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -1361,7 +1628,7 @@ export default function StudentGigCreatePage() {
                   </div>
                 </div>
 
-                {currentStep === 1 ? renderBasics() : currentStep === 2 ? renderDescription() : renderPlaceholder()}
+                {currentStep === 1 ? renderBasics() : currentStep === 2 ? renderDescription() : currentStep === 3 ? renderPricing() : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button

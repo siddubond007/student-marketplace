@@ -51,14 +51,14 @@ export default function RichTextEditor({
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor || isFocused) return;
 
     const nextValue = sanitizeRichTextHtml(value || EMPTY_HTML);
 
     if (editor.innerHTML !== nextValue) {
       editor.innerHTML = nextValue;
     }
-  }, [value]);
+  }, [value, isFocused]);
 
   const saveSelection = () => {
     const editor = editorRef.current;
@@ -89,10 +89,6 @@ export default function RichTextEditor({
     if (!editor) return;
 
     const sanitizedHtml = sanitizeRichTextHtml(editor.innerHTML || EMPTY_HTML);
-
-    if (editor.innerHTML !== sanitizedHtml) {
-      editor.innerHTML = sanitizedHtml;
-    }
 
     onChange?.(sanitizedHtml === EMPTY_HTML ? '' : sanitizedHtml);
     saveSelection();
@@ -218,8 +214,20 @@ export default function RichTextEditor({
         data-placeholder="Describe what you provide, what the buyer receives, and what to expect..."
         onFocus={() => setIsFocused(true)}
         onBlur={() => {
-          setIsFocused(false);
+          const editor = editorRef.current;
+
+          if (editor) {
+            const sanitizedHtml = sanitizeRichTextHtml(editor.innerHTML || EMPTY_HTML);
+
+            if (editor.innerHTML !== sanitizedHtml) {
+              editor.innerHTML = sanitizedHtml;
+            }
+
+            onChange?.(sanitizedHtml === EMPTY_HTML ? '' : sanitizedHtml);
+          }
+
           saveSelection();
+          setIsFocused(false);
         }}
         onKeyDown={handleKeyDown}
         onInput={emitChange}
