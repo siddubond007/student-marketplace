@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -25,8 +25,46 @@ const steps = [
 
 export default function StudentGigCreatePage() {
   const navigate = useNavigate();
-  const currentStep = 1;
-  const completionPercent = 0;
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState(() => new Set());
+
+  const currentStepData = steps[currentStep - 1];
+
+  const furthestReachableStep = useMemo(
+    () => Math.min(
+      steps.length,
+      Math.max(currentStep, completedSteps.size ? Math.max(...completedSteps) + 1 : 1)
+    ),
+    [currentStep, completedSteps]
+  );
+
+  const completionPercent = Math.round((completedSteps.size / steps.length) * 100);
+
+  const goToStep = (stepId) => {
+    if (stepId >= 1 && stepId <= furthestReachableStep) {
+      setCurrentStep(stepId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNext = () => {
+    if (currentStep >= steps.length) return;
+
+    setCompletedSteps((previous) => {
+      const next = new Set(previous);
+      next.add(currentStep);
+      return next;
+    });
+
+    setCurrentStep((previous) => Math.min(previous + 1, steps.length));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => {
+    if (currentStep <= 1) return;
+    setCurrentStep((previous) => Math.max(previous - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-[calc(100vh-7rem)] pb-16">
@@ -131,21 +169,31 @@ export default function StudentGigCreatePage() {
                 </div>
               </div>
 
-              <nav className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+              <nav
+                aria-label="Gig creation steps"
+                className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-1 lg:overflow-visible"
+              >
                 {steps.map((step) => {
                   const isCurrent = step.id === currentStep;
-                  const isComplete = step.id < currentStep;
+                  const isComplete = completedSteps.has(step.id);
+                  const isReachable = step.id <= furthestReachableStep;
 
                   return (
                     <button
                       key={step.id}
                       type="button"
-                      disabled={!isCurrent}
+                      onClick={() => goToStep(step.id)}
+                      disabled={!isReachable}
+                      aria-current={isCurrent ? 'step' : undefined}
+                      aria-label={`${step.label}${isComplete ? ', completed' : isCurrent ? ', current step' : ', upcoming'}`}
                       className={[
-                        'w-full text-left rounded-2xl border px-3.5 py-3 transition',
+                        'w-full min-w-[190px] lg:min-w-0 text-left rounded-2xl border px-3.5 py-3 transition',
                         isCurrent
-                          ? 'border-cyan-500/30 bg-cyan-500/10'
-                          : 'border-slate-800 bg-slate-950/30 opacity-75'
+                          ? 'border-cyan-500/30 bg-cyan-500/10 shadow-lg shadow-cyan-500/5'
+                          : isComplete
+                            ? 'border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/30 hover:bg-emerald-500/10'
+                            : 'border-slate-800 bg-slate-950/30 opacity-75',
+                        !isReachable ? 'cursor-not-allowed' : 'cursor-pointer'
                       ].join(' ')}
                     >
                       <div className="flex items-center gap-3">
@@ -188,14 +236,14 @@ export default function StudentGigCreatePage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-                      Step 1
+                      Step {currentStep}
                     </p>
                     <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
-                      Basics
+                      {currentStepData.label}
                     </h2>
                     <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-                      Start with the core identity of the service you are offering.
-                      The detailed fields will be added in the next implementation stage.
+                      {currentStepData.description}. This step is part of the guided service creation workflow.
+                      Detailed fields will be added as each requirement is implemented.
                     </p>
                   </div>
 
@@ -211,13 +259,12 @@ export default function StudentGigCreatePage() {
                     </div>
 
                     <h3 className="text-lg sm:text-xl font-black text-white mt-5">
-                      Your service workspace is ready
+                      {currentStepData.label} step is ready
                     </h3>
 
                     <p className="text-sm leading-6 text-slate-500 mt-2">
-                      This is the new dedicated creation environment. The next requirement
-                      will populate the Basics step with title, category, subcategory,
-                      service type, and related controls.
+                      Navigation is now controlled across the complete creation flow.
+                      Completed steps remain available for review without resetting your place in the workflow.
                     </p>
                   </div>
                 </div>
@@ -232,14 +279,29 @@ export default function StudentGigCreatePage() {
                     Exit
                   </button>
 
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-800 text-xs font-black text-slate-500 cursor-not-allowed"
-                  >
-                    Continue
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    {currentStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleBack}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                    )}
+
+                    {currentStep < steps.length && (
+                      <button
+                        type="button"
+                        onClick={handleNext}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/15"
+                      >
+                        Continue
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </main>
