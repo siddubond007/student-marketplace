@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
+import RichTextEditor from '../components/RichTextEditor.jsx';
+import { richTextToPlainText } from '../utils/richText.js';
 
 const steps = [
   { id: 1, label: 'Basics', description: 'Service identity' },
@@ -427,6 +429,7 @@ export default function StudentGigCreatePage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState(() => new Set());
+  const [description, setDescription] = useState('');
 
   const [basics, setBasics] = useState({
     title: '',
@@ -495,6 +498,30 @@ export default function StudentGigCreatePage() {
   const isTitleLengthValid =
     basics.title.trim().length >= 3 && basics.title.trim().length <= 120;
 
+  const descriptionText = useMemo(
+    () => richTextToPlainText(description),
+    [description]
+  );
+
+  const descriptionCharacterCount = descriptionText.length;
+  const descriptionWordCount = descriptionText
+    ? descriptionText.split(/\s+/).filter(Boolean).length
+    : 0;
+
+  const isDescriptionComplete = descriptionCharacterCount >= 50;
+
+  const descriptionGuidance = !descriptionText
+    ? 'Explain what you provide, what the buyer receives, and what to expect.'
+    : descriptionCharacterCount < 50
+      ? `Add ${50 - descriptionCharacterCount} more meaningful character${
+          50 - descriptionCharacterCount === 1 ? '' : 's'
+        } so buyers have enough context.`
+      : descriptionCharacterCount < 140
+        ? 'Good foundation. Add the buyer outcome, key inclusions, and any important expectations.'
+        : descriptionCharacterCount < 300
+          ? 'Strong description. Make sure the service, buyer fit, and boundaries are easy to understand.'
+          : 'Strong buyer-facing detail. Keep it focused, specific, and easy to scan.';
+
   const isBasicsComplete =
     isTitleLengthValid &&
     Boolean(basics.categoryId) &&
@@ -510,8 +537,14 @@ export default function StudentGigCreatePage() {
       next.delete(1);
     }
 
+    if (isDescriptionComplete) {
+      next.add(2);
+    } else {
+      next.delete(2);
+    }
+
     return next;
-  }, [completedSteps, isBasicsComplete]);
+  }, [completedSteps, isBasicsComplete, isDescriptionComplete]);
 
   const currentStepData = steps[currentStep - 1];
 
@@ -608,10 +641,62 @@ export default function StudentGigCreatePage() {
     }
   };
 
+  const validateDescription = () => {
+    if (!isDescriptionComplete) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        description: descriptionText
+          ? 'Description must contain at least 50 meaningful characters.'
+          : 'Service description is required.'
+      }));
+
+      setTouchedFields((previous) => ({
+        ...previous,
+        description: true
+      }));
+
+      return false;
+    }
+
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+      delete next.description;
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      description: true
+    }));
+
+    return true;
+  };
+
+  const handleDescriptionChange = (nextValue) => {
+    setDescription(nextValue);
+
+    setFieldErrors((previous) => {
+      if (!previous.description) return previous;
+
+      const next = { ...previous };
+      delete next.description;
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      description: true
+    }));
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
     if (currentStep === 1 && !validateBasics()) {
+      return;
+    }
+
+    if (currentStep === 2 && !validateDescription()) {
       return;
     }
 
@@ -656,7 +741,7 @@ export default function StudentGigCreatePage() {
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
             Service identity
           </p>
-          <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+          <h3 className="break-words text-xl sm:text-2xl font-black text-white mt-2">
             Tell buyers exactly what you provide
           </h3>
           <p className="text-sm leading-6 text-slate-500 mt-2">
@@ -982,6 +1067,92 @@ export default function StudentGigCreatePage() {
     </div>
   );
 
+  const renderDescription = () => (
+    <div className="mt-8 space-y-7">
+      <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+        <div className="w-full min-w-0 max-w-3xl">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+            Service description
+          </p>
+
+          <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+            Give buyers a clear reason to choose your service
+          </h3>
+
+          <p className="break-words text-sm leading-6 text-slate-500 mt-2">
+            Explain what you provide, who it is for, what the buyer receives,
+            and any important expectations or limitations.
+          </p>
+        </div>
+
+        <div className="mt-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-2.5">
+            <label
+              htmlFor="service-description"
+              className="text-xs font-black uppercase tracking-wider text-slate-300"
+            >
+              Description <span className="text-pink-500">*</span>
+            </label>
+
+            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600">
+              <span>{descriptionWordCount} words</span>
+              <span aria-hidden="true">·</span>
+              <span>{descriptionCharacterCount} characters</span>
+            </div>
+          </div>
+
+          <RichTextEditor
+            id="service-description"
+            value={description}
+            onChange={handleDescriptionChange}
+            error={Boolean(fieldErrors.description)}
+          />
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <p className="text-xs leading-5 text-slate-500 max-w-2xl">
+              {descriptionGuidance}
+            </p>
+
+            {fieldErrors.description && touchedFields.description && (
+              <p
+                id="service-description-error"
+                className="text-xs font-semibold text-red-400 sm:text-right"
+              >
+                {fieldErrors.description}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              ['What you provide', 'Describe the actual service and outcome.'],
+              ['What they receive', 'Mention the main deliverables or inclusions.'],
+              ['What to expect', 'Clarify fit, boundaries, or important conditions.']
+            ].map(([title, detail]) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5"
+              >
+                <p className="text-xs font-black text-white">{title}</p>
+                <p className="text-[11px] leading-5 text-slate-600 mt-1">
+                  {detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {!isDescriptionComplete && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
+          <p className="text-xs font-bold text-slate-400">
+            A meaningful description of at least 50 characters is required before continuing.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -1005,8 +1176,8 @@ export default function StudentGigCreatePage() {
     <>
       <style>{HIDDEN_SCROLLBAR_STYLES}</style>
       <div className="min-h-[calc(100vh-7rem)] pb-16">
-      <div className="max-w-[1500px] mx-auto">
-        <section className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
+      <div className="w-full min-w-0 max-w-[1500px] mx-auto">
+        <section className="glass-panel w-full min-w-0 rounded-3xl border border-slate-800 overflow-hidden">
           <header className="border-b border-slate-800 bg-gradient-to-r from-cyan-500/10 via-transparent to-indigo-500/10">
             <div className="px-5 sm:px-7 lg:px-9 py-5 sm:py-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -1088,7 +1259,7 @@ export default function StudentGigCreatePage() {
             </div>
           </header>
 
-          <div className="grid lg:grid-cols-[290px_minmax(0,1fr)]">
+          <div className="grid w-full min-w-0 grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)]">
             <aside className="border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-950/35 p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1168,8 +1339,8 @@ export default function StudentGigCreatePage() {
               </nav>
             </aside>
 
-            <main className="min-w-0 p-5 sm:p-7 lg:p-10">
-              <div className="max-w-4xl">
+            <main className="w-full min-w-0 p-5 sm:p-7 lg:p-10">
+              <div className="w-full min-w-0 max-w-4xl">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
@@ -1190,7 +1361,7 @@ export default function StudentGigCreatePage() {
                   </div>
                 </div>
 
-                {currentStep === 1 ? renderBasics() : renderPlaceholder()}
+                {currentStep === 1 ? renderBasics() : currentStep === 2 ? renderDescription() : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
