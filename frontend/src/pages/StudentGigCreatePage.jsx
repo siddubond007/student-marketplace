@@ -437,7 +437,13 @@ export default function StudentGigCreatePage() {
     packageModel: 'single'
   });
 
+  const [delivery, setDelivery] = useState({
+    deliveryDays: '',
+    revisions: ''
+  });
+
   const [basics, setBasics] = useState({
+
     title: '',
     categoryId: '',
     subcategoryId: '',
@@ -524,6 +530,20 @@ export default function StudentGigCreatePage() {
     Number.isFinite(basePriceNumber) &&
     basePriceNumber > 0;
 
+  const deliveryDaysNumber = Number(delivery.deliveryDays);
+  const revisionsNumber = Number(delivery.revisions);
+  const isUnlimitedRevisions = delivery.revisions === 'unlimited';
+  const isRevisionAllowanceValid =
+    isUnlimitedRevisions ||
+    (delivery.revisions !== '' &&
+      Number.isInteger(revisionsNumber) &&
+      revisionsNumber >= 0);
+  const isDeliveryComplete =
+    delivery.deliveryDays !== '' &&
+    Number.isInteger(deliveryDaysNumber) &&
+    deliveryDaysNumber > 0 &&
+    isRevisionAllowanceValid;
+
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
     : descriptionCharacterCount < 50
@@ -563,8 +583,20 @@ export default function StudentGigCreatePage() {
       next.delete(3);
     }
 
+    if (isDeliveryComplete) {
+      next.add(4);
+    } else {
+      next.delete(4);
+    }
+
     return next;
-  }, [completedSteps, isBasicsComplete, isDescriptionComplete, isPricingComplete]);
+  }, [
+    completedSteps,
+    isBasicsComplete,
+    isDescriptionComplete,
+    isPricingComplete,
+    isDeliveryComplete
+  ]);
 
   const currentStepData = steps[currentStep - 1];
 
@@ -769,6 +801,63 @@ export default function StudentGigCreatePage() {
     }));
   };
 
+  const validateDelivery = () => {
+    const nextErrors = {};
+    const rawDelivery = String(delivery.deliveryDays).trim();
+    const rawRevisions = String(delivery.revisions).trim();
+
+    if (!rawDelivery) {
+      nextErrors.deliveryDays = 'Enter the delivery time for your service.';
+    } else if (!Number.isInteger(Number(rawDelivery))) {
+      nextErrors.deliveryDays = 'Delivery time must be a whole number of days.';
+    } else if (!(Number(rawDelivery) > 0)) {
+      nextErrors.deliveryDays = 'Delivery time must be greater than 0 days.';
+    }
+
+    if (!rawRevisions) {
+      nextErrors.revisions = 'Select how many revisions are included.';
+    } else if (
+      rawRevisions !== 'unlimited' &&
+      (!Number.isInteger(Number(rawRevisions)) || Number(rawRevisions) < 0)
+    ) {
+      nextErrors.revisions = 'Revisions must be 0 or more, or unlimited.';
+    }
+
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+      ['deliveryDays', 'revisions'].forEach((key) => delete next[key]);
+      return { ...next, ...nextErrors };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      deliveryDays: true,
+      revisions: true
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleDeliveryChange = (field, value) => {
+    setDelivery((previous) => ({
+      ...previous,
+      [field]: value
+    }));
+
+    setFieldErrors((previous) => {
+      if (!previous[field]) return previous;
+
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
@@ -781,6 +870,10 @@ export default function StudentGigCreatePage() {
     }
 
     if (currentStep === 3 && !validatePricing()) {
+      return;
+    }
+
+    if (currentStep === 4 && !validateDelivery()) {
       return;
     }
 
@@ -1420,6 +1513,152 @@ export default function StudentGigCreatePage() {
     );
   };
 
+  const renderDelivery = () => {
+    const deliveryError = touchedFields.deliveryDays ? fieldErrors.deliveryDays : null;
+    const revisionsError = touchedFields.revisions ? fieldErrors.revisions : null;
+
+    return (
+      <div className="mt-8 space-y-7">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Delivery expectations
+            </p>
+
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+              Set a delivery promise buyers can understand
+            </h3>
+
+            <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
+              Choose the time you need to complete the service after the buyer places the order.
+              The delivery clock starts when the order is created.
+            </p>
+          </div>
+
+          <div className="mt-8 max-w-xl">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+              <label
+                htmlFor="gig-delivery-days"
+                className="text-xs font-black uppercase tracking-wider text-slate-300"
+              >
+                Delivery time <span className="text-pink-500">*</span>
+              </label>
+
+              <div className="mt-3 flex items-center min-w-0 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden focus-within:border-cyan-500/60">
+                <input
+                  id="gig-delivery-days"
+                  name="deliveryDays"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  step="1"
+                  value={delivery.deliveryDays}
+                  onChange={(event) => handleDeliveryChange('deliveryDays', event.target.value)}
+                  aria-invalid={Boolean(deliveryError)}
+                  aria-describedby={deliveryError ? 'gig-delivery-days-error' : 'gig-delivery-days-help'}
+                  className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+                  placeholder="e.g. 3"
+                />
+                <span className="shrink-0 border-l border-slate-800 px-3 text-sm font-black text-slate-500">
+                  days
+                </span>
+              </div>
+
+              <p id="gig-delivery-days-help" className="text-xs leading-5 text-slate-600 mt-2">
+                Enter the number of days you expect to need for the complete service.
+              </p>
+
+              {deliveryError && (
+                <p
+                  id="gig-delivery-days-error"
+                  role="alert"
+                  className="text-xs font-semibold text-red-400 mt-2"
+                >
+                  {deliveryError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Revision policy
+            </p>
+
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+              Set the revision allowance
+            </h3>
+
+            <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
+              Tell buyers how many rounds of reasonable changes are included in this service.
+              One revision means a buyer requests changes to the delivered work within the
+              original service scope; a completely new scope is not a revision.
+            </p>
+          </div>
+
+          <div className="mt-8 max-w-xl">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+              <label
+                htmlFor="gig-revisions"
+                className="text-xs font-black uppercase tracking-wider text-slate-300"
+              >
+                Revisions <span className="text-pink-500">*</span>
+              </label>
+
+              <select
+                id="gig-revisions"
+                name="revisions"
+                value={delivery.revisions}
+                onChange={(event) => handleDeliveryChange('revisions', event.target.value)}
+                aria-invalid={Boolean(revisionsError)}
+                aria-describedby={revisionsError ? 'gig-revisions-error' : 'gig-revisions-help'}
+                className={[
+                  'w-full mt-3 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
+                  revisionsError
+                    ? 'border-red-500/50 focus:border-red-400'
+                    : 'border-slate-800 focus:border-cyan-500/60'
+                ].join(' ')}
+              >
+                <option value="">Select revision allowance</option>
+                <option value="0">0 revisions</option>
+                <option value="1">1 revision</option>
+                <option value="2">2 revisions</option>
+                <option value="3">3 revisions</option>
+                <option value="4">4 revisions</option>
+                <option value="5">5 revisions</option>
+                <option value="unlimited">Unlimited revisions</option>
+              </select>
+
+              <p id="gig-revisions-help" className="text-xs leading-5 text-slate-600 mt-2">
+                Choose the allowance that applies to the single service price.
+              </p>
+
+              {revisionsError && (
+                <p
+                  id="gig-revisions-error"
+                  role="alert"
+                  className="text-xs font-semibold text-red-400 mt-2"
+                >
+                  {revisionsError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {!isDeliveryComplete && (
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
+            <p className="text-xs font-bold text-slate-400">
+              Complete the required delivery and revision details before continuing.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -1628,7 +1867,15 @@ export default function StudentGigCreatePage() {
                   </div>
                 </div>
 
-                {currentStep === 1 ? renderBasics() : currentStep === 2 ? renderDescription() : currentStep === 3 ? renderPricing() : renderPlaceholder()}
+                {currentStep === 1
+                  ? renderBasics()
+                  : currentStep === 2
+                    ? renderDescription()
+                    : currentStep === 3
+                      ? renderPricing()
+                      : currentStep === 4
+                        ? renderDelivery()
+                        : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
