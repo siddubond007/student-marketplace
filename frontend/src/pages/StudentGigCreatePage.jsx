@@ -11,7 +11,8 @@ import {
   Search,
   X,
   Sparkles,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
@@ -439,7 +440,10 @@ export default function StudentGigCreatePage() {
 
   const [delivery, setDelivery] = useState({
     deliveryDays: '',
-    revisions: ''
+    revisions: '',
+    includedItems: [''],
+    excludedItems: [],
+    deliverables: ['']
   });
 
   const [basics, setBasics] = useState({
@@ -538,11 +542,26 @@ export default function StudentGigCreatePage() {
     (delivery.revisions !== '' &&
       Number.isInteger(revisionsNumber) &&
       revisionsNumber >= 0);
+  const hasOnlyMeaningfulListItems = (items) =>
+    Array.isArray(items) &&
+    items.length > 0 &&
+    items.every((item) => String(item || '').trim().length > 0);
+
+  const isExcludedListValid =
+    delivery.excludedItems.length === 0 ||
+    hasOnlyMeaningfulListItems(delivery.excludedItems);
+
+  const isScopeComplete =
+    hasOnlyMeaningfulListItems(delivery.includedItems) &&
+    hasOnlyMeaningfulListItems(delivery.deliverables) &&
+    isExcludedListValid;
+
   const isDeliveryComplete =
     delivery.deliveryDays !== '' &&
     Number.isInteger(deliveryDaysNumber) &&
     deliveryDaysNumber > 0 &&
-    isRevisionAllowanceValid;
+    isRevisionAllowanceValid &&
+    isScopeComplete;
 
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
@@ -805,6 +824,24 @@ export default function StudentGigCreatePage() {
     const nextErrors = {};
     const rawDelivery = String(delivery.deliveryDays).trim();
     const rawRevisions = String(delivery.revisions).trim();
+    const includedItems = Array.isArray(delivery.includedItems) ? delivery.includedItems : [];
+    const excludedItems = Array.isArray(delivery.excludedItems) ? delivery.excludedItems : [];
+    const deliverables = Array.isArray(delivery.deliverables) ? delivery.deliverables : [];
+    const hasMeaningfulIncluded = includedItems.some(
+      (item) => String(item || '').trim().length > 0
+    );
+    const hasMeaningfulDeliverable = deliverables.some(
+      (item) => String(item || '').trim().length > 0
+    );
+    const hasBlankIncluded = includedItems.some(
+      (item) => String(item || '').trim().length === 0
+    );
+    const hasBlankExcluded = excludedItems.length > 0 && excludedItems.some(
+      (item) => String(item || '').trim().length === 0
+    );
+    const hasBlankDeliverable = deliverables.some(
+      (item) => String(item || '').trim().length === 0
+    );
 
     if (!rawDelivery) {
       nextErrors.deliveryDays = 'Enter the delivery time for your service.';
@@ -823,16 +860,36 @@ export default function StudentGigCreatePage() {
       nextErrors.revisions = 'Revisions must be 0 or more, or unlimited.';
     }
 
+    if (!hasMeaningfulIncluded) {
+      nextErrors.includedItems = 'Add at least one included item.';
+    } else if (hasBlankIncluded) {
+      nextErrors.includedItems = 'Complete or remove blank included items.';
+    }
+
+    if (hasBlankExcluded) {
+      nextErrors.excludedItems = 'Complete or remove blank excluded items.';
+    }
+
+    if (!hasMeaningfulDeliverable) {
+      nextErrors.deliverables = 'Add at least one deliverable.';
+    } else if (hasBlankDeliverable) {
+      nextErrors.deliverables = 'Complete or remove blank deliverables.';
+    }
+
     setFieldErrors((previous) => {
       const next = { ...previous };
-      ['deliveryDays', 'revisions'].forEach((key) => delete next[key]);
+      ['deliveryDays', 'revisions', 'includedItems', 'excludedItems', 'deliverables']
+        .forEach((key) => delete next[key]);
       return { ...next, ...nextErrors };
     });
 
     setTouchedFields((previous) => ({
       ...previous,
       deliveryDays: true,
-      revisions: true
+      revisions: true,
+      includedItems: true,
+      excludedItems: true,
+      deliverables: true
     }));
 
     return Object.keys(nextErrors).length === 0;
@@ -843,6 +900,65 @@ export default function StudentGigCreatePage() {
       ...previous,
       [field]: value
     }));
+
+    setFieldErrors((previous) => {
+      if (!previous[field]) return previous;
+
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
+  const handleDeliveryListChange = (field, index, value) => {
+    setDelivery((previous) => {
+      const updated = Array.isArray(previous[field]) ? [...previous[field]] : [];
+      updated[index] = value;
+      return {
+        ...previous,
+        [field]: updated
+      };
+    });
+
+    setFieldErrors((previous) => {
+      if (!previous[field]) return previous;
+
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
+  const handleAddDeliveryListItem = (field) => {
+    setDelivery((previous) => ({
+      ...previous,
+      [field]: [...(Array.isArray(previous[field]) ? previous[field] : []), '']
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
+  const handleRemoveDeliveryListItem = (field, index) => {
+    setDelivery((previous) => {
+      const currentItems = Array.isArray(previous[field]) ? previous[field] : [];
+      return {
+        ...previous,
+        [field]: currentItems.filter((_, itemIndex) => itemIndex !== index)
+      };
+    });
 
     setFieldErrors((previous) => {
       if (!previous[field]) return previous;
@@ -1516,27 +1632,149 @@ export default function StudentGigCreatePage() {
   const renderDelivery = () => {
     const deliveryError = touchedFields.deliveryDays ? fieldErrors.deliveryDays : null;
     const revisionsError = touchedFields.revisions ? fieldErrors.revisions : null;
+    const includedError = touchedFields.includedItems ? fieldErrors.includedItems : null;
+    const excludedError = touchedFields.excludedItems ? fieldErrors.excludedItems : null;
+    const deliverablesError = touchedFields.deliverables ? fieldErrors.deliverables : null;
+
+    const renderRepeatableList = ({
+      field,
+      label,
+      description,
+      placeholder,
+      required = false,
+      error,
+      emptyMessage,
+      addLabel
+    }) => {
+      const items = Array.isArray(delivery[field]) ? delivery[field] : [];
+
+      return (
+        <div className="mt-7 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                {label}{required && <span className="text-pink-500"> *</span>}
+              </label>
+              <p className="text-xs leading-5 text-slate-600 mt-2 max-w-2xl">
+                {description}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {items.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-3">
+                <p className="text-xs text-slate-600">{emptyMessage}</p>
+              </div>
+            ) : (
+              items.map((item, index) => {
+                const inputId = `gig-${field}-${index}`;
+                const errorId = `${inputId}-error`;
+                const itemIsBlank = touchedFields[field] && String(item || '').trim().length === 0;
+                const showError = Boolean(error) && itemIsBlank;
+
+                return (
+                  <div key={`${field}-${index}`} className="flex min-w-0 items-start gap-3">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="mt-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-[10px] font-black text-slate-500"
+                      >
+                        {index + 1}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <input
+                          id={inputId}
+                          type="text"
+                          maxLength={180}
+                          value={item}
+                          onChange={(event) =>
+                            handleDeliveryListChange(field, index, event.target.value)
+                          }
+                          placeholder={placeholder(index)}
+                          aria-invalid={Boolean(showError)}
+                          aria-describedby={showError ? errorId : undefined}
+                          className={[
+                            'w-full min-w-0 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none transition',
+                            showError
+                              ? 'border-red-500/50 focus:border-red-400'
+                              : 'border-slate-800 focus:border-cyan-500/60'
+                          ].join(' ')}
+                        />
+
+                        {showError && (
+                          <p
+                            id={errorId}
+                            role="alert"
+                            className="mt-2 text-xs font-semibold text-red-400"
+                          >
+                            Enter a meaningful item or remove this row.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDeliveryListItem(field, index)}
+                      aria-label={`Remove ${label.toLowerCase()} item ${index + 1}`}
+                      className="shrink-0 rounded-xl border border-slate-800 bg-slate-900 p-3 text-slate-500 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {error && !items.some((item) => String(item || '').trim().length === 0) && (
+            <p role="alert" className="mt-3 text-xs font-semibold text-red-400">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleAddDeliveryListItem(field)}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-black text-cyan-300 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+          >
+            <Plus className="h-4 w-4" />
+            {addLabel}
+          </button>
+        </div>
+      );
+    };
+
+    const stepErrors = [
+      deliveryError,
+      revisionsError,
+      includedError,
+      excludedError,
+      deliverablesError
+    ].filter(Boolean);
 
     return (
       <div className="mt-8 space-y-7">
         <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
           <div className="max-w-3xl">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-              Delivery expectations
+              Delivery & revisions
             </p>
 
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
-              Set a delivery promise buyers can understand
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Set the service expectations before work begins
             </h3>
 
-            <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-              Choose the time you need to complete the service after the buyer places the order.
-              The delivery clock starts when the order is created.
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Define when buyers should expect the finished service and how many reasonable
+              revision rounds are included.
             </p>
           </div>
 
-          <div className="mt-8 max-w-xl">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+          <div className="mt-7 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
               <label
                 htmlFor="gig-delivery-days"
                 className="text-xs font-black uppercase tracking-wider text-slate-300"
@@ -1544,7 +1782,7 @@ export default function StudentGigCreatePage() {
                 Delivery time <span className="text-pink-500">*</span>
               </label>
 
-              <div className="mt-3 flex items-center min-w-0 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden focus-within:border-cyan-500/60">
+              <div className="mt-3 flex min-w-0 items-center overflow-hidden rounded-xl border border-slate-800 bg-slate-950 focus-within:border-cyan-500/60">
                 <input
                   id="gig-delivery-days"
                   name="deliveryDays"
@@ -1555,7 +1793,9 @@ export default function StudentGigCreatePage() {
                   value={delivery.deliveryDays}
                   onChange={(event) => handleDeliveryChange('deliveryDays', event.target.value)}
                   aria-invalid={Boolean(deliveryError)}
-                  aria-describedby={deliveryError ? 'gig-delivery-days-error' : 'gig-delivery-days-help'}
+                  aria-describedby={
+                    deliveryError ? 'gig-delivery-days-error' : 'gig-delivery-days-help'
+                  }
                   className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
                   placeholder="e.g. 3"
                 />
@@ -1564,42 +1804,22 @@ export default function StudentGigCreatePage() {
                 </span>
               </div>
 
-              <p id="gig-delivery-days-help" className="text-xs leading-5 text-slate-600 mt-2">
-                Enter the number of days you expect to need for the complete service.
+              <p id="gig-delivery-days-help" className="mt-2 text-xs leading-5 text-slate-600">
+                The delivery clock starts when the order is created.
               </p>
 
               {deliveryError && (
                 <p
                   id="gig-delivery-days-error"
                   role="alert"
-                  className="text-xs font-semibold text-red-400 mt-2"
+                  className="mt-2 text-xs font-semibold text-red-400"
                 >
                   {deliveryError}
                 </p>
               )}
             </div>
-          </div>
-        </section>
 
-        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
-          <div className="max-w-3xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-              Revision policy
-            </p>
-
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
-              Set the revision allowance
-            </h3>
-
-            <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-              Tell buyers how many rounds of reasonable changes are included in this service.
-              One revision means a buyer requests changes to the delivered work within the
-              original service scope; a completely new scope is not a revision.
-            </p>
-          </div>
-
-          <div className="mt-8 max-w-xl">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+            <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
               <label
                 htmlFor="gig-revisions"
                 className="text-xs font-black uppercase tracking-wider text-slate-300"
@@ -1615,7 +1835,7 @@ export default function StudentGigCreatePage() {
                 aria-invalid={Boolean(revisionsError)}
                 aria-describedby={revisionsError ? 'gig-revisions-error' : 'gig-revisions-help'}
                 className={[
-                  'w-full mt-3 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
+                  'mt-3 w-full rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
                   revisionsError
                     ? 'border-red-500/50 focus:border-red-400'
                     : 'border-slate-800 focus:border-cyan-500/60'
@@ -1631,15 +1851,15 @@ export default function StudentGigCreatePage() {
                 <option value="unlimited">Unlimited revisions</option>
               </select>
 
-              <p id="gig-revisions-help" className="text-xs leading-5 text-slate-600 mt-2">
-                Choose the allowance that applies to the single service price.
+              <p id="gig-revisions-help" className="mt-2 text-xs leading-5 text-slate-600">
+                A revision covers reasonable changes within the original service scope.
               </p>
 
               {revisionsError && (
                 <p
                   id="gig-revisions-error"
                   role="alert"
-                  className="text-xs font-semibold text-red-400 mt-2"
+                  className="mt-2 text-xs font-semibold text-red-400"
                 >
                   {revisionsError}
                 </p>
@@ -1648,11 +1868,107 @@ export default function StudentGigCreatePage() {
           </div>
         </section>
 
-        {!isDeliveryComplete && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
-            <p className="text-xs font-bold text-slate-400">
-              Complete the required delivery and revision details before continuing.
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              What's included
             </p>
+
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Make the service scope explicit
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              List the parts of the service the buyer can reasonably expect as part of the
+              purchased offer.
+            </p>
+          </div>
+
+          {renderRepeatableList({
+            field: 'includedItems',
+            label: "Included item",
+            description: 'Use one clear line for each thing your service covers.',
+            placeholder: (index) => (
+              index === 0 ? 'e.g. Homepage implementation' : 'e.g. Responsive mobile styling'
+            ),
+            required: true,
+            error: includedError,
+            emptyMessage: 'No included items added yet.',
+            addLabel: 'Add included item'
+          })}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              What's not included
+            </p>
+
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Clarify the boundaries of the service
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Mention important exclusions so buyers can understand what falls outside the
+              agreed scope. This is optional here and can be expanded for more complex services.
+            </p>
+          </div>
+
+          {renderRepeatableList({
+            field: 'excludedItems',
+            label: 'Excluded item',
+            description: 'Use one clear line for each meaningful boundary or excluded task.',
+            placeholder: () => 'e.g. Custom backend integrations',
+            required: false,
+            error: excludedError,
+            emptyMessage: 'No exclusions added. Add boundaries that buyers should know about.',
+            addLabel: 'Add excluded item'
+          })}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Deliverables
+            </p>
+
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Tell buyers exactly what they'll receive
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Describe the concrete outputs or files the buyer should receive when the service
+              is complete. Actual file uploads are handled later in the creation flow.
+            </p>
+          </div>
+
+          {renderRepeatableList({
+            field: 'deliverables',
+            label: 'Deliverable',
+            description: 'Use one clear line for each concrete output or file.',
+            placeholder: (index) => (
+              index === 0 ? 'e.g. Production-ready React source code' : 'e.g. Final deployment package'
+            ),
+            required: true,
+            error: deliverablesError,
+            emptyMessage: 'No deliverables added yet.',
+            addLabel: 'Add deliverable'
+          })}
+        </section>
+
+        {stepErrors.length > 0 && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 sm:px-5"
+          >
+            <p className="text-xs font-black uppercase tracking-wider text-red-300">
+              Complete the highlighted Step 4 fields
+            </p>
+            <ul className="mt-2 space-y-1 text-xs text-red-200/80">
+              {stepErrors.map((message) => (
+                <li key={message}>• {message}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
