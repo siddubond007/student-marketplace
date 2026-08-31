@@ -32,6 +32,17 @@ const steps = [
   { id: 10, label: 'Submit', description: 'Validate & publish' }
 ];
 
+const createRequirementId = () =>
+  `requirement-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createRequirement = () => ({
+  id: createRequirementId(),
+  question: '',
+  type: 'text',
+  required: true,
+  options: []
+});
+
 
 function SearchableSelect({
   id,
@@ -446,6 +457,8 @@ export default function StudentGigCreatePage() {
     deliverables: ['']
   });
 
+  const [requirements, setRequirements] = useState(() => [createRequirement()]);
+
   const [basics, setBasics] = useState({
 
     title: '',
@@ -563,6 +576,40 @@ export default function StudentGigCreatePage() {
     isRevisionAllowanceValid &&
     isScopeComplete;
 
+  const getRequirementValidation = (requirement) => {
+    const questionValid = String(requirement.question || '').trim().length > 0;
+
+    if (requirement.type !== 'multiple-choice') {
+      return {
+        questionValid,
+        optionsValid: true
+      };
+    }
+
+    const meaningfulOptions = Array.isArray(requirement.options)
+      ? requirement.options.filter((option) => String(option || '').trim().length > 0)
+      : [];
+
+    return {
+      questionValid,
+      optionsValid: meaningfulOptions.length >= 2
+    };
+  };
+
+  const isRequirementsComplete =
+    Array.isArray(requirements) &&
+    requirements.length > 0 &&
+    requirements.every((requirement) => {
+      const validation = getRequirementValidation(requirement);
+
+      return (
+        Boolean(requirement.type) &&
+        typeof requirement.required === 'boolean' &&
+        validation.questionValid &&
+        validation.optionsValid
+      );
+    });
+
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
     : descriptionCharacterCount < 50
@@ -608,13 +655,20 @@ export default function StudentGigCreatePage() {
       next.delete(4);
     }
 
+    if (isRequirementsComplete) {
+      next.add(5);
+    } else {
+      next.delete(5);
+    }
+
     return next;
   }, [
     completedSteps,
     isBasicsComplete,
     isDescriptionComplete,
     isPricingComplete,
-    isDeliveryComplete
+    isDeliveryComplete,
+    isRequirementsComplete
   ]);
 
   const currentStepData = steps[currentStep - 1];
@@ -974,6 +1028,175 @@ export default function StudentGigCreatePage() {
     }));
   };
 
+  const validateRequirements = () => {
+    const nextItems = {};
+    let hasErrors = false;
+
+    requirements.forEach((requirement) => {
+      const validation = getRequirementValidation(requirement);
+      const itemErrors = {};
+
+      if (!validation.questionValid) {
+        itemErrors.question = 'Enter a meaningful buyer question or input label.';
+      }
+
+      if (requirement.type === 'multiple-choice' && !validation.optionsValid) {
+        itemErrors.options = 'Add at least two meaningful choices.';
+      }
+
+      if (Object.keys(itemErrors).length > 0) {
+        nextItems[requirement.id] = itemErrors;
+        hasErrors = true;
+      }
+    });
+
+    const nextErrors = {
+      step: requirements.length === 0
+        ? 'Add at least one buyer requirement.'
+        : null,
+      items: nextItems
+    };
+
+    if (requirements.length === 0) {
+      hasErrors = true;
+    }
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      requirements: nextErrors
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      requirements: true
+    }));
+
+    return !hasErrors;
+  };
+
+  const updateRequirement = (requirementId, updater) => {
+    setRequirements((previous) =>
+      previous.map((requirement) =>
+        requirement.id === requirementId
+          ? { ...requirement, ...updater(requirement) }
+          : requirement
+      )
+    );
+
+    setFieldErrors((previous) => {
+      if (!previous.requirements) return previous;
+
+      const nextItems = { ...(previous.requirements.items || {}) };
+      delete nextItems[requirementId];
+
+      const next = {
+        ...previous,
+        requirements: {
+          ...previous.requirements,
+          items: nextItems,
+          step: requirements.length > 0 ? null : previous.requirements.step
+        }
+      };
+
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      requirements: true
+    }));
+  };
+
+  const handleRequirementChange = (requirementId, field, value) => {
+    if (field === 'type') {
+      updateRequirement(requirementId, (requirement) => ({
+        type: value,
+        options:
+          value === 'multiple-choice'
+            ? (
+                requirement.options?.length
+                  ? requirement.options
+                  : ['', '']
+              )
+            : []
+      }));
+      return;
+    }
+
+    updateRequirement(requirementId, () => ({
+      [field]: value
+    }));
+  };
+
+  const handleRequirementOptionChange = (requirementId, optionIndex, value) => {
+    updateRequirement(requirementId, (requirement) => {
+      const options = Array.isArray(requirement.options)
+        ? [...requirement.options]
+        : ['', ''];
+
+      options[optionIndex] = value;
+
+      return { options };
+    });
+  };
+
+  const handleAddRequirement = () => {
+    setRequirements((previous) => [...previous, createRequirement()]);
+    setFieldErrors((previous) => ({
+      ...previous,
+      requirements: {
+        ...(previous.requirements || {}),
+        step: null
+      }
+    }));
+    setTouchedFields((previous) => ({
+      ...previous,
+      requirements: true
+    }));
+  };
+
+  const handleRemoveRequirement = (requirementId) => {
+    setRequirements((previous) =>
+      previous.filter((requirement) => requirement.id !== requirementId)
+    );
+
+    setFieldErrors((previous) => {
+      if (!previous.requirements) return previous;
+
+      const nextItems = { ...(previous.requirements.items || {}) };
+      delete nextItems[requirementId];
+
+      return {
+        ...previous,
+        requirements: {
+          ...previous.requirements,
+          items: nextItems
+        }
+      };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      requirements: true
+    }));
+  };
+
+  const handleAddRequirementOption = (requirementId) => {
+    updateRequirement(requirementId, (requirement) => ({
+      options: [
+        ...(Array.isArray(requirement.options) ? requirement.options : []),
+        ''
+      ]
+    }));
+  };
+
+  const handleRemoveRequirementOption = (requirementId, optionIndex) => {
+    updateRequirement(requirementId, (requirement) => ({
+      options: (Array.isArray(requirement.options) ? requirement.options : [])
+        .filter((_, index) => index !== optionIndex)
+    }));
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
@@ -990,6 +1213,10 @@ export default function StudentGigCreatePage() {
     }
 
     if (currentStep === 4 && !validateDelivery()) {
+      return;
+    }
+
+    if (currentStep === 5 && !validateRequirements()) {
       return;
     }
 
@@ -1975,6 +2202,414 @@ export default function StudentGigCreatePage() {
     );
   };
 
+  const renderRequirements = () => {
+    const requirementErrors = fieldErrors.requirements || {};
+    const showErrors = Boolean(touchedFields.requirements);
+    const typeLabels = {
+      text: 'Short text',
+      'long-text': 'Long text',
+      'multiple-choice': 'Multiple choice',
+      checkbox: 'Checkbox',
+      'file-upload': 'File upload'
+    };
+
+    return (
+      <div className="mt-8 space-y-7">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Buyer requirements
+            </p>
+
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Tell buyers exactly what you need before starting
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Ask for the information, confirmations, or files you need from the buyer
+              before you can begin the service.
+            </p>
+          </div>
+
+          {showErrors && requirementErrors.step && (
+            <div
+              role="alert"
+              className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 sm:px-5"
+            >
+              <p className="text-xs font-black uppercase tracking-wider text-red-300">
+                Complete the highlighted Step 5 fields
+              </p>
+              <p className="mt-1 text-xs leading-5 text-red-200/80">
+                {requirementErrors.step}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-7 space-y-5">
+            {requirements.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-5">
+                <p className="text-sm font-semibold text-slate-500">
+                  No buyer requirements added yet.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  Add at least one question or required input before continuing.
+                </p>
+              </div>
+            ) : (
+              requirements.map((requirement, index) => {
+                const itemErrors = showErrors
+                  ? (requirementErrors.items?.[requirement.id] || {})
+                  : {};
+                const questionId = `gig-requirement-${requirement.id}-question`;
+                const typeId = `gig-requirement-${requirement.id}-type`;
+                const optionsId = `gig-requirement-${requirement.id}-options`;
+
+                return (
+                  <article
+                    key={requirement.id}
+                    className="rounded-3xl border border-slate-800 bg-slate-950/60 p-4 sm:p-6"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-xs font-black text-cyan-300"
+                        >
+                          {index + 1}
+                        </span>
+
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                            Buyer input
+                          </p>
+                          <h4 className="mt-1 break-words text-base font-black text-white">
+                            Requirement {index + 1}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRequirement(requirement.id)}
+                        aria-label={`Remove buyer requirement ${index + 1}`}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 self-end rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-black text-slate-500 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:self-start"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Remove</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-6 space-y-5">
+                      <div className="space-y-2.5">
+                        <label
+                          htmlFor={questionId}
+                          className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                          Question or input label <span className="text-pink-500">*</span>
+                        </label>
+
+                        <input
+                          id={questionId}
+                          type="text"
+                          maxLength={240}
+                          value={requirement.question}
+                          onChange={(event) =>
+                            handleRequirementChange(
+                              requirement.id,
+                              'question',
+                              event.target.value
+                            )
+                          }
+                          placeholder="e.g. What style or format should I follow?"
+                          aria-invalid={Boolean(itemErrors.question)}
+                          aria-describedby={
+                            itemErrors.question
+                              ? `${questionId}-error`
+                              : undefined
+                          }
+                          className={[
+                            'w-full min-w-0 rounded-2xl border bg-slate-950 px-4 py-3.5 text-sm font-semibold text-white outline-none transition',
+                            itemErrors.question
+                              ? 'border-red-500/50 focus:border-red-400'
+                              : 'border-slate-800 focus:border-cyan-500/60'
+                          ].join(' ')}
+                        />
+
+                        {itemErrors.question && (
+                          <p
+                            id={`${questionId}-error`}
+                            role="alert"
+                            className="text-xs font-semibold text-red-400"
+                          >
+                            {itemErrors.question}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="space-y-2.5">
+                          <label
+                            htmlFor={typeId}
+                            className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                          >
+                            Response type <span className="text-pink-500">*</span>
+                          </label>
+
+                          <select
+                            id={typeId}
+                            value={requirement.type}
+                            onChange={(event) =>
+                              handleRequirementChange(
+                                requirement.id,
+                                'type',
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3.5 text-sm font-bold text-white outline-none transition focus:border-cyan-500/60"
+                          >
+                            {Object.entries(typeLabels).map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+
+                          <p className="text-xs leading-5 text-slate-600">
+                            {requirement.type === 'text'
+                              ? 'Buyer gives a concise one-line answer.'
+                              : requirement.type === 'long-text'
+                                ? 'Buyer provides a more detailed written answer.'
+                                : requirement.type === 'multiple-choice'
+                                  ? 'Buyer selects one option from your choices.'
+                                  : requirement.type === 'checkbox'
+                                    ? 'Buyer confirms the statement by checking the box.'
+                                    : 'Buyer will provide a file when responding.'}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <span className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                            Buyer input
+                          </span>
+
+                          <label
+                            htmlFor={`${questionId}-required`}
+                            className="flex min-h-[52px] cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3.5"
+                          >
+                            <span className="min-w-0">
+                              <span className="block text-sm font-black text-white">
+                                {requirement.required ? 'Required' : 'Optional'}
+                              </span>
+                              <span className="mt-1 block text-xs leading-5 text-slate-600">
+                                {requirement.required
+                                  ? 'Buyer must provide this before work can properly begin.'
+                                  : 'Helpful context, but the buyer may leave it unanswered.'}
+                              </span>
+                            </span>
+
+                            <span className="relative shrink-0">
+                              <input
+                                id={`${questionId}-required`}
+                                type="checkbox"
+                                checked={requirement.required}
+                                onChange={(event) =>
+                                  handleRequirementChange(
+                                    requirement.id,
+                                    'required',
+                                    event.target.checked
+                                  )
+                                }
+                                className="peer sr-only"
+                              />
+                              <span
+                                aria-hidden="true"
+                                className={[
+                                  'flex h-6 w-11 items-center rounded-full border p-0.5 transition',
+                                  requirement.required
+                                    ? 'border-cyan-400/50 bg-cyan-500/20'
+                                    : 'border-slate-700 bg-slate-900'
+                                ].join(' ')}
+                              >
+                                <span
+                                  className={[
+                                    'h-5 w-5 rounded-full transition',
+                                    requirement.required
+                                      ? 'translate-x-5 bg-cyan-300'
+                                      : 'translate-x-0 bg-slate-500'
+                                  ].join(' ')}
+                                />
+                              </span>
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {requirement.type === 'multiple-choice' && (
+                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4 sm:p-5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <label
+                                id={optionsId}
+                                className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                              >
+                                Choice options <span className="text-pink-500">*</span>
+                              </label>
+                              <p className="mt-2 text-xs leading-5 text-slate-600">
+                                Add the choices the buyer can select. At least two meaningful
+                                options are required.
+                              </p>
+                            </div>
+
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                              {requirement.options.filter(
+                                (option) => String(option || '').trim().length > 0
+                              ).length} meaningful
+                            </span>
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            {requirement.options.map((option, optionIndex) => {
+                              const optionId = `${optionsId}-${optionIndex}`;
+                              const optionIsBlank =
+                                showErrors &&
+                                String(option || '').trim().length === 0 &&
+                                Boolean(itemErrors.options);
+
+                              return (
+                                <div
+                                  key={`${requirement.id}-option-${optionIndex}`}
+                                  className="flex min-w-0 items-start gap-3"
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    className="mt-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-[10px] font-black text-slate-500"
+                                  >
+                                    {optionIndex + 1}
+                                  </span>
+
+                                  <div className="min-w-0 flex-1">
+                                    <label htmlFor={optionId} className="sr-only">
+                                      Option {optionIndex + 1} for requirement {index + 1}
+                                    </label>
+                                    <input
+                                      id={optionId}
+                                      type="text"
+                                      maxLength={160}
+                                      value={option}
+                                      onChange={(event) =>
+                                        handleRequirementOptionChange(
+                                          requirement.id,
+                                          optionIndex,
+                                          event.target.value
+                                        )
+                                      }
+                                      placeholder={`Choice ${optionIndex + 1}`}
+                                      aria-invalid={Boolean(optionIsBlank)}
+                                      aria-describedby={
+                                        optionIsBlank
+                                          ? `${optionId}-error`
+                                          : undefined
+                                      }
+                                      className={[
+                                        'w-full min-w-0 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none transition',
+                                        optionIsBlank
+                                          ? 'border-red-500/50 focus:border-red-400'
+                                          : 'border-slate-800 focus:border-cyan-500/60'
+                                      ].join(' ')}
+                                    />
+                                    {optionIsBlank && (
+                                      <p
+                                        id={`${optionId}-error`}
+                                        role="alert"
+                                        className="mt-2 text-xs font-semibold text-red-400"
+                                      >
+                                        Enter a meaningful choice or remove this option.
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemoveRequirementOption(
+                                        requirement.id,
+                                        optionIndex
+                                      )
+                                    }
+                                    aria-label={`Remove option ${optionIndex + 1} from requirement ${index + 1}`}
+                                    className="shrink-0 rounded-xl border border-slate-800 bg-slate-900 p-3 text-slate-500 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {itemErrors.options && (
+                            <p role="alert" className="mt-3 text-xs font-semibold text-red-400">
+                              {itemErrors.options}
+                            </p>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddRequirementOption(requirement.id)}
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-black text-cyan-300 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add option
+                          </button>
+                        </div>
+                      )}
+
+                      {requirement.type === 'long-text' && (
+                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                          <p className="text-xs leading-5 text-slate-600">
+                            Buyers will see a larger response area for this requirement.
+                          </p>
+                        </div>
+                      )}
+
+                      {requirement.type === 'checkbox' && (
+                        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                          <p className="text-xs leading-5 text-slate-600">
+                            Buyers will confirm this statement with a checkbox when responding.
+                          </p>
+                        </div>
+                      )}
+
+                      {requirement.type === 'file-upload' && (
+                        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-4">
+                          <p className="text-xs font-semibold text-slate-300">
+                            File upload requirement
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-slate-600">
+                            This defines a file the buyer must provide later. Actual upload
+                            handling is not part of GIG-015/016/017.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddRequirement}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3.5 text-xs font-black text-cyan-300 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Add buyer requirement
+          </button>
+        </section>
+      </div>
+    );
+  };
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -2191,7 +2826,9 @@ export default function StudentGigCreatePage() {
                       ? renderPricing()
                       : currentStep === 4
                         ? renderDelivery()
-                        : renderPlaceholder()}
+                        : currentStep === 5
+                          ? renderRequirements()
+                          : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
