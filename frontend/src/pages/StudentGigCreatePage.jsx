@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   Check,
   ChevronRight,
   Circle,
@@ -41,6 +43,15 @@ const createRequirement = () => ({
   type: 'text',
   required: true,
   options: []
+});
+
+const createFaqId = () =>
+  `faq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createFaq = () => ({
+  id: createFaqId(),
+  question: '',
+  answer: ''
 });
 
 
@@ -458,6 +469,7 @@ export default function StudentGigCreatePage() {
   });
 
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
+  const [faqs, setFaqs] = useState([]);
 
   const [basics, setBasics] = useState({
 
@@ -610,6 +622,19 @@ export default function StudentGigCreatePage() {
       );
     });
 
+  const getFaqValidation = (faq) => ({
+    questionValid: String(faq?.question || '').trim().length > 0,
+    answerValid: String(faq?.answer || '').trim().length > 0
+  });
+
+  const isFaqsComplete =
+    Array.isArray(faqs) &&
+    faqs.length > 0 &&
+    faqs.every((faq) => {
+      const validation = getFaqValidation(faq);
+      return validation.questionValid && validation.answerValid;
+    });
+
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
     : descriptionCharacterCount < 50
@@ -661,6 +686,12 @@ export default function StudentGigCreatePage() {
       next.delete(5);
     }
 
+    if (isFaqsComplete) {
+      next.add(8);
+    } else {
+      next.delete(8);
+    }
+
     return next;
   }, [
     completedSteps,
@@ -668,7 +699,8 @@ export default function StudentGigCreatePage() {
     isDescriptionComplete,
     isPricingComplete,
     isDeliveryComplete,
-    isRequirementsComplete
+    isRequirementsComplete,
+    isFaqsComplete
   ]);
 
   const currentStepData = steps[currentStep - 1];
@@ -1197,6 +1229,153 @@ export default function StudentGigCreatePage() {
     }));
   };
 
+  const validateFaqs = () => {
+    const nextItems = {};
+    let hasErrors = false;
+
+    faqs.forEach((faq) => {
+      const validation = getFaqValidation(faq);
+      const itemErrors = {};
+
+      if (!validation.questionValid) {
+        itemErrors.question = 'Enter a meaningful buyer-facing question.';
+      }
+
+      if (!validation.answerValid) {
+        itemErrors.answer = 'Enter a meaningful answer for buyers.';
+      }
+
+      if (Object.keys(itemErrors).length > 0) {
+        nextItems[faq.id] = itemErrors;
+        hasErrors = true;
+      }
+    });
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      faqs: {
+        step: hasErrors
+          ? 'Complete each FAQ or remove the unfinished FAQ.'
+          : null,
+        items: nextItems
+      }
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      faqs: true
+    }));
+
+    return !hasErrors;
+  };
+
+  const updateFaq = (faqId, updater) => {
+    setFaqs((previous) =>
+      previous.map((faq) =>
+        faq.id === faqId
+          ? { ...faq, ...updater(faq) }
+          : faq
+      )
+    );
+
+    setFieldErrors((previous) => {
+      if (!previous.faqs) return previous;
+
+      const nextItems = { ...(previous.faqs.items || {}) };
+      delete nextItems[faqId];
+
+      const remainingErrors = Object.keys(nextItems).length > 0;
+
+      return {
+        ...previous,
+        faqs: {
+          ...previous.faqs,
+          step: remainingErrors ? previous.faqs.step : null,
+          items: nextItems
+        }
+      };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      faqs: true
+    }));
+  };
+
+  const handleFaqChange = (faqId, field, value) => {
+    updateFaq(faqId, () => ({
+      [field]: value
+    }));
+  };
+
+  const handleAddFaq = () => {
+    setFaqs((previous) => [...previous, createFaq()]);
+    setTouchedFields((previous) => ({
+      ...previous,
+      faqs: true
+    }));
+  };
+
+  const handleRemoveFaq = (faqId) => {
+    setFaqs((previous) =>
+      previous.filter((faq) => faq.id !== faqId)
+    );
+
+    setFieldErrors((previous) => {
+      if (!previous.faqs) return previous;
+
+      const nextItems = { ...(previous.faqs.items || {}) };
+      delete nextItems[faqId];
+
+      const hasRemainingErrors = Object.keys(nextItems).length > 0;
+
+      return {
+        ...previous,
+        faqs: {
+          ...previous.faqs,
+          step: hasRemainingErrors
+            ? previous.faqs.step
+            : null,
+          items: nextItems
+        }
+      };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      faqs: true
+    }));
+  };
+
+  const handleMoveFaq = (faqId, direction) => {
+    setFaqs((previous) => {
+      const currentIndex = previous.findIndex((faq) => faq.id === faqId);
+      if (currentIndex < 0) return previous;
+
+      const targetIndex =
+        direction === 'up'
+          ? currentIndex - 1
+          : currentIndex + 1;
+
+      if (targetIndex < 0 || targetIndex >= previous.length) {
+        return previous;
+      }
+
+      const next = [...previous];
+      [next[currentIndex], next[targetIndex]] = [
+        next[targetIndex],
+        next[currentIndex]
+      ];
+
+      return next;
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      faqs: true
+    }));
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
@@ -1217,6 +1396,10 @@ export default function StudentGigCreatePage() {
     }
 
     if (currentStep === 5 && !validateRequirements()) {
+      return;
+    }
+
+    if (currentStep === 8 && !validateFaqs()) {
       return;
     }
 
@@ -2610,6 +2793,229 @@ export default function StudentGigCreatePage() {
     );
   };
 
+  const renderFaqs = () => {
+    const faqErrors = fieldErrors.faqs || {};
+    const showErrors = Boolean(touchedFields.faqs);
+
+    return (
+      <div className="mt-8 space-y-7">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Frequently asked questions
+            </p>
+
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Answer buyer questions before they ask
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Answer questions buyers are likely to have before purchasing so your service
+              is easier to understand and has less uncertainty.
+            </p>
+          </div>
+
+          {showErrors && faqErrors.step && (
+            <div
+              role="alert"
+              className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 sm:px-5"
+            >
+              <p className="text-xs font-black uppercase tracking-wider text-red-300">
+                Complete the highlighted FAQ items
+              </p>
+              <p className="mt-1 text-xs leading-5 text-red-200/80">
+                {faqErrors.step}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-7 space-y-5">
+            {faqs.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-5">
+                <p className="text-sm font-semibold text-slate-500">
+                  No FAQs added yet.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  FAQs are recommended, but you can continue without adding one.
+                </p>
+              </div>
+            ) : (
+              faqs.map((faq, index) => {
+                const itemErrors = showErrors
+                  ? (faqErrors.items?.[faq.id] || {})
+                  : {};
+                const questionId = `gig-faq-${faq.id}-question`;
+                const answerId = `gig-faq-${faq.id}-answer`;
+
+                return (
+                  <article
+                    key={faq.id}
+                    className="rounded-3xl border border-slate-800 bg-slate-950/60 p-4 sm:p-6"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-xs font-black text-cyan-300"
+                        >
+                          {index + 1}
+                        </span>
+
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                            Buyer-facing answer
+                          </p>
+                          <h4 className="mt-1 break-words text-base font-black text-white">
+                            FAQ {index + 1}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-start">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveFaq(faq.id, 'up')}
+                          disabled={index === 0}
+                          aria-label={`Move FAQ ${index + 1} up`}
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-slate-400 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMoveFaq(faq.id, 'down')}
+                          disabled={index === faqs.length - 1}
+                          aria-label={`Move FAQ ${index + 1} down`}
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-slate-400 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFaq(faq.id)}
+                          aria-label={`Remove FAQ ${index + 1}`}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-black text-slate-500 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="hidden sm:inline">Remove</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-5">
+                      <div className="space-y-2.5">
+                        <label
+                          htmlFor={questionId}
+                          className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                          Buyer question <span className="text-pink-500">*</span>
+                        </label>
+
+                        <input
+                          id={questionId}
+                          type="text"
+                          maxLength={240}
+                          value={faq.question}
+                          onChange={(event) =>
+                            handleFaqChange(
+                              faq.id,
+                              'question',
+                              event.target.value
+                            )
+                          }
+                          placeholder="e.g. Can you work with my existing brand guidelines?"
+                          aria-invalid={Boolean(itemErrors.question)}
+                          aria-describedby={
+                            itemErrors.question
+                              ? `${questionId}-error`
+                              : undefined
+                          }
+                          className={[
+                            'w-full min-w-0 rounded-2xl border bg-slate-950 px-4 py-3.5 text-sm font-semibold text-white outline-none transition',
+                            itemErrors.question
+                              ? 'border-red-500/50 focus:border-red-400'
+                              : 'border-slate-800 focus:border-cyan-500/60'
+                          ].join(' ')}
+                        />
+
+                        {itemErrors.question && (
+                          <p
+                            id={`${questionId}-error`}
+                            role="alert"
+                            className="text-xs font-semibold text-red-400"
+                          >
+                            {itemErrors.question}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <label
+                          htmlFor={answerId}
+                          className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                          Answer <span className="text-pink-500">*</span>
+                        </label>
+
+                        <textarea
+                          id={answerId}
+                          rows={5}
+                          maxLength={1000}
+                          value={faq.answer}
+                          onChange={(event) =>
+                            handleFaqChange(
+                              faq.id,
+                              'answer',
+                              event.target.value
+                            )
+                          }
+                          placeholder="Explain the answer clearly so the buyer knows what to expect."
+                          aria-invalid={Boolean(itemErrors.answer)}
+                          aria-describedby={
+                            itemErrors.answer
+                              ? `${answerId}-error`
+                              : undefined
+                          }
+                          className={[
+                            'w-full min-w-0 resize-y rounded-2xl border bg-slate-950 px-4 py-3.5 text-sm font-semibold leading-6 text-white outline-none transition',
+                            itemErrors.answer
+                              ? 'border-red-500/50 focus:border-red-400'
+                              : 'border-slate-800 focus:border-cyan-500/60'
+                          ].join(' ')}
+                        />
+
+                        {itemErrors.answer && (
+                          <p
+                            id={`${answerId}-error`}
+                            role="alert"
+                            className="text-xs font-semibold text-red-400"
+                          >
+                            {itemErrors.answer}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddFaq}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3.5 text-xs font-black text-cyan-300 transition hover:border-cyan-500/30 hover:bg-cyan-500/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Add FAQ
+          </button>
+        </section>
+      </div>
+    );
+  };
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -2828,7 +3234,9 @@ export default function StudentGigCreatePage() {
                         ? renderDelivery()
                         : currentStep === 5
                           ? renderRequirements()
-                          : renderPlaceholder()}
+                          : currentStep === 8
+                            ? renderFaqs()
+                            : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
