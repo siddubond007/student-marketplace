@@ -959,7 +959,6 @@ export default function StudentGigCreatePage() {
 
   const isFaqsComplete =
     Array.isArray(faqs) &&
-    faqs.length > 0 &&
     faqs.every((faq) => {
       const validation = getFaqValidation(faq);
       return validation.questionValid && validation.answerValid;
@@ -1256,6 +1255,186 @@ export default function StudentGigCreatePage() {
   const completionPercent = Math.round(
     (effectiveCompletedSteps.size / steps.length) * 100
   );
+
+  const validationSummary = useMemo(() => {
+    const blockers = [];
+    const warnings = [];
+
+    const addBlocker = (step, message, detail = null) => {
+      blockers.push({ step, message, detail });
+    };
+
+    const addWarning = (step, message, detail = null) => {
+      warnings.push({ step, message, detail });
+    };
+
+    if (!isBasicsComplete) {
+      const basicsErrors = [];
+      if (!isTitleLengthValid) {
+        basicsErrors.push(
+          basics.title.trim()
+            ? 'Title must be between 3 and 120 characters.'
+            : 'Add a service title.'
+        );
+      }
+      if (!basics.categoryId) basicsErrors.push('Select a primary category.');
+      if (!basics.subcategoryId) basicsErrors.push('Select a subcategory.');
+      if (!basics.serviceType) basicsErrors.push('Select a service type.');
+
+      addBlocker(
+        1,
+        'Complete your service basics.',
+        basicsErrors.join(' ')
+      );
+    }
+
+    if (!isDescriptionComplete) {
+      addBlocker(
+        2,
+        'Add a meaningful service description.',
+        descriptionText
+          ? 'The description needs at least 50 meaningful characters.'
+          : 'A service description is required.'
+      );
+    }
+
+    if (!isPricingComplete) {
+      const pricingIssues = [];
+      const rawPrice = String(pricing.basePrice).trim();
+
+      if (!rawPrice) {
+        pricingIssues.push('Enter a base price.');
+      } else if (
+        !Number.isFinite(Number(rawPrice)) ||
+        !(Number(rawPrice) > 0)
+      ) {
+        pricingIssues.push('Base price must be greater than 0.');
+      }
+
+      if (!pricing.currency) pricingIssues.push('Select a currency.');
+      if (pricing.packageModel !== 'single') {
+        pricingIssues.push('Use single-price mode.');
+      }
+
+      addBlocker(3, 'Complete your pricing.', pricingIssues.join(' '));
+    }
+
+    if (!isDeliveryComplete) {
+      const deliveryIssues = [];
+      const rawDelivery = String(delivery.deliveryDays).trim();
+      const rawRevisions = String(delivery.revisions).trim();
+
+      if (!rawDelivery) {
+        deliveryIssues.push('Set a delivery time.');
+      } else if (
+        !Number.isInteger(Number(rawDelivery)) ||
+        !(Number(rawDelivery) > 0)
+      ) {
+        deliveryIssues.push('Delivery time must be a positive whole number of days.');
+      }
+
+      if (!rawRevisions) {
+        deliveryIssues.push('Select a revision allowance.');
+      } else if (
+        !isRevisionAllowanceValid
+      ) {
+        deliveryIssues.push('Revision allowance must be 0 or more, or unlimited.');
+      }
+
+      if (!hasOnlyMeaningfulListItems(delivery.includedItems)) {
+        deliveryIssues.push('Add at least one included item and complete all included items.');
+      }
+
+      if (!isExcludedListValid) {
+        deliveryIssues.push('Complete or remove blank excluded items.');
+      }
+
+      if (!hasOnlyMeaningfulListItems(delivery.deliverables)) {
+        deliveryIssues.push('Add at least one deliverable and complete all deliverables.');
+      }
+
+      addBlocker(
+        4,
+        'Complete your scope and delivery details.',
+        deliveryIssues.join(' ')
+      );
+    }
+
+    if (!isRequirementsComplete) {
+      const requirementIssueCount = requirements.filter((requirement) => {
+        const validation = getRequirementValidation(requirement);
+        return (
+          !requirement.type ||
+          typeof requirement.required !== 'boolean' ||
+          !validation.questionValid ||
+          !validation.optionsValid
+        );
+      }).length;
+
+      addBlocker(
+        5,
+        'Complete your buyer requirements.',
+        requirements.length === 0
+          ? 'Add at least one buyer requirement.'
+          : `${requirementIssueCount} requirement${requirementIssueCount === 1 ? '' : 's'} need attention.`
+      );
+    }
+
+    const mediaBlocker =
+      !media.cover
+        ? 'Add a cover image.'
+        : media.cover.validationError
+          ? media.cover.validationError
+          : media.gallery.some((item) => item.validationError)
+            ? 'Fix or remove invalid gallery images.'
+            : null;
+
+    if (mediaBlocker) {
+      addBlocker(6, 'Fix your media.', mediaBlocker);
+    }
+
+    if (faqs.length === 0) {
+      addWarning(
+        8,
+        'FAQs are recommended.',
+        'Add buyer-facing questions and answers to reduce uncertainty.'
+      );
+    } else if (!isFaqsComplete) {
+      const faqIssueCount = faqs.filter((faq) => {
+        const validation = getFaqValidation(faq);
+        return !validation.questionValid || !validation.answerValid;
+      }).length;
+
+      addWarning(
+        8,
+        'Some FAQs still need attention.',
+        `${faqIssueCount} FAQ${faqIssueCount === 1 ? '' : 's'} need completion before they can help buyers.`
+      );
+    }
+
+    return {
+      blockers,
+      warnings,
+      isReadyForCurrentChecks: blockers.length === 0
+    };
+  }, [
+    basics,
+    descriptionText,
+    pricing,
+    delivery,
+    requirements,
+    media,
+    faqs,
+    isBasicsComplete,
+    isDescriptionComplete,
+    isPricingComplete,
+    isDeliveryComplete,
+    isRequirementsComplete,
+    isTitleLengthValid,
+    isRevisionAllowanceValid,
+    isExcludedListValid,
+    isFaqsComplete
+  ]);
 
   const validateBasics = () => {
     const nextErrors = {};
@@ -4414,6 +4593,163 @@ export default function StudentGigCreatePage() {
     );
   };
 
+  const renderValidationSummary = () => (
+    <div className="mt-8 space-y-6">
+      <section
+        aria-labelledby="validation-summary-heading"
+        className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Validation Summary
+            </p>
+            <h3
+              id="validation-summary-heading"
+              className="mt-2 text-xl sm:text-2xl font-black text-white"
+            >
+              {validationSummary.isReadyForCurrentChecks
+                ? 'Your gig has no current blockers'
+                : 'A few things still need attention'}
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Review required items before the later submission stage. This
+              summary reflects the validation already implemented in the current
+              creation workflow.
+            </p>
+          </div>
+
+          <div
+            className={[
+              'shrink-0 rounded-2xl border px-4 py-3 text-xs font-black',
+              validationSummary.isReadyForCurrentChecks
+                ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-300'
+                : 'border-red-500/25 bg-red-500/5 text-red-300'
+            ].join(' ')}
+            role="status"
+          >
+            {validationSummary.isReadyForCurrentChecks
+              ? 'Ready for current checks'
+              : `${validationSummary.blockers.length} blocker${validationSummary.blockers.length === 1 ? '' : 's'}`}
+          </div>
+        </div>
+      </section>
+
+      {validationSummary.blockers.length > 0 && (
+        <section
+          aria-labelledby="validation-blockers-heading"
+          className="rounded-3xl border border-red-500/20 bg-red-500/5 p-5 sm:p-7"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3
+                id="validation-blockers-heading"
+                className="text-sm font-black text-red-200"
+              >
+                Blockers
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-red-200/70">
+                These required areas need to be fixed before the gig can pass
+                the current validation checks.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {validationSummary.blockers.map((item) => (
+              <article
+                key={`${item.step}-${item.message}`}
+                className="rounded-2xl border border-red-500/15 bg-slate-950/50 p-4"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-white">{item.message}</p>
+                    {item.detail && (
+                      <p className="mt-1 text-xs leading-5 text-slate-400">
+                        {item.detail}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => goToStep(item.step)}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-[11px] font-black text-slate-200 transition hover:border-cyan-500/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                  >
+                    Go to {steps[item.step - 1].label}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section
+        aria-labelledby="validation-warnings-heading"
+        className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7"
+      >
+        <div>
+          <h3
+            id="validation-warnings-heading"
+            className="text-sm font-black text-white"
+          >
+            Recommendations
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            These items can improve buyer clarity but are not current blockers.
+          </p>
+        </div>
+
+        {validationSummary.warnings.length === 0 ? (
+          <p className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/50 px-4 py-4 text-xs font-semibold text-slate-500">
+            No current recommendations.
+          </p>
+        ) : (
+          <div className="mt-5 space-y-3">
+            {validationSummary.warnings.map((item) => (
+              <article
+                key={`${item.step}-${item.message}`}
+                className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-white">{item.message}</p>
+                    {item.detail && (
+                      <p className="mt-1 text-xs leading-5 text-slate-400">
+                        {item.detail}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => goToStep(item.step)}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-[11px] font-black text-slate-200 transition hover:border-cyan-500/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                  >
+                    Review {steps[item.step - 1].label}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div
+        role="note"
+        className="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-4"
+      >
+        <p className="text-xs leading-5 text-indigo-100/80">
+          Later requirements may add further submission, policy, quality, and
+          preview checks. This summary does not claim final publish validity.
+        </p>
+      </div>
+    </div>
+  );
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -4651,7 +4987,9 @@ export default function StudentGigCreatePage() {
                             ? renderMedia()
                             : currentStep === 8
                               ? renderFaqs()
-                              : renderPlaceholder()}
+                              : currentStep === 10
+                                ? renderValidationSummary()
+                                : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
