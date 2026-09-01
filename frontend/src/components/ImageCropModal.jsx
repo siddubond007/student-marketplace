@@ -63,11 +63,11 @@ export default function ImageCropModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-4">
-      <div className="neon-border-box max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative space-y-6">
+    <div className="fixed inset-0 z-50 flex h-[100dvh] items-center justify-center overflow-hidden overscroll-contain bg-slate-950/90 p-2 backdrop-blur-2xl sm:p-4">
+      <div className="neon-border-box mx-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden p-3 shadow-2xl relative space-y-4 sm:max-h-[calc(100dvh-2rem)] sm:p-8 sm:space-y-6">
         
         {/* Header */}
-        <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800 sm:items-center">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
               <Crop className="w-4 h-4" />
@@ -83,13 +83,14 @@ export default function ImageCropModal({
         </div>
 
         {/* Viewport */}
-        <div className="relative w-full h-80 sm:h-96 bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-800">
+        <div className="relative mx-auto aspect-[16/9] w-full max-h-[46vh] overflow-hidden rounded-2xl border-2 border-slate-800 bg-slate-950 sm:aspect-auto sm:h-96 sm:max-h-none">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
             aspect={aspect}
             cropShape={cropShape}
+            objectFit="cover"
             showGrid={true}
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
@@ -98,7 +99,7 @@ export default function ImageCropModal({
         </div>
 
         {/* Zoom Controls */}
-        <div className="flex items-center space-x-4 px-2">
+        <div className="flex items-center gap-3 px-1 sm:space-x-4 sm:px-2">
           <ZoomOut className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="range"
@@ -113,11 +114,11 @@ export default function ImageCropModal({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-2">
+        <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end sm:space-x-3 sm:gap-0 sm:pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 bg-slate-900 border border-slate-700 hover:border-white text-slate-300 hover:text-white text-xs font-black rounded-xl transition"
+            className="min-h-11 w-full px-5 py-2.5 bg-slate-900 border border-slate-700 hover:border-white text-slate-300 hover:text-white text-xs font-black rounded-xl transition sm:w-auto"
           >
             Cancel
           </button>
@@ -125,7 +126,7 @@ export default function ImageCropModal({
             type="button"
             disabled={processing}
             onClick={createCroppedImage}
-            className="px-6 py-2.5 neon-airflow-btn text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-xl flex items-center space-x-2"
+            className="min-h-11 w-full justify-center px-6 py-2.5 neon-airflow-btn text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-xl flex items-center space-x-2 sm:w-auto"
           >
             {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             <span>{processing ? 'Uploading...' : 'Crop & Save Photo'}</span>

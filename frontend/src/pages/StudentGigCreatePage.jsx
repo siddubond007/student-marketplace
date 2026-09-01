@@ -14,11 +14,16 @@ import {
   X,
   Sparkles,
   Plus,
-  Trash2
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+  GripVertical,
+  Crop
 } from 'lucide-react';
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
 import RichTextEditor from '../components/RichTextEditor.jsx';
+import ImageCropModal from '../components/ImageCropModal.jsx';
 import { richTextToPlainText } from '../utils/richText.js';
 
 const steps = [
@@ -54,6 +59,94 @@ const createFaq = () => ({
   answer: ''
 });
 
+const createMediaId = () =>
+  `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const MEDIA_ALLOWED_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp'
+]);
+const MEDIA_ACCEPT = '.jpg,.jpeg,.png,.webp';
+const MEDIA_MAX_SIZE_BYTES = 25 * 1024 * 1024;
+
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Unable to read the image.'));
+    reader.readAsDataURL(file);
+  });
+
+const dataUrlToFile = (dataUrl, fileName) => {
+  const [header, body] = String(dataUrl).split(',');
+  const mime =
+    header.match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
+  const binary = window.atob(body || '');
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new File([bytes], fileName, { type: mime });
+};
+
+const readImageDimensions = (file) =>
+  new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({
+        width: image.naturalWidth,
+        height: image.naturalHeight
+      });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('The selected file is not a readable image.'));
+    };
+
+    image.src = objectUrl;
+  });
+
+const validateMediaFile = async (file, { label }) => {
+  if (!(file instanceof File)) {
+    return {
+      error: `${label} is not a valid image file.`
+    };
+  }
+
+  if (!MEDIA_ALLOWED_TYPES.has(file.type)) {
+    return {
+      error: `${label} must be a JPG, PNG, or WebP image.`
+    };
+  }
+
+  if (file.size > MEDIA_MAX_SIZE_BYTES) {
+    return {
+      error: `${label} must be 25 MB or smaller.`
+    };
+  }
+
+  try {
+    const dimensions = await readImageDimensions(file);
+
+    return {
+      error: '',
+      ...dimensions
+    };
+  } catch (error) {
+    return {
+      error:
+        error.message ||
+        `${label} could not be read.`
+    };
+  }
+};
 
 function SearchableSelect({
   id,
@@ -470,6 +563,33 @@ export default function StudentGigCreatePage() {
 
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
   const [faqs, setFaqs] = useState([]);
+  const [media, setMedia] = useState({
+    cover: null,
+    gallery: []
+  });
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [pendingCoverFile, setPendingCoverFile] = useState(null);
+  const [draggedGalleryId, setDraggedGalleryId] = useState(null);
+  const mediaRef = useRef(media);
+
+  useEffect(() => {
+    mediaRef.current = media;
+  }, [media]);
+
+  useEffect(
+    () => () => {
+      if (mediaRef.current.cover?.previewUrl) {
+        URL.revokeObjectURL(mediaRef.current.cover.previewUrl);
+      }
+
+      mediaRef.current.gallery.forEach((item) => {
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+    },
+    []
+  );
 
   const [basics, setBasics] = useState({
 
@@ -686,6 +806,16 @@ export default function StudentGigCreatePage() {
       next.delete(5);
     }
 
+    if (
+      Boolean(media.cover) &&
+      !media.cover.validationError &&
+      media.gallery.every((item) => !item.validationError)
+    ) {
+      next.add(6);
+    } else {
+      next.delete(6);
+    }
+
     if (isFaqsComplete) {
       next.add(8);
     } else {
@@ -700,6 +830,7 @@ export default function StudentGigCreatePage() {
     isPricingComplete,
     isDeliveryComplete,
     isRequirementsComplete,
+    media,
     isFaqsComplete
   ]);
 
@@ -1347,6 +1478,405 @@ export default function StudentGigCreatePage() {
     }));
   };
 
+  const clearMediaError = (key) => {
+    setFieldErrors((previous) => {
+      const mediaErrors = { ...(previous.media || {}) };
+      delete mediaErrors[key];
+
+      return {
+        ...previous,
+        media: mediaErrors
+      };
+    });
+  };
+
+  const handleCoverFileSelected = async (file) => {
+    if (!file) return;
+
+    const validation = await validateMediaFile(file, {
+      label: 'Cover image'
+    });
+
+    if (validation.error) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          cover: validation.error
+        }
+      }));
+      return;
+    }
+
+    try {
+      const imageSrc = await fileToDataUrl(file);
+
+      setPendingCoverFile(file);
+      setCropImageSrc(imageSrc);
+      clearMediaError('cover');
+    } catch (error) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          cover:
+            error.message ||
+            'Unable to prepare the cover image.'
+        }
+      }));
+    }
+  };
+
+  const handleCoverCropComplete = async (croppedBase64) => {
+    const sourceFile = pendingCoverFile;
+
+    if (!sourceFile) return;
+
+    try {
+      const croppedFile = dataUrlToFile(
+        croppedBase64,
+        `${sourceFile.name.replace(/\.[^.]+$/, '') || 'cover'}-cropped.jpg`
+      );
+      const dimensions = await readImageDimensions(croppedFile);
+      const previewUrl = URL.createObjectURL(croppedFile);
+
+      setMedia((previous) => {
+        if (previous.cover?.previewUrl) {
+          URL.revokeObjectURL(previous.cover.previewUrl);
+        }
+
+        return {
+          ...previous,
+          cover: {
+            id: previous.cover?.id || createMediaId(),
+            file: croppedFile,
+            previewUrl,
+            name: croppedFile.name,
+            size: croppedFile.size,
+            type: croppedFile.type,
+            width: dimensions.width,
+            height: dimensions.height,
+            validationError: ''
+          }
+        };
+      });
+
+      setCropImageSrc(null);
+      setPendingCoverFile(null);
+      clearMediaError('cover');
+    } catch (error) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          cover:
+            error.message ||
+            'Unable to save the cropped cover image.'
+        }
+      }));
+    }
+  };
+
+  const removeCover = () => {
+    setMedia((previous) => {
+      if (previous.cover?.previewUrl) {
+        URL.revokeObjectURL(previous.cover.previewUrl);
+      }
+
+      return {
+        ...previous,
+        cover: null
+      };
+    });
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      media: {
+        ...(previous.media || {}),
+        cover: undefined
+      }
+    }));
+  };
+
+  const handleGalleryFilesSelected = async (filesList) => {
+    const incomingFiles = Array.from(filesList || []);
+
+    if (!incomingFiles.length) return;
+
+    const nextItems = [];
+
+    for (const file of incomingFiles) {
+      const validation = await validateMediaFile(file, {
+        label: `Gallery image "${file.name}"`
+      });
+
+      let previewUrl = null;
+
+      if (!validation.error) {
+        previewUrl = URL.createObjectURL(file);
+      }
+
+      nextItems.push({
+        id: createMediaId(),
+        file,
+        previewUrl,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        width: validation.width || 0,
+        height: validation.height || 0,
+        validationError: validation.error
+      });
+    }
+
+    setMedia((previous) => ({
+      ...previous,
+      gallery: [
+        ...previous.gallery,
+        ...nextItems
+      ]
+    }));
+
+    setFieldErrors((previous) => {
+      const galleryItems = {
+        ...(previous.media?.galleryItems || {})
+      };
+
+      nextItems.forEach((item) => {
+        if (item.validationError) {
+          galleryItems[item.id] =
+            item.validationError;
+        }
+      });
+
+      return {
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          galleryItems
+        }
+      };
+    });
+  };
+
+  const handleReplaceGalleryImage = async (
+    galleryId,
+    file
+  ) => {
+    if (!file) return;
+
+    const validation = await validateMediaFile(file, {
+      label: `Gallery image "${file.name}"`
+    });
+
+    const previewUrl = validation.error
+      ? null
+      : URL.createObjectURL(file);
+
+    setMedia((previous) => ({
+      ...previous,
+      gallery: previous.gallery.map((item) => {
+        if (item.id !== galleryId) return item;
+
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+
+        return {
+          ...item,
+          file,
+          previewUrl,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          width: validation.width || 0,
+          height: validation.height || 0,
+          validationError: validation.error
+        };
+      })
+    }));
+
+    setFieldErrors((previous) => {
+      const galleryItems = {
+        ...(previous.media?.galleryItems || {})
+      };
+
+      if (validation.error) {
+        galleryItems[galleryId] =
+          validation.error;
+      } else {
+        delete galleryItems[galleryId];
+      }
+
+      return {
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          galleryItems
+        }
+      };
+    });
+  };
+
+  const removeGalleryImage = (galleryId) => {
+    setMedia((previous) => {
+      const item = previous.gallery.find(
+        (galleryItem) => galleryItem.id === galleryId
+      );
+
+      if (item?.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+
+      return {
+        ...previous,
+        gallery: previous.gallery.filter(
+          (galleryItem) =>
+            galleryItem.id !== galleryId
+        )
+      };
+    });
+
+    setFieldErrors((previous) => {
+      const galleryItems = {
+        ...(previous.media?.galleryItems || {})
+      };
+
+      delete galleryItems[galleryId];
+
+      return {
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          galleryItems
+        }
+      };
+    });
+  };
+
+  const handleMoveGallery = (galleryId, direction) => {
+    setMedia((previous) => {
+      const currentIndex =
+        previous.gallery.findIndex(
+          (item) => item.id === galleryId
+        );
+
+      if (currentIndex < 0) return previous;
+
+      const targetIndex =
+        direction === 'up'
+          ? currentIndex - 1
+          : currentIndex + 1;
+
+      if (
+        targetIndex < 0 ||
+        targetIndex >= previous.gallery.length
+      ) {
+        return previous;
+      }
+
+      const gallery = [...previous.gallery];
+
+      [gallery[currentIndex], gallery[targetIndex]] = [
+        gallery[targetIndex],
+        gallery[currentIndex]
+      ];
+
+      return {
+        ...previous,
+        gallery
+      };
+    });
+  };
+
+  const handleGalleryDrop = (targetId) => {
+    if (
+      !draggedGalleryId ||
+      draggedGalleryId === targetId
+    ) {
+      setDraggedGalleryId(null);
+      return;
+    }
+
+    setMedia((previous) => {
+      const fromIndex =
+        previous.gallery.findIndex(
+          (item) => item.id === draggedGalleryId
+        );
+
+      const toIndex =
+        previous.gallery.findIndex(
+          (item) => item.id === targetId
+        );
+
+      if (fromIndex < 0 || toIndex < 0) {
+        return previous;
+      }
+
+      const gallery = [...previous.gallery];
+      const [moved] = gallery.splice(fromIndex, 1);
+
+      gallery.splice(toIndex, 0, moved);
+
+      return {
+        ...previous,
+        gallery
+      };
+    });
+
+    setDraggedGalleryId(null);
+  };
+
+  const validateMedia = () => {
+    const nextMediaErrors = {};
+    const galleryItems = {};
+
+    if (!media.cover) {
+      nextMediaErrors.cover =
+        'A cover image is required.';
+    } else if (media.cover.validationError) {
+      nextMediaErrors.cover =
+        media.cover.validationError;
+    }
+
+    media.gallery.forEach((item) => {
+      if (item.validationError) {
+        galleryItems[item.id] =
+          item.validationError;
+      }
+    });
+
+    if (Object.keys(galleryItems).length > 0) {
+      nextMediaErrors.galleryItems =
+        galleryItems;
+    }
+
+    if (
+      nextMediaErrors.cover ||
+      nextMediaErrors.galleryItems
+    ) {
+      nextMediaErrors.step =
+        nextMediaErrors.cover
+          ? 'Add a valid cover image before continuing.'
+          : 'Fix or remove the highlighted gallery images before continuing.';
+    }
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      media: nextMediaErrors
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      media: true
+    }));
+
+    return (
+      !nextMediaErrors.cover &&
+      !nextMediaErrors.galleryItems
+    );
+  };
+
   const handleMoveFaq = (faqId, direction) => {
     setFaqs((previous) => {
       const currentIndex = previous.findIndex((faq) => faq.id === faqId);
@@ -1396,6 +1926,10 @@ export default function StudentGigCreatePage() {
     }
 
     if (currentStep === 5 && !validateRequirements()) {
+      return;
+    }
+
+    if (currentStep === 6 && !validateMedia()) {
       return;
     }
 
@@ -3016,6 +3550,417 @@ export default function StudentGigCreatePage() {
     );
   };
 
+  const renderMedia = () => {
+    const mediaErrors = fieldErrors.media || {};
+    const showErrors = Boolean(touchedFields.media);
+
+    return (
+      <div className="mt-8 space-y-7">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Primary media
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Choose a cover image that represents your service
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Your cover is the dedicated primary image for the gig. Add a clear image, then position it before saving.
+            </p>
+          </div>
+
+          {showErrors && mediaErrors.step && (
+            <div
+              role="alert"
+              className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 sm:px-5"
+            >
+              <p className="text-xs font-black uppercase tracking-wider text-red-300">
+                Media needs attention
+              </p>
+              <p className="mt-1 text-xs leading-5 text-red-200/80">
+                {mediaErrors.step}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-7">
+            <div className="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-300">
+                  Cover image <span className="text-pink-500">*</span>
+                </label>
+                <p className="mt-1 text-xs text-slate-600">
+                  JPG, PNG, or WebP · up to 25 MB
+                </p>
+              </div>
+
+              {media.cover && (
+                <span className="self-start rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300 sm:self-auto">
+                  Primary
+                </span>
+              )}
+            </div>
+
+            {media.cover ? (
+              <div className="overflow-hidden rounded-3xl border border-cyan-500/20 bg-slate-950/70">
+                <div className="relative aspect-[16/9] w-full bg-slate-900">
+                  <img
+                    src={media.cover.previewUrl}
+                    alt="Gig cover preview"
+                    className="h-full w-full object-cover"
+                  />
+
+                  <div className="static flex flex-col gap-3 bg-slate-950 p-4 sm:absolute sm:inset-x-0 sm:bottom-0 sm:bg-gradient-to-t sm:from-slate-950/95 sm:via-slate-950/75 sm:to-transparent sm:pt-16 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-white">
+                        {media.cover.name}
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold text-slate-400">
+                        {media.cover.width} × {media.cover.height} ·{' '}
+                        {(media.cover.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <label
+                        htmlFor="gig-cover-replace"
+                        className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/85 px-3 py-2.5 text-xs font-black text-slate-200 transition hover:border-cyan-500/30 hover:text-white focus-within:ring-2 focus-within:ring-cyan-400/70"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Replace
+                      </label>
+
+                      <input
+                        id="gig-cover-replace"
+                        type="file"
+                        accept={MEDIA_ACCEPT}
+                        className="sr-only"
+                        onChange={(event) => {
+                          handleCoverFileSelected(
+                            event.target.files?.[0]
+                          );
+                          event.target.value = '';
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingCoverFile(media.cover.file);
+                          setCropImageSrc(media.cover.previewUrl);
+                        }}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/85 px-3 py-2.5 text-xs font-black text-slate-200 transition hover:border-cyan-500/30 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                      >
+                        <Crop className="h-4 w-4" />
+                        Re-crop
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={removeCover}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs font-black text-red-300 transition hover:bg-red-500/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <label
+                htmlFor="gig-cover-upload"
+                className={`flex aspect-[16/9] cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed bg-slate-950/55 px-5 text-center transition focus-within:ring-2 focus-within:ring-cyan-400/70 ${
+                  showErrors && mediaErrors.cover
+                    ? 'border-red-500/40 hover:border-red-400/60'
+                    : 'border-slate-700 hover:border-cyan-500/40 hover:bg-cyan-500/[0.03]'
+                }`}
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                  <ImageIcon className="h-6 w-6" />
+                </span>
+
+                <span className="mt-4 text-sm font-black text-white">
+                  Upload your cover image
+                </span>
+
+                <span className="mt-1 max-w-md text-xs leading-5 text-slate-500">
+                  Select an image to open the crop and positioning tool.
+                </span>
+
+                <span className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-cyan-500/10">
+                  <Upload className="h-4 w-4" />
+                  Choose image
+                </span>
+
+                <input
+                  id="gig-cover-upload"
+                  type="file"
+                  accept={MEDIA_ACCEPT}
+                  className="sr-only"
+                  onChange={(event) => {
+                    handleCoverFileSelected(
+                      event.target.files?.[0]
+                    );
+                    event.target.value = '';
+                  }}
+                />
+              </label>
+            )}
+
+            {showErrors && mediaErrors.cover && (
+              <p
+                role="alert"
+                className="mt-2 text-xs font-semibold text-red-400"
+              >
+                {mediaErrors.cover}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Gallery
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Show more of your best work
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Add additional portfolio or service images. Gallery media is recommended, and every image you add must be valid.
+            </p>
+          </div>
+
+          <div className="mt-7 rounded-2xl border border-slate-800 bg-slate-950/45 p-3 sm:p-4">
+            <label
+              htmlFor="gig-gallery-upload"
+              className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-700 px-5 py-7 text-center transition hover:border-cyan-500/40 hover:bg-cyan-500/[0.03] focus-within:ring-2 focus-within:ring-cyan-400/70"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                <Upload className="h-5 w-5" />
+              </span>
+
+              <span className="mt-3 text-sm font-black text-white">
+                Add gallery images
+              </span>
+
+              <span className="mt-1 text-xs text-slate-600">
+                Select one or more JPG, PNG, or WebP images · up to 25 MB each
+              </span>
+
+              <input
+                id="gig-gallery-upload"
+                type="file"
+                accept={MEDIA_ACCEPT}
+                multiple
+                className="sr-only"
+                onChange={(event) => {
+                  handleGalleryFilesSelected(
+                    event.target.files
+                  );
+                  event.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+
+          {media.gallery.length > 0 ? (
+            <div className="mt-5 space-y-3" aria-label="Gallery image list">
+              <div className="flex items-start gap-2 text-[11px] font-semibold leading-5 text-slate-600">
+                <GripVertical className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Drag an image onto another image to reorder, or use the move controls.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {media.gallery.map((item, index) => {
+                  const itemError =
+                    mediaErrors.galleryItems?.[item.id] ||
+                    item.validationError;
+                  const replaceInputId =
+                    `gig-gallery-replace-${item.id}`;
+
+                  return (
+                    <article
+                      key={item.id}
+                      draggable={Boolean(item.previewUrl)}
+                      onDragStart={() =>
+                        setDraggedGalleryId(item.id)
+                      }
+                      onDragOver={(event) => {
+                        if (item.previewUrl) {
+                          event.preventDefault();
+                        }
+                      }}
+                      onDrop={() =>
+                        handleGalleryDrop(item.id)
+                      }
+                      onDragEnd={() =>
+                        setDraggedGalleryId(null)
+                      }
+                      className={`group overflow-hidden rounded-2xl border bg-slate-950/70 ${
+                        itemError
+                          ? 'border-red-500/40'
+                          : 'border-slate-800'
+                      } ${
+                        draggedGalleryId === item.id
+                          ? 'opacity-50'
+                          : ''
+                      }`}
+                    >
+                      <div className="relative aspect-[4/3] bg-slate-900">
+                        {item.previewUrl ? (
+                          <img
+                            src={item.previewUrl}
+                            alt={`Gallery image ${index + 1}: ${item.name}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+                            <ImageIcon className="h-7 w-7 text-red-300" />
+                            <p className="mt-2 text-xs font-black text-red-300">
+                              Invalid image
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="absolute left-2 top-2 rounded-lg border border-slate-700 bg-slate-950/80 px-2 py-1 text-[10px] font-black text-white backdrop-blur-sm">
+                          {index + 1}
+                        </div>
+
+                        {item.previewUrl && (
+                          <div
+                            aria-hidden="true"
+                            className="absolute right-2 top-2 rounded-lg border border-slate-700 bg-slate-950/80 p-1.5 text-slate-400 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-3 p-3">
+                        <div className="min-w-0">
+                          <p
+                            className="truncate text-xs font-black text-white"
+                            title={item.name}
+                          >
+                            {item.name}
+                          </p>
+                          <p className="mt-1 text-[10px] font-semibold text-slate-600">
+                            {item.width && item.height
+                              ? `${item.width} × ${item.height}`
+                              : `${(item.size / (1024 * 1024)).toFixed(1)} MB`}
+                          </p>
+                        </div>
+
+                        {itemError && (
+                          <p
+                            role="alert"
+                            className="text-[11px] font-semibold leading-5 text-red-400"
+                          >
+                            {itemError}
+                          </p>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleMoveGallery(item.id, 'up')
+                            }
+                            disabled={index === 0}
+                            aria-label={`Move image ${index + 1} up`}
+                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-2 py-2 text-[10px] font-black text-slate-400 transition hover:border-cyan-500/30 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                            Up
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleMoveGallery(item.id, 'down')
+                            }
+                            disabled={
+                              index === media.gallery.length - 1
+                            }
+                            aria-label={`Move image ${index + 1} down`}
+                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-2 py-2 text-[10px] font-black text-slate-400 transition hover:border-cyan-500/30 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                            Down
+                          </button>
+
+                          <label
+                            htmlFor={replaceInputId}
+                            className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-800 bg-slate-900 px-2 py-2 text-[10px] font-black text-slate-400 transition hover:border-cyan-500/30 hover:text-cyan-300 focus-within:ring-2 focus-within:ring-cyan-400/70"
+                          >
+                            Replace
+                          </label>
+
+                          <input
+                            id={replaceInputId}
+                            type="file"
+                            accept={MEDIA_ACCEPT}
+                            className="sr-only"
+                            onChange={(event) => {
+                              handleReplaceGalleryImage(
+                                item.id,
+                                event.target.files?.[0]
+                              );
+                              event.target.value = '';
+                            }}
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeGalleryImage(item.id)
+                            }
+                            aria-label={`Remove gallery image ${index + 1}`}
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-2 py-2 text-[10px] font-black text-red-300 transition hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-5">
+              <p className="text-sm font-semibold text-slate-500">
+                No gallery images added yet.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Gallery images are recommended, so you can continue without adding one.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {cropImageSrc && (
+          <ImageCropModal
+            imageSrc={cropImageSrc}
+            aspect={16 / 9}
+            cropShape="rect"
+            title="Crop Gig Cover"
+            onCropComplete={handleCoverCropComplete}
+            onClose={() => {
+              setCropImageSrc(null);
+              setPendingCoverFile(null);
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
   const renderPlaceholder = () => (
     <div className="mt-8 rounded-3xl border border-dashed border-slate-700 bg-slate-950/35 p-6 sm:p-8">
       <div className="max-w-xl">
@@ -3234,9 +4179,11 @@ export default function StudentGigCreatePage() {
                         ? renderDelivery()
                         : currentStep === 5
                           ? renderRequirements()
-                          : currentStep === 8
-                            ? renderFaqs()
-                            : renderPlaceholder()}
+                          : currentStep === 6
+                            ? renderMedia()
+                            : currentStep === 8
+                              ? renderFaqs()
+                              : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
