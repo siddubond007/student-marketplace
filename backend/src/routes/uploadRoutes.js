@@ -47,7 +47,13 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
         resource_type: 'auto'
       });
       console.log(`✅ Saved to Cloudinary: ${uploadRes.secure_url}`);
-      return res.json({ url: uploadRes.secure_url });
+      return res.json({
+        url: uploadRes.secure_url,
+        publicId: uploadRes.public_id,
+        resourceType: uploadRes.resource_type,
+        format: uploadRes.format,
+        bytes: uploadRes.bytes
+      });
     }
 
     // 3. If file was sent via Multipart Form (e.g. Student ID Card / Govt ID / Portfolio)
@@ -70,7 +76,13 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
     }
 
     console.log(`✅ Saved to Cloudinary: ${uploadRes.secure_url}`);
-    return res.json({ url: uploadRes.secure_url });
+    return res.json({
+      url: uploadRes.secure_url,
+      publicId: uploadRes.public_id,
+      resourceType: uploadRes.resource_type,
+      format: uploadRes.format,
+      bytes: uploadRes.bytes
+    });
   } catch (err) {
     console.error('Cloudinary Upload Error:', err);
     if (req.file && fs.existsSync(req.file.path)) {

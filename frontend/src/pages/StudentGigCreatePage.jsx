@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
 import RichTextEditor from '../components/RichTextEditor.jsx';
 import ImageCropModal from '../components/ImageCropModal.jsx';
+import API from '../services/api';
 import { richTextToPlainText } from '../utils/richText.js';
 
 const steps = [
@@ -112,6 +113,17 @@ const readImageDimensions = (file) =>
 
     image.src = objectUrl;
   });
+
+const uploadGigMedia = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await API.post('/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+  return response.data;
+};
 
 const validateMediaFile = async (file, { label }) => {
   if (!(file instanceof File)) {
@@ -541,11 +553,44 @@ const HIDDEN_SCROLLBAR_STYLES = `
   }
 `;
 
+const formatRelativeSavedTime = (timestamp) => {
+  const saved = new Date(timestamp).getTime();
+  if (!Number.isFinite(saved)) return 'just now';
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - saved) / 1000));
+  if (elapsedSeconds < 60) return 'just now';
+
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes} minute${elapsedMinutes === 1 ? '' : 's'} ago`;
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  return `${elapsedHours} hour${elapsedHours === 1 ? '' : 's'} ago`;
+};
+
 export default function StudentGigCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState(() => new Set());
   const [description, setDescription] = useState('');
+
+  const [saveState, setSaveState] = useState('idle');
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+
+  const draftIdRef = useRef(searchParams.get('draftId') || '');
+  const draftVersionRef = useRef(0);
+  const saveTimerRef = useRef(null);
+  const saveSequenceRef = useRef(0);
+  const latestRequestedSequenceRef = useRef(0);
+  const latestSavedSnapshotRef = useRef('');
+  const latestSnapshotRef = useRef('');
+  const pendingSnapshotRef = useRef(null);
+  const savePromiseRef = useRef(Promise.resolve());
+  const initialSnapshotEstablishedRef = useRef(false);
+  const draftHydratedRef = useRef(!searchParams.get('draftId'));
+  const hasUnsavedChangesRef = useRef(false);
 
   const [pricing, setPricing] = useState({
     basePrice: '',
@@ -606,6 +651,171 @@ export default function StudentGigCreatePage() {
 
   const [touchedFields, setTouchedFields] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const serializeDraftMediaItem = (item) => {
+    if (!item) return null;
+
+    return {
+      id: item.id,
+      url: item.url || '',
+      publicId: item.publicId || '',
+      resourceType: item.resourceType || '',
+      format: item.format || '',
+      name: item.name || '',
+      size: Number(item.size) || 0,
+      type: item.type || '',
+      width: Number(item.width) || 0,
+      height: Number(item.height) || 0,
+      validationError: item.validationError || ''
+    };
+  };
+
+  const serializeGigDraft = () => ({
+    version: 1,
+    currentStep,
+    basics: {
+      title: basics.title,
+      categoryId: basics.categoryId,
+      subcategoryId: basics.subcategoryId,
+      serviceType: basics.serviceType,
+      skills: [...basics.skills]
+    },
+    description,
+    pricing: {
+      basePrice: pricing.basePrice,
+      currency: pricing.currency,
+      packageModel: pricing.packageModel
+    },
+    delivery: {
+      deliveryDays: delivery.deliveryDays,
+      revisions: delivery.revisions,
+      includedItems: [...delivery.includedItems],
+      excludedItems: [...delivery.excludedItems],
+      deliverables: [...delivery.deliverables]
+    },
+    requirements: requirements.map((requirement) => ({
+      id: requirement.id,
+      question: requirement.question,
+      type: requirement.type,
+      required: Boolean(requirement.required),
+      options: Array.isArray(requirement.options) ? [...requirement.options] : []
+    })),
+    media: {
+      cover: serializeDraftMediaItem(media.cover),
+      gallery: media.gallery.map(serializeDraftMediaItem).filter(Boolean)
+    },
+    faqs: faqs.map((faq) => ({
+      id: faq.id,
+      question: faq.question,
+      answer: faq.answer
+    }))
+  });
+
+  const restoreGigDraft = (draft) => {
+    const data = draft?.draftData;
+    if (!data || typeof data !== 'object') return;
+
+    const nextBasics = {
+      title: data.basics?.title || '',
+      categoryId: data.basics?.categoryId || '',
+      subcategoryId: data.basics?.subcategoryId || '',
+      serviceType: data.basics?.serviceType || '',
+      skills: Array.isArray(data.basics?.skills) ? data.basics.skills : []
+    };
+
+    setBasics(nextBasics);
+    setDescription(typeof data.description === 'string' ? data.description : '');
+    setPricing({
+      basePrice: data.pricing?.basePrice ?? '',
+      currency: data.pricing?.currency || 'INR',
+      packageModel: data.pricing?.packageModel || 'single'
+    });
+    setDelivery({
+      deliveryDays: data.delivery?.deliveryDays ?? '',
+      revisions: data.delivery?.revisions ?? '',
+      includedItems:
+        Array.isArray(data.delivery?.includedItems) && data.delivery.includedItems.length
+          ? data.delivery.includedItems
+          : [''],
+      excludedItems: Array.isArray(data.delivery?.excludedItems)
+        ? data.delivery.excludedItems
+        : [],
+      deliverables:
+        Array.isArray(data.delivery?.deliverables) && data.delivery.deliverables.length
+          ? data.delivery.deliverables
+          : ['']
+    });
+
+    setRequirements(
+      Array.isArray(data.requirements)
+        ? data.requirements.map((requirement) => ({
+            id: requirement.id || createRequirementId(),
+            question: requirement.question || '',
+            type: requirement.type || 'text',
+            required: typeof requirement.required === 'boolean'
+              ? requirement.required
+              : true,
+            options: Array.isArray(requirement.options) ? requirement.options : []
+          }))
+        : [createRequirement()]
+    );
+
+    setFaqs(
+      Array.isArray(data.faqs)
+        ? data.faqs.map((faq) => ({
+            id: faq.id || createFaqId(),
+            question: faq.question || '',
+            answer: faq.answer || ''
+          }))
+        : []
+    );
+
+    const restoreMediaItem = (item) =>
+      item
+        ? {
+            id: item.id || createMediaId(),
+            file: null,
+            previewUrl: item.url || '',
+            url: item.url || '',
+            publicId: item.publicId || '',
+            resourceType: item.resourceType || '',
+            format: item.format || '',
+            name: item.name || 'Saved image',
+            size: Number(item.size) || 0,
+            type: item.type || '',
+            width: Number(item.width) || 0,
+            height: Number(item.height) || 0,
+            validationError: item.validationError || ''
+          }
+        : null;
+
+    setMedia({
+      cover: restoreMediaItem(data.media?.cover),
+      gallery: Array.isArray(data.media?.gallery)
+        ? data.media.gallery.map(restoreMediaItem).filter(Boolean)
+        : []
+    });
+
+    const restoredStep = Number(data.currentStep);
+    if (Number.isInteger(restoredStep) && restoredStep >= 1 && restoredStep <= steps.length) {
+      setCurrentStep(restoredStep);
+    }
+
+    setCompletedSteps(new Set());
+  };
+
+  const updateDraftUrl = (id) => {
+    if (!id) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('draftId', id);
+    window.history.replaceState(null, '', url.toString());
+  };
+
+  const markSnapshotDirty = (snapshot) => {
+    latestSnapshotRef.current = snapshot;
+    hasUnsavedChangesRef.current = snapshot !== latestSavedSnapshotRef.current;
+  };
 
   const categories = GIG_CATEGORY_OPTIONS;
   const selectedCategoryId = basics.categoryId;
@@ -833,6 +1043,202 @@ export default function StudentGigCreatePage() {
     media,
     isFaqsComplete
   ]);
+
+  const queueDraftSave = (snapshot, { immediate = false } = {}) => {
+    pendingSnapshotRef.current = snapshot;
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    if (immediate) {
+      requestDraftSave(snapshot);
+      return;
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      requestDraftSave(pendingSnapshotRef.current);
+    }, 900);
+  };
+
+  const requestDraftSave = (snapshot) => {
+    if (!snapshot || !draftHydratedRef.current) return Promise.resolve();
+
+    const normalizedSnapshot = String(snapshot);
+    if (
+      normalizedSnapshot === latestSavedSnapshotRef.current &&
+      !pendingSnapshotRef.current
+    ) {
+      hasUnsavedChangesRef.current = false;
+      return Promise.resolve();
+    }
+
+    const sequence = ++saveSequenceRef.current;
+    latestRequestedSequenceRef.current = sequence;
+    pendingSnapshotRef.current = null;
+    setSaveState('saving');
+
+    const saveOperation = async () => {
+      const parsedSnapshot = JSON.parse(normalizedSnapshot);
+      const nextVersion = draftVersionRef.current + 1;
+
+      const payload = {
+        draftData: parsedSnapshot,
+        draftVersion: nextVersion
+      };
+
+      try {
+        let response;
+
+        if (draftIdRef.current) {
+          response = await API.put(
+            `/gigs/drafts/${draftIdRef.current}`,
+            payload
+          );
+        } else {
+          response = await API.post('/gigs/drafts', payload);
+        }
+
+        const savedDraft = response.data?.draft;
+        if (!savedDraft?.id) {
+          throw new Error('Draft save response did not include a draft ID.');
+        }
+
+        draftIdRef.current = savedDraft.id;
+        draftVersionRef.current =
+          Number(savedDraft.draftVersion) || nextVersion;
+
+        if (sequence < latestRequestedSequenceRef.current) {
+          return;
+        }
+
+        latestSavedSnapshotRef.current = normalizedSnapshot;
+        latestSnapshotRef.current = normalizedSnapshot;
+        hasUnsavedChangesRef.current = false;
+        setLastSavedAt(savedDraft.updatedAt || new Date().toISOString());
+        setSaveState('saved');
+        updateDraftUrl(savedDraft.id);
+      } catch (error) {
+        if (sequence < latestRequestedSequenceRef.current) {
+          return;
+        }
+
+        if (error?.response?.status === 409 && error.response.data?.draft) {
+          const serverDraft = error.response.data.draft;
+          draftVersionRef.current = Number(serverDraft.draftVersion) || draftVersionRef.current;
+        }
+
+        setSaveState('error');
+        hasUnsavedChangesRef.current = true;
+      }
+    };
+
+    savePromiseRef.current = savePromiseRef.current
+      .catch(() => undefined)
+      .then(saveOperation);
+
+    return savePromiseRef.current;
+  };
+
+  const handleSaveDraft = async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    const snapshot = latestSnapshotRef.current || JSON.stringify(serializeGigDraft());
+    pendingSnapshotRef.current = null;
+    await requestDraftSave(snapshot);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const requestedDraftId = searchParams.get('draftId');
+    if (!requestedDraftId) {
+      draftHydratedRef.current = true;
+      return undefined;
+    }
+
+    API.get(`/gigs/drafts/${requestedDraftId}`)
+      .then((response) => {
+        if (cancelled) return;
+
+        const savedDraft = response.data?.draft;
+        if (!savedDraft) {
+          throw new Error('Saved draft was not returned.');
+        }
+
+        draftIdRef.current = savedDraft.id;
+        draftVersionRef.current = Number(savedDraft.draftVersion) || 0;
+        restoreGigDraft(savedDraft);
+        latestSavedSnapshotRef.current = JSON.stringify(savedDraft.draftData || {});
+        latestSnapshotRef.current = latestSavedSnapshotRef.current;
+        hasUnsavedChangesRef.current = false;
+        setLastSavedAt(savedDraft.updatedAt || null);
+        setSaveState('saved');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSaveState('error');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          draftHydratedRef.current = true;
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  const draftSnapshot = JSON.stringify(serializeGigDraft());
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) return;
+
+    if (
+      !initialSnapshotEstablishedRef.current &&
+      !draftIdRef.current &&
+      !latestSavedSnapshotRef.current
+    ) {
+      initialSnapshotEstablishedRef.current = true;
+      latestSavedSnapshotRef.current = draftSnapshot;
+      latestSnapshotRef.current = draftSnapshot;
+      hasUnsavedChangesRef.current = false;
+      return;
+    }
+
+    initialSnapshotEstablishedRef.current = true;
+    markSnapshotDirty(draftSnapshot);
+
+    if (draftSnapshot === latestSavedSnapshotRef.current) {
+      setSaveState('saved');
+      return;
+    }
+
+    queueDraftSave(draftSnapshot);
+  }, [draftSnapshot]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedChangesRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   const currentStepData = steps[currentStep - 1];
 
@@ -1540,6 +1946,8 @@ export default function StudentGigCreatePage() {
       const dimensions = await readImageDimensions(croppedFile);
       const previewUrl = URL.createObjectURL(croppedFile);
 
+      const uploaded = await uploadGigMedia(croppedFile);
+
       setMedia((previous) => {
         if (previous.cover?.previewUrl) {
           URL.revokeObjectURL(previous.cover.previewUrl);
@@ -1551,6 +1959,10 @@ export default function StudentGigCreatePage() {
             id: previous.cover?.id || createMediaId(),
             file: croppedFile,
             previewUrl,
+            url: uploaded.url || '',
+            publicId: uploaded.publicId || '',
+            resourceType: uploaded.resourceType || '',
+            format: uploaded.format || '',
             name: croppedFile.name,
             size: croppedFile.size,
             type: croppedFile.type,
@@ -1629,11 +2041,35 @@ export default function StudentGigCreatePage() {
       });
     }
 
+    const uploadedItems = await Promise.all(
+      nextItems.map(async (item) => {
+        if (item.validationError) return item;
+
+        try {
+          const uploaded = await uploadGigMedia(item.file);
+          return {
+            ...item,
+            url: uploaded.url || '',
+            publicId: uploaded.publicId || '',
+            resourceType: uploaded.resourceType || '',
+            format: uploaded.format || ''
+          };
+        } catch (error) {
+          return {
+            ...item,
+            validationError:
+              error?.response?.data?.error ||
+              'Unable to upload this gallery image.'
+          };
+        }
+      })
+    );
+
     setMedia((previous) => ({
       ...previous,
       gallery: [
         ...previous.gallery,
-        ...nextItems
+        ...uploadedItems
       ]
     }));
 
@@ -1673,6 +2109,19 @@ export default function StudentGigCreatePage() {
       ? null
       : URL.createObjectURL(file);
 
+    let uploaded = null;
+    let uploadError = '';
+
+    if (!validation.error) {
+      try {
+        uploaded = await uploadGigMedia(file);
+      } catch (error) {
+        uploadError =
+          error?.response?.data?.error ||
+          'Unable to upload this gallery image.';
+      }
+    }
+
     setMedia((previous) => ({
       ...previous,
       gallery: previous.gallery.map((item) => {
@@ -1686,12 +2135,16 @@ export default function StudentGigCreatePage() {
           ...item,
           file,
           previewUrl,
+          url: uploaded?.url || '',
+          publicId: uploaded?.publicId || '',
+          resourceType: uploaded?.resourceType || '',
+          format: uploaded?.format || '',
           name: file.name,
           size: file.size,
           type: file.type,
           width: validation.width || 0,
           height: validation.height || 0,
-          validationError: validation.error
+          validationError: validation.error || uploadError
         };
       })
     }));
@@ -4025,14 +4478,29 @@ export default function StudentGigCreatePage() {
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate('/student/gigs')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save Draft
-                  </button>
+                  <div
+                      className="inline-flex min-w-0 items-center rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 text-[10px] font-black text-slate-500"
+                      aria-live="polite"
+                    >
+                      {saveState === 'saving' && 'Saving…'}
+                      {saveState === 'saved' && lastSavedAt && (
+                        <>Saved {formatRelativeSavedTime(lastSavedAt)}</>
+                      )}
+                      {saveState === 'saved' && !lastSavedAt && 'Saved'}
+                      {saveState === 'error' && 'Save failed — retry'}
+                      {saveState === 'idle' && 'Not saved yet'}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={saveState === 'saving'}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label="Save gig draft"
+                    >
+                      <Save className="w-4 h-4" />
+                      {saveState === 'saving' ? 'Saving…' : 'Save Draft'}
+                    </button>
                 </div>
               </div>
             </div>
