@@ -1256,6 +1256,301 @@ export default function StudentGigCreatePage() {
     (effectiveCompletedSteps.size / steps.length) * 100
   );
 
+  const qualityScore = useMemo(() => {
+    const skillsCount = Array.isArray(basics.skills) ? basics.skills.length : 0;
+    const validFaqCount = Array.isArray(faqs)
+      ? faqs.filter(
+          (faq) =>
+            String(faq?.question || '').trim().length > 0 &&
+            String(faq?.answer || '').trim().length > 0
+        ).length
+      : 0;
+    const validRequirementCount = Array.isArray(requirements)
+      ? requirements.filter((requirement) => {
+          const questionValid =
+            String(requirement.question || '').trim().length > 0;
+          const optionsValid =
+            requirement.type !== 'multiple-choice' ||
+            (Array.isArray(requirement.options)
+              ? requirement.options.filter(
+                  (option) => String(option || '').trim().length > 0
+                ).length >= 2
+              : false);
+
+          return (
+            Boolean(requirement.type) &&
+            typeof requirement.required === 'boolean' &&
+            questionValid &&
+            optionsValid
+          );
+        }).length
+      : 0;
+    const hasValidCover = Boolean(media.cover) && !media.cover.validationError;
+    const validGalleryCount = Array.isArray(media.gallery)
+      ? media.gallery.filter((item) => !item.validationError).length
+      : 0;
+
+    const basicsScore =
+      (isTitleLengthValid ? 5 : 0) +
+      (basics.categoryId ? 3 : 0) +
+      (basics.subcategoryId ? 3 : 0) +
+      (basics.serviceType ? 2 : 0) +
+      (skillsCount >= 3 ? 2 : skillsCount > 0 ? 1 : 0);
+
+    const descriptionScore =
+      descriptionCharacterCount < 50
+        ? Math.round((descriptionCharacterCount / 50) * 8)
+        : descriptionCharacterCount < 140
+          ? 12
+          : descriptionCharacterCount < 300
+            ? 18
+            : 20;
+
+    const scopeScore =
+      (hasOnlyMeaningfulListItems(delivery.includedItems) ? 5 : 0) +
+      (hasOnlyMeaningfulListItems(delivery.deliverables) ? 5 : 0) +
+      (delivery.excludedItems.length > 0 && isExcludedListValid ? 5 : 0);
+
+    const pricingDeliveryScore =
+      (isPricingComplete ? 7.5 : 0) +
+      (delivery.deliveryDays !== '' &&
+      Number.isInteger(deliveryDaysNumber) &&
+      deliveryDaysNumber > 0
+        ? 4
+        : 0) +
+      (isRevisionAllowanceValid ? 3.5 : 0);
+
+    const requirementsScore =
+      validRequirementCount > 0 && isRequirementsComplete ? 10 : 0;
+
+    const mediaScore =
+      (hasValidCover ? 10 : 0) +
+      (validGalleryCount > 0 ? 5 : 0);
+
+    const faqScore = validFaqCount > 0 && isFaqsComplete ? 10 : 0;
+
+    const signals = [
+      {
+        id: 'basics',
+        label: 'Basics',
+        weight: 15,
+        score: Math.min(15, basicsScore),
+        step: 1
+      },
+      {
+        id: 'description',
+        label: 'Description quality',
+        weight: 20,
+        score: Math.min(20, descriptionScore),
+        step: 2
+      },
+      {
+        id: 'scope',
+        label: 'Scope + deliverables',
+        weight: 15,
+        score: Math.min(15, scopeScore),
+        step: 4
+      },
+      {
+        id: 'pricing-delivery',
+        label: 'Pricing + delivery',
+        weight: 15,
+        score: Math.min(15, pricingDeliveryScore),
+        step: 3
+      },
+      {
+        id: 'requirements',
+        label: 'Buyer requirements',
+        weight: 10,
+        score: Math.min(10, requirementsScore),
+        step: 5
+      },
+      {
+        id: 'media',
+        label: 'Media',
+        weight: 15,
+        score: Math.min(15, mediaScore),
+        step: 6
+      },
+      {
+        id: 'faq',
+        label: 'FAQ',
+        weight: 10,
+        score: Math.min(10, faqScore),
+        step: 8
+      }
+    ];
+
+    const total = Math.round(signals.reduce((sum, signal) => sum + signal.score, 0));
+
+    const qualityBand =
+      total >= 85
+        ? {
+            label: 'High quality',
+            description: 'Strong buyer-facing coverage across the quality signals available now.'
+          }
+        : total >= 70
+          ? {
+              label: 'Strong foundation',
+              description: 'The Gig is taking shape well, with a few meaningful improvements still available.'
+            }
+          : total >= 40
+            ? {
+                label: 'Developing',
+                description: 'The core offer is forming, but several high-value areas can still be strengthened.'
+              }
+            : {
+                label: 'Needs work',
+                description: 'Focus on the highest-value gaps first to make the service clearer and more trustworthy.'
+              };
+
+    const suggestions = [];
+
+    if (!isBasicsComplete) {
+      suggestions.push({
+        id: 'basics-required',
+        step: 1,
+        priority: 100,
+        title: 'Complete your service basics',
+        detail: 'Finish the title and category hierarchy so buyers can understand what the service is.'
+      });
+    } else if (skillsCount < 3) {
+      suggestions.push({
+        id: 'basics-skills',
+        step: 1,
+        priority: 55,
+        title: 'Add more relevant skills',
+        detail: 'Use at least three focused skills or tags to improve service clarity and matching.'
+      });
+    }
+
+    if (descriptionCharacterCount < 140) {
+      suggestions.push({
+        id: 'description-detail',
+        step: 2,
+        priority: 95,
+        title: 'Strengthen the service description',
+        detail:
+          descriptionCharacterCount < 50
+            ? 'Explain what you provide, what the buyer receives, and what to expect.'
+            : 'Add the buyer outcome, key inclusions, and important expectations.'
+      });
+    } else if (descriptionCharacterCount < 300) {
+      suggestions.push({
+        id: 'description-polish',
+        step: 2,
+        priority: 60,
+        title: 'Add more buyer-facing detail',
+        detail: 'Make the service, buyer fit, and boundaries especially easy to understand.'
+      });
+    }
+
+    if (!hasOnlyMeaningfulListItems(delivery.includedItems) ||
+        !hasOnlyMeaningfulListItems(delivery.deliverables)) {
+      suggestions.push({
+        id: 'scope-required',
+        step: 4,
+        priority: 90,
+        title: 'Clarify scope and deliverables',
+        detail: 'State what is included and the concrete outputs the buyer will receive.'
+      });
+    } else if (delivery.excludedItems.length === 0) {
+      suggestions.push({
+        id: 'scope-boundaries',
+        step: 4,
+        priority: 45,
+        title: 'Clarify important exclusions',
+        detail: 'Add meaningful boundaries where they help prevent buyer misunderstandings.'
+      });
+    }
+
+    if (!isPricingComplete ||
+        delivery.deliveryDays === '' ||
+        !Number.isInteger(deliveryDaysNumber) ||
+        delivery.deliveryDays <= 0 ||
+        !isRevisionAllowanceValid) {
+      suggestions.push({
+        id: 'pricing-delivery',
+        step: 4,
+        priority: 85,
+        title: 'Complete purchase expectations',
+        detail: 'Make price, delivery timing, and revision allowance clear and valid.'
+      });
+    }
+
+    if (validRequirementCount === 0 || !isRequirementsComplete) {
+      suggestions.push({
+        id: 'requirements',
+        step: 5,
+        priority: 70,
+        title: 'Strengthen buyer requirements',
+        detail: 'Add clear questions or inputs needed before you can begin the work.'
+      });
+    }
+
+    if (!hasValidCover) {
+      suggestions.push({
+        id: 'media-cover',
+        step: 6,
+        priority: 100,
+        title: 'Add a strong cover image',
+        detail: 'A clear primary image helps buyers understand and trust the service at a glance.'
+      });
+    } else if (validGalleryCount === 0) {
+      suggestions.push({
+        id: 'media-gallery',
+        step: 6,
+        priority: 50,
+        title: 'Show more of your best work',
+        detail: 'Add valid gallery images to provide additional visual evidence of the service.'
+      });
+    }
+
+    if (validFaqCount === 0 || !isFaqsComplete) {
+      suggestions.push({
+        id: 'faq',
+        step: 8,
+        priority: 40,
+        title: 'Add buyer-facing FAQs',
+        detail: 'Answer likely buyer questions early to reduce uncertainty before purchase.'
+      });
+    }
+
+    const strongestSignals = [...signals]
+      .filter((signal) => signal.score > 0)
+      .sort(
+        (a, b) =>
+          b.score / b.weight - a.score / a.weight ||
+          b.score - a.score
+      )
+      .slice(0, 2);
+
+    return {
+      score: total,
+      qualityBand,
+      signals,
+      strongestSignals,
+      suggestions: suggestions
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, 3)
+    };
+  }, [
+    basics,
+    descriptionCharacterCount,
+    delivery,
+    requirements,
+    faqs,
+    media,
+    isTitleLengthValid,
+    isBasicsComplete,
+    isPricingComplete,
+    isRevisionAllowanceValid,
+    isExcludedListValid,
+    deliveryDaysNumber,
+    isRequirementsComplete,
+    isFaqsComplete
+  ]);
+
   const validationSummary = useMemo(() => {
     const blockers = [];
     const warnings = [];
@@ -4595,6 +4890,119 @@ export default function StudentGigCreatePage() {
 
   const renderValidationSummary = () => (
     <div className="mt-8 space-y-6">
+      <section
+        aria-labelledby="gig-quality-score-heading"
+        className="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 p-5 sm:p-7"
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-300">
+              Gig Quality Score
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
+              <h3
+                id="gig-quality-score-heading"
+                className="text-4xl sm:text-5xl font-black text-white"
+              >
+                {qualityScore.score}
+                <span className="ml-1 text-xl sm:text-2xl text-slate-500">/100</span>
+              </h3>
+              <p className="pb-1 text-sm font-black text-cyan-300" role="status">
+                {qualityScore.qualityBand.label}
+              </p>
+            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              {qualityScore.qualityBand.description}
+            </p>
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-600">
+              This score uses the quality signals currently available in this creation
+              workflow. Later requirements can add further quality signals without
+              changing the purpose of the score.
+            </p>
+          </div>
+
+          <div className="w-full max-w-sm shrink-0 lg:w-72">
+            <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.16em]">
+              <span className="text-slate-500">Current quality</span>
+              <span className="text-indigo-300">{qualityScore.score}%</span>
+            </div>
+            <div
+              className="mt-3 h-2.5 overflow-hidden rounded-full border border-slate-800 bg-slate-950"
+              role="progressbar"
+              aria-label="Gig quality score"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={qualityScore.score}
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500 transition-all"
+                style={{ width: `${qualityScore.score}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              Quality is different from overall step completion and reflects how
+              strongly each available area supports buyer clarity.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {qualityScore.strongestSignals.map((signal) => (
+            <div
+              key={signal.id}
+              className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-black text-white">{signal.label}</p>
+                <span className="text-[11px] font-black text-emerald-300">
+                  {signal.score}/{signal.weight}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                One of the strongest quality signals in the current Gig.
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <div>
+            <h4 className="text-sm font-black text-white">Highest-value improvements</h4>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              These are recommendations, not additional submission blockers.
+            </p>
+          </div>
+
+          {qualityScore.suggestions.length === 0 ? (
+            <p className="mt-4 rounded-2xl border border-emerald-500/15 bg-emerald-500/5 px-4 py-4 text-xs font-semibold text-emerald-200/80">
+              No major quality improvements are identified in the current workflow.
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+              {qualityScore.suggestions.map((suggestion) => (
+                <article
+                  key={suggestion.id}
+                  className="rounded-2xl border border-indigo-500/15 bg-slate-950/45 p-4"
+                >
+                  <p className="text-sm font-black text-white">{suggestion.title}</p>
+                  <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                    {suggestion.detail}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => goToStep(suggestion.step)}
+                    className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3.5 py-2.5 text-[11px] font-black text-slate-200 transition hover:border-cyan-500/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                  >
+                    Review {steps[suggestion.step - 1].label}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section
         aria-labelledby="validation-summary-heading"
         className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7"
