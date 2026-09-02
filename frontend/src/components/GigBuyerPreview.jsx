@@ -60,6 +60,7 @@ export default function GigBuyerPreview({
   requirements,
   media,
   faqs,
+  categorySpecificFields = [],
   categoryName,
   subcategoryName,
   serviceTypeName,
@@ -97,6 +98,19 @@ export default function GigBuyerPreview({
     : [];
 
   const sanitizedDescription = sanitizeRichTextHtml(description || '');
+
+  const visibleCategorySpecificFields = categorySpecificFields.filter((field) => {
+    if (field.type === 'multi-select') {
+      return Array.isArray(field.value) && field.value.length > 0;
+    }
+
+    if (field.type === 'checkbox') {
+      return Boolean(field.value);
+    }
+
+    return String(field.value ?? '').trim().length > 0;
+  });
+
 
   const basePrice = Number(safePricing.basePrice);
   const hasPrice =
@@ -217,6 +231,42 @@ export default function GigBuyerPreview({
           </div>
         </div>
       </div>
+
+      {visibleCategorySpecificFields.length > 0 ? (
+        <PreviewSection eyebrow="Service details" title="Service-specific details">
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {visibleCategorySpecificFields.map((field) => {
+              const displayValue =
+                field.type === 'checkbox'
+                  ? field.value
+                    ? 'Yes'
+                    : 'No'
+                  : field.type === 'multi-select'
+                    ? (field.options || [])
+                        .filter((option) => field.value.includes(option.value))
+                        .map((option) => option.label)
+                        .join(', ')
+                    : (field.options || []).find(
+                        (option) => option.value === field.value
+                      )?.label || String(field.value);
+
+              return (
+                <div
+                  key={field.key}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4"
+                >
+                  <dt className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    {field.label}
+                  </dt>
+                  <dd className="mt-2 break-words text-sm font-bold leading-6 text-white">
+                    {displayValue}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </PreviewSection>
+      ) : null}
 
       <PreviewSection eyebrow="About the service" title="What you’re getting">
         {sanitizedDescription ? (

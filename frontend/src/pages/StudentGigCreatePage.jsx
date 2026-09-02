@@ -29,6 +29,11 @@ import GigBuyerPreview from '../components/GigBuyerPreview.jsx';
 import ImageCropModal from '../components/ImageCropModal.jsx';
 import API from '../services/api';
 import { richTextToPlainText } from '../utils/richText.js';
+import GigCategorySpecificFields from '../components/GigCategorySpecificFields.jsx';
+import {
+  getGigCategoryFields,
+  validateGigCategoryFields
+} from '../data/gigCategoryFields.js';
 
 const steps = [
   { id: 1, label: 'Basics', description: 'Service identity' },
@@ -654,6 +659,8 @@ export default function StudentGigCreatePage() {
     skills: []
   });
 
+  const [categorySpecificFields, setCategorySpecificFields] = useState({});
+
   const [skillQuery, setSkillQuery] = useState('');
   const deferredSkillQuery = useDeferredValue(skillQuery);
   const [visibleSkillCount, setVisibleSkillCount] = useState(24);
@@ -689,6 +696,7 @@ export default function StudentGigCreatePage() {
       serviceType: basics.serviceType,
       skills: [...basics.skills]
     },
+    categorySpecificFields: { ...categorySpecificFields },
     description,
     pricing: {
       basePrice: pricing.basePrice,
@@ -733,6 +741,11 @@ export default function StudentGigCreatePage() {
     };
 
     setBasics(nextBasics);
+    setCategorySpecificFields(
+      data.categorySpecificFields && typeof data.categorySpecificFields === 'object'
+        ? { ...data.categorySpecificFields }
+        : {}
+    );
     setDescription(typeof data.description === 'string' ? data.description : '');
     setPricing({
       basePrice: data.pricing?.basePrice ?? '',
@@ -836,6 +849,25 @@ export default function StudentGigCreatePage() {
     selectedSubcategoryId
   );
 
+  const categorySpecificFieldDefinitions = useMemo(
+    () =>
+      getGigCategoryFields({
+        categoryId: basics.categoryId,
+        subcategoryId: basics.subcategoryId,
+        serviceType: basics.serviceType
+      }),
+    [basics.categoryId, basics.subcategoryId, basics.serviceType]
+  );
+
+  const categorySpecificFieldErrors = useMemo(
+    () =>
+      validateGigCategoryFields(
+        categorySpecificFieldDefinitions,
+        categorySpecificFields
+      ),
+    [categorySpecificFieldDefinitions, categorySpecificFields]
+  );
+
   const filteredSkills = useMemo(() => {
     const normalizedQuery = deferredSkillQuery.trim().toLowerCase();
 
@@ -858,6 +890,33 @@ export default function StudentGigCreatePage() {
     ));
     setSkillQuery('');
     setVisibleSkillCount(24);
+  };
+
+  const handleCategorySpecificFieldChange = (fieldKey, value) => {
+    setCategorySpecificFields((previous) => ({
+      ...previous,
+      [fieldKey]: value
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      [`categorySpecific.${fieldKey}`]: true
+    }));
+
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+      const nextCategoryErrors = { ...(next.categorySpecific || {}) };
+
+      delete nextCategoryErrors[fieldKey];
+
+      if (Object.keys(nextCategoryErrors).length > 0) {
+        next.categorySpecific = nextCategoryErrors;
+      } else {
+        delete next.categorySpecific;
+      }
+
+      return next;
+    });
   };
 
   const removeSkill = (skillToRemove) => {
@@ -989,7 +1048,8 @@ export default function StudentGigCreatePage() {
     isTitleLengthValid &&
     Boolean(basics.categoryId) &&
     Boolean(basics.subcategoryId) &&
-    Boolean(basics.serviceType);
+    Boolean(basics.serviceType) &&
+    Object.keys(categorySpecificFieldErrors).length === 0;
 
   const effectiveCompletedSteps = useMemo(() => {
     const next = new Set(completedSteps);
@@ -1699,6 +1759,10 @@ export default function StudentGigCreatePage() {
       if (!basics.subcategoryId) basicsErrors.push('Select a subcategory.');
       if (!basics.serviceType) basicsErrors.push('Select a service type.');
 
+      Object.values(categorySpecificFieldErrors).forEach((message) => {
+        basicsErrors.push(message);
+      });
+
       addBlocker(
         1,
         'Complete your service basics.',
@@ -1845,6 +1909,7 @@ export default function StudentGigCreatePage() {
     faqs,
     isBasicsComplete,
     isDescriptionComplete,
+    categorySpecificFieldErrors,
     isPricingComplete,
     isDeliveryComplete,
     isRequirementsComplete,
@@ -1876,12 +1941,27 @@ export default function StudentGigCreatePage() {
       nextErrors.serviceType = 'Please select a service type.';
     }
 
+    const categorySpecificErrors = validateGigCategoryFields(
+      categorySpecificFieldDefinitions,
+      categorySpecificFields
+    );
+
+    if (Object.keys(categorySpecificErrors).length > 0) {
+      nextErrors.categorySpecific = categorySpecificErrors;
+    }
+
     setFieldErrors(nextErrors);
     setTouchedFields({
       title: true,
       categoryId: true,
       subcategoryId: true,
-      serviceType: true
+      serviceType: true,
+      ...Object.fromEntries(
+        categorySpecificFieldDefinitions.map((field) => [
+          `categorySpecific.${field.key}`,
+          true
+        ])
+      )
     });
 
     return Object.keys(nextErrors).length === 0;
@@ -1915,10 +1995,16 @@ export default function StudentGigCreatePage() {
       if (field === 'categoryId') {
         delete next.subcategoryId;
         delete next.serviceType;
+        delete next.categorySpecific;
       }
 
       if (field === 'subcategoryId') {
         delete next.serviceType;
+        delete next.categorySpecific;
+      }
+
+      if (field === 'serviceType') {
+        delete next.categorySpecific;
       }
 
       return next;
@@ -3208,6 +3294,21 @@ export default function StudentGigCreatePage() {
           </div>
         )}
       </section>
+
+      {categorySpecificFieldDefinitions.length > 0 && (
+        <GigCategorySpecificFields
+          fields={categorySpecificFieldDefinitions}
+          values={categorySpecificFields}
+          errors={categorySpecificFieldErrors}
+          touchedFields={Object.fromEntries(
+            categorySpecificFieldDefinitions.map((field) => [
+              field.key,
+              Boolean(touchedFields[`categorySpecific.${field.key}`])
+            ])
+          )}
+          onChange={handleCategorySpecificFieldChange}
+        />
+      )}
 
       <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
         <div className="max-w-3xl">
@@ -5636,6 +5737,10 @@ export default function StudentGigCreatePage() {
                                 requirements={requirements}
                                 media={media}
                                 faqs={faqs}
+                                categorySpecificFields={categorySpecificFieldDefinitions.map((field) => ({
+                                  ...field,
+                                  value: categorySpecificFields[field.key]
+                                }))}
                                 categoryName={selectedCategory?.name}
                                 subcategoryName={selectedSubcategory?.name}
                                 serviceTypeName={
