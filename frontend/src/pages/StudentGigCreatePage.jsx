@@ -23,6 +23,7 @@ import {
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
 import RichTextEditor from '../components/RichTextEditor.jsx';
+import GigBuyerPreview from '../components/GigBuyerPreview.jsx';
 import ImageCropModal from '../components/ImageCropModal.jsx';
 import API from '../services/api';
 import { richTextToPlainText } from '../utils/richText.js';
@@ -5395,9 +5396,28 @@ export default function StudentGigCreatePage() {
                             ? renderMedia()
                             : currentStep === 8
                               ? renderFaqs()
-                              : currentStep === 10
-                                ? renderValidationSummary()
-                                : renderPlaceholder()}
+                              : currentStep === 9
+                            ? (
+                              <GigBuyerPreview
+                                basics={basics}
+                                description={description}
+                                pricing={pricing}
+                                delivery={delivery}
+                                requirements={requirements}
+                                media={media}
+                                faqs={faqs}
+                                categoryName={selectedCategory?.name}
+                                subcategoryName={selectedSubcategory?.name}
+                                serviceTypeName={
+                                  serviceTypes.find(
+                                    (serviceType) => serviceType.id === basics.serviceType
+                                  )?.name || basics.serviceType
+                                }
+                              />
+                            )
+                            : currentStep === 10
+                              ? renderValidationSummary()
+                              : renderPlaceholder()}
 
                 <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-800">
                   <button
