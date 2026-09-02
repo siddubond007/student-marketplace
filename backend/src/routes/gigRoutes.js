@@ -7,6 +7,7 @@ router.get('/', gigController.getGigs);
 router.get('/drafts/:gigId', requireAuth, gigController.getGigDraft);
 router.post('/drafts', requireAuth, gigController.createGigDraft);
 router.put('/drafts/:gigId', requireAuth, gigController.updateGigDraft);
+router.post('/drafts/:gigId/submit', requireAuth, gigController.submitGigDraft);
 router.get('/:gigId', gigController.getGigById);
 router.post('/', requireAuth, gigController.createGig);
 

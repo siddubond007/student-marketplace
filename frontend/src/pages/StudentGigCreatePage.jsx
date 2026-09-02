@@ -6,10 +6,12 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  CheckCircle2,
   ChevronRight,
   Circle,
   FileEdit,
   Save,
+  Send,
   Search,
   X,
   Sparkles,
@@ -579,6 +581,9 @@ export default function StudentGigCreatePage() {
 
   const [saveState, setSaveState] = useState('idle');
   const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [submissionState, setSubmissionState] = useState('idle');
+  const [submissionError, setSubmissionError] = useState('');
+  const [submissionBlockers, setSubmissionBlockers] = useState([]);
 
   const draftIdRef = useRef(searchParams.get('draftId') || '');
   const draftVersionRef = useRef(0);
@@ -1179,6 +1184,9 @@ export default function StudentGigCreatePage() {
         hasUnsavedChangesRef.current = false;
         setLastSavedAt(savedDraft.updatedAt || null);
         setSaveState('saved');
+        if (savedDraft.status === 'PENDING_REVIEW') {
+          setSubmissionState('submitted');
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -2873,6 +2881,52 @@ export default function StudentGigCreatePage() {
 
     setCurrentStep((previous) => Math.min(previous + 1, steps.length));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+
+  const handleSubmitGig = async () => {
+    if (submissionState === 'submitting' || submissionState === 'submitted') return;
+
+    setSubmissionError('');
+    setSubmissionBlockers([]);
+
+    if (!validationSummary.isReadyForCurrentChecks) {
+      setSubmissionError('Fix the current blockers before submitting your gig.');
+      return;
+    }
+
+    setSubmissionState('submitting');
+
+    try {
+      await handleSaveDraft();
+
+      if (!draftIdRef.current) {
+        throw new Error('Unable to save the gig draft before submission.');
+      }
+
+      const response = await API.post(
+        `/gigs/drafts/${draftIdRef.current}/submit`
+      );
+
+      if (response.data?.submission?.status !== 'PENDING_REVIEW') {
+        throw new Error('Submission did not enter review status.');
+      }
+
+      setSubmissionState('submitted');
+      setSaveState('saved');
+    } catch (error) {
+      const blockers = Array.isArray(error?.response?.data?.blockers)
+        ? error.response.data.blockers
+        : [];
+
+      setSubmissionBlockers(blockers);
+      setSubmissionError(
+        error?.response?.data?.error ||
+          error?.message ||
+          'Failed to submit the gig for review.'
+      );
+      setSubmissionState('error');
+    }
   };
 
   const handleBack = () => {
@@ -5147,15 +5201,71 @@ export default function StudentGigCreatePage() {
         )}
       </section>
 
-      <div
-        role="note"
-        className="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 px-4 py-4"
-      >
-        <p className="text-xs leading-5 text-indigo-100/80">
-          Later requirements may add further submission, policy, quality, and
-          preview checks. This summary does not claim final publish validity.
-        </p>
-      </div>
+      {submissionError && (
+        <section
+          aria-labelledby="submission-error-heading"
+          className="rounded-3xl border border-red-500/20 bg-red-500/5 p-5 sm:p-7"
+        >
+          <h3
+            id="submission-error-heading"
+            className="text-sm font-black text-red-200"
+          >
+            Submission needs attention
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-red-200/80">
+            {submissionError}
+          </p>
+
+          {submissionBlockers.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {submissionBlockers.map((item) => (
+                <button
+                  key={`${item.step}-${item.field}-${item.detail || item.message}`}
+                  type="button"
+                  onClick={() => goToStep(item.step)}
+                  className="block w-full rounded-xl border border-red-500/15 bg-slate-950/50 px-3.5 py-3 text-left text-xs font-bold text-slate-300 hover:border-cyan-500/30 hover:text-white transition"
+                >
+                  Step {item.step}: {item.detail || item.message}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {submissionState === 'submitted' && (
+        <section
+          aria-labelledby="submission-success-heading"
+          className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-5 sm:p-7"
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+              <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+            </div>
+            <div>
+              <h3
+                id="submission-success-heading"
+                className="text-lg font-black text-white"
+              >
+                Gig submitted for review
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Your gig passed the current submission validation and is now
+                pending marketplace review. It will not appear as a published
+                marketplace listing until it is approved.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/student/gigs')}
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-xs font-black text-slate-950 hover:bg-cyan-400 transition"
+              >
+                Back to My Gigs
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 
@@ -5239,7 +5349,7 @@ export default function StudentGigCreatePage() {
                     <button
                       type="button"
                       onClick={handleSaveDraft}
-                      disabled={saveState === 'saving'}
+                      disabled={saveState === 'saving' || submissionState === 'submitted'}
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label="Save gig draft"
                     >
@@ -5441,7 +5551,7 @@ export default function StudentGigCreatePage() {
                       </button>
                     )}
 
-                    {currentStep < steps.length && (
+                    {currentStep < steps.length && submissionState !== 'submitted' && (
                       <button
                         type="button"
                         onClick={handleNext}
@@ -5449,6 +5559,24 @@ export default function StudentGigCreatePage() {
                       >
                         Continue
                         <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {currentStep === steps.length && submissionState !== 'submitted' && (
+                      <button
+                        type="button"
+                        onClick={handleSubmitGig}
+                        disabled={
+                          submissionState === 'submitting' ||
+                          !validationSummary.isReadyForCurrentChecks ||
+                          saveState === 'saving'
+                        }
+                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                        {submissionState === 'submitting'
+                          ? 'Submitting…'
+                          : 'Submit for Review'}
                       </button>
                     )}
                   </div>
