@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, PlusCircle, PackageCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, PlusCircle, PackageCheck, Edit3, Pause, Play, Copy, Archive } from 'lucide-react';
 import API from '../services/api';
 
 const GIG_LIFECYCLE_META = {
@@ -50,6 +50,8 @@ const GIG_LIFECYCLE_META = {
 export default function StudentGigsPage({ currentUser }) {
   const [gigs, setGigs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionState, setActionState] = useState({});
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     API.get('/gigs/mine')
@@ -68,6 +70,55 @@ export default function StudentGigsPage({ currentUser }) {
     () => gigs.filter((gig) => gig.sellerId === currentUser?.id),
     [gigs, currentUser?.id]
   );
+
+  const runGigAction = async (gig, action) => {
+    const key = `${gig.id}:${action}`;
+    setActionError('');
+    setActionState((previous) => ({ ...previous, [key]: true }));
+
+    try {
+      if (action === 'edit') {
+        window.location.assign(`/student/gigs/create?manageId=${encodeURIComponent(gig.id)}`);
+        return;
+      }
+
+      if (action === 'duplicate') {
+        const response = await API.post(`/gigs/${gig.id}/duplicate`);
+        const duplicatedGig = response.data?.gig;
+
+        if (duplicatedGig?.id) {
+          setGigs((previous) => [
+            duplicatedGig,
+            ...previous
+          ]);
+        }
+        return;
+      }
+
+      const response = await API.put(`/gigs/${gig.id}/lifecycle`, { action });
+      const updatedGig = response.data?.gig;
+
+      if (updatedGig?.id) {
+        setGigs((previous) =>
+          previous.map((item) =>
+            item.id === updatedGig.id
+              ? { ...item, status: updatedGig.status, updatedAt: updatedGig.updatedAt }
+              : item
+          )
+        );
+      }
+    } catch (error) {
+      setActionError(
+        error?.response?.data?.error || 'Gig action failed. Please try again.'
+      );
+    } finally {
+      setActionState((previous) => {
+        const next = { ...previous };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   return (
     <div className="space-y-6 pb-16">
@@ -238,6 +289,69 @@ export default function StudentGigsPage({ currentUser }) {
                         </p>
                       </div>
                     </div>
+
+                    {actionError && (
+                      <p className="mt-3 text-xs leading-5 text-red-300">
+                        {actionError}
+                      </p>
+                    )}
+
+                    {(gig.status === 'PUBLISHED' || gig.status === 'PAUSED') && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => runGigAction(gig, 'edit')}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-[10px] font-black text-slate-300 hover:border-cyan-500/40 hover:text-white transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={Boolean(actionState[`${gig.id}:${gig.status === 'PAUSED' ? 'resume' : 'pause'}`])}
+                          onClick={() =>
+                            runGigAction(
+                              gig,
+                              gig.status === 'PAUSED' ? 'resume' : 'pause'
+                            )
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-[10px] font-black text-slate-300 hover:border-cyan-500/40 hover:text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {gig.status === 'PAUSED' ? (
+                            <>
+                              <Play className="w-3.5 h-3.5" />
+                              Resume
+                            </>
+                          ) : (
+                            <>
+                              <Pause className="w-3.5 h-3.5" />
+                              Pause
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={Boolean(actionState[`${gig.id}:duplicate`])}
+                          onClick={() => runGigAction(gig, 'duplicate')}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-[10px] font-black text-slate-300 hover:border-cyan-500/40 hover:text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          {actionState[`${gig.id}:duplicate`] ? 'Copying…' : 'Duplicate'}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={Boolean(actionState[`${gig.id}:archive`])}
+                          onClick={() => runGigAction(gig, 'archive')}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-[10px] font-black text-slate-300 hover:border-red-500/40 hover:text-red-200 transition disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                          Archive
+                        </button>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between gap-3 mt-4">
                       <div className="flex items-center gap-2 min-w-0">

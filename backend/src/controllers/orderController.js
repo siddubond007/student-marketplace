@@ -133,7 +133,11 @@ exports.createGigOrder = async (req, res) => {
     }
 
     const gig = await prisma.gig.findFirst({
-      where: { id: gigId, isDeleted: false },
+      where: {
+        id: gigId,
+        status: 'PUBLISHED',
+        isDeleted: false
+      },
       include: {
         packages: {
           where: { id: gigPackageId },

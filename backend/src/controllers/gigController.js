@@ -713,3 +713,290 @@ exports.submitGigDraft = async (req, res) => {
     return res.status(500).json({ error: 'Failed to submit gig for review.' });
   }
 };
+
+
+const assertGigOwner = async (gigId, sellerId) => {
+  return prisma.gig.findFirst({
+    where: {
+      id: gigId,
+      sellerId,
+      isDeleted: false
+    },
+    include: {
+      packages: {
+        orderBy: { price: 'asc' }
+      }
+    }
+  });
+};
+
+exports.getGigForManagement = async (req, res) => {
+  try {
+    const gig = await assertGigOwner(req.params.gigId, req.user.id);
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(gig.status)) {
+      return res.status(409).json({
+        error: 'Only published or paused gigs can be managed here.'
+      });
+    }
+
+    return res.json({
+      id: gig.id,
+      status: gig.status,
+      title: gig.title,
+      category: gig.category,
+      categoryId: gig.categoryId,
+      subcategoryId: gig.subcategoryId,
+      description: gig.description,
+      coverImage: gig.coverImage,
+      draftData: gig.draftData || {},
+      draftVersion: gig.draftVersion,
+      updatedAt: gig.updatedAt,
+      packages: gig.packages
+    });
+  } catch (err) {
+    console.error('Get Gig Management Error:', err);
+    return res.status(500).json({ error: 'Failed to load gig for management.' });
+  }
+};
+
+exports.updateGigLifecycle = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+    const { action } = req.body || {};
+
+    const gig = await assertGigOwner(gigId, req.user.id);
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    const transitions = {
+      pause: { from: ['PUBLISHED'], to: 'PAUSED' },
+      resume: { from: ['PAUSED'], to: 'PUBLISHED' },
+      archive: { from: ['PUBLISHED', 'PAUSED'], to: 'ARCHIVED' }
+    };
+
+    const transition = transitions[action];
+
+    if (!transition) {
+      return res.status(400).json({
+        error: 'Unsupported gig lifecycle action.'
+      });
+    }
+
+    if (!transition.from.includes(gig.status)) {
+      return res.status(409).json({
+        error: `Cannot ${action} a gig in ${gig.status} status.`
+      });
+    }
+
+    const updatedGig = await prisma.gig.update({
+      where: { id: gig.id },
+      data: { status: transition.to }
+    });
+
+    const actionMessages = {
+      pause: 'Gig paused successfully.',
+      resume: 'Gig resumed successfully.',
+      archive: 'Gig archived successfully.'
+    };
+
+    return res.json({
+      message: actionMessages[action],
+      gig: {
+        id: updatedGig.id,
+        status: updatedGig.status,
+        updatedAt: updatedGig.updatedAt
+      }
+    });
+  } catch (err) {
+    console.error('Update Gig Lifecycle Error:', err);
+    return res.status(500).json({ error: 'Failed to update gig lifecycle.' });
+  }
+};
+
+exports.duplicateGig = async (req, res) => {
+  try {
+    const sourceGig = await assertGigOwner(req.params.gigId, req.user.id);
+
+    if (!sourceGig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(sourceGig.status)) {
+      return res.status(409).json({
+        error: 'Only published or paused gigs can be duplicated.'
+      });
+    }
+
+    const duplicated = await prisma.gig.create({
+      data: {
+        sellerId: req.user.id,
+        title: sourceGig.title,
+        category: sourceGig.category,
+        categoryId: sourceGig.categoryId,
+        subcategoryId: sourceGig.subcategoryId,
+        description: sourceGig.description,
+        coverImage: sourceGig.coverImage,
+        isTiered: sourceGig.isTiered,
+        status: 'DRAFT',
+        draftData: sourceGig.draftData || {},
+        draftVersion: Math.max(Number(sourceGig.draftVersion) || 0, 1),
+        packages: {
+          create: sourceGig.packages.map((pkg) => ({
+            tierName: pkg.tierName,
+            price: pkg.price,
+            deliveryDays: pkg.deliveryDays,
+            revisions: pkg.revisions,
+            description: pkg.description
+          }))
+        }
+      },
+      include: {
+        packages: {
+          orderBy: { price: 'asc' }
+        }
+      }
+    });
+
+    return res.status(201).json({
+      message: 'Gig duplicated as a draft.',
+      gig: {
+        id: duplicated.id,
+        sellerId: duplicated.sellerId,
+        title: duplicated.title,
+        category: duplicated.category,
+        categoryId: duplicated.categoryId,
+        subcategoryId: duplicated.subcategoryId,
+        description: duplicated.description,
+        coverImage: duplicated.coverImage,
+        isTiered: duplicated.isTiered,
+        status: duplicated.status,
+        draftData: duplicated.draftData || {},
+        draftVersion: duplicated.draftVersion,
+        updatedAt: duplicated.updatedAt,
+        createdAt: duplicated.createdAt,
+        packages: duplicated.packages
+      }
+    });
+  } catch (err) {
+    console.error('Duplicate Gig Error:', err);
+    return res.status(500).json({ error: 'Failed to duplicate gig.' });
+  }
+};
+
+exports.updateGigForManagement = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+    const { draftData } = req.body || {};
+
+    if (!draftData || typeof draftData !== 'object' || Array.isArray(draftData)) {
+      return res.status(400).json({ error: 'draftData must be a JSON object.' });
+    }
+
+    const existingGig = await assertGigOwner(gigId, req.user.id);
+
+    if (!existingGig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(existingGig.status)) {
+      return res.status(409).json({
+        error: 'Only published or paused gigs can be edited.'
+      });
+    }
+
+    const { categoryId, subcategoryId } =
+      await resolveDraftTaxonomyIds(draftData, {
+        categoryId: existingGig.categoryId,
+        subcategoryId: existingGig.subcategoryId
+      });
+
+    const title =
+      typeof draftData?.basics?.title === 'string'
+        ? draftData.basics.title
+        : existingGig.title;
+
+    const category =
+      typeof draftData?.basics?.categoryId === 'string'
+        ? draftData.basics.categoryId
+        : existingGig.category;
+
+    const description =
+      typeof draftData.description === 'string'
+        ? draftData.description
+        : existingGig.description;
+
+    const coverImage =
+      typeof draftData?.media?.cover?.url === 'string'
+        ? draftData.media.cover.url
+        : existingGig.coverImage;
+
+    const updatedGig = await prisma.$transaction(async (tx) => {
+      const gig = await tx.gig.update({
+        where: { id: existingGig.id },
+        data: {
+          title,
+          category,
+          categoryId,
+          subcategoryId,
+          description,
+          coverImage,
+          draftData,
+          draftVersion: existingGig.draftVersion + 1
+        }
+      });
+
+      const pricing = draftData?.pricing || {};
+      const delivery = draftData?.delivery || {};
+      const firstPackage = existingGig.packages[0];
+
+      const parsedPrice = Number(pricing.basePrice);
+      const parsedDays = Number(delivery.deliveryDays);
+      const parsedRevisions =
+        delivery.revisions === 'unlimited'
+          ? -1
+          : Number(delivery.revisions);
+
+      if (
+        firstPackage &&
+        Number.isFinite(parsedPrice) &&
+        parsedPrice > 0 &&
+        Number.isInteger(parsedDays) &&
+        parsedDays > 0 &&
+        Number.isInteger(parsedRevisions) &&
+        parsedRevisions >= -1
+      ) {
+        await tx.gigPackage.update({
+          where: { id: firstPackage.id },
+          data: {
+            price: parsedPrice,
+            deliveryDays: parsedDays,
+            revisions: parsedRevisions
+          }
+        });
+      }
+
+      return gig;
+    });
+
+    return res.json({
+      message: 'Gig updated successfully.',
+      gig: {
+        id: updatedGig.id,
+        status: updatedGig.status,
+        draftData: updatedGig.draftData || {},
+        draftVersion: updatedGig.draftVersion,
+        updatedAt: updatedGig.updatedAt
+      }
+    });
+  } catch (err) {
+    console.error('Update Gig Management Error:', err);
+    return res.status(500).json({ error: 'Failed to update gig.' });
+  }
+};

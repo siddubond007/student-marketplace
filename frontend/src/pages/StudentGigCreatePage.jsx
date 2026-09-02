@@ -585,6 +585,9 @@ export default function StudentGigCreatePage() {
   const [submissionError, setSubmissionError] = useState('');
   const [submissionBlockers, setSubmissionBlockers] = useState([]);
 
+  const managementGigId = searchParams.get('manageId') || '';
+  const isManagementEdit = Boolean(managementGigId);
+
   const draftIdRef = useRef(searchParams.get('draftId') || '');
   const draftVersionRef = useRef(0);
   const saveTimerRef = useRef(null);
@@ -1097,7 +1100,12 @@ export default function StudentGigCreatePage() {
       try {
         let response;
 
-        if (draftIdRef.current) {
+        if (isManagementEdit && managementGigId) {
+          response = await API.put(
+            `/gigs/${managementGigId}/manage`,
+            { draftData: parsedSnapshot }
+          );
+        } else if (draftIdRef.current) {
           response = await API.put(
             `/gigs/drafts/${draftIdRef.current}`,
             payload
@@ -1106,9 +1114,9 @@ export default function StudentGigCreatePage() {
           response = await API.post('/gigs/drafts', payload);
         }
 
-        const savedDraft = response.data?.draft;
+        const savedDraft = response.data?.draft || response.data?.gig;
         if (!savedDraft?.id) {
-          throw new Error('Draft save response did not include a draft ID.');
+          throw new Error('Gig save response did not include a gig ID.');
         }
 
         draftIdRef.current = savedDraft.id;
@@ -1124,7 +1132,10 @@ export default function StudentGigCreatePage() {
         hasUnsavedChangesRef.current = false;
         setLastSavedAt(savedDraft.updatedAt || new Date().toISOString());
         setSaveState('saved');
-        updateDraftUrl(savedDraft.id);
+
+        if (!isManagementEdit) {
+          updateDraftUrl(savedDraft.id);
+        }
       } catch (error) {
         if (sequence < latestRequestedSequenceRef.current) {
           return;
@@ -1162,6 +1173,109 @@ export default function StudentGigCreatePage() {
     let cancelled = false;
 
     const requestedDraftId = searchParams.get('draftId');
+
+    if (isManagementEdit && managementGigId) {
+      API.get(`/gigs/${managementGigId}/manage`)
+        .then((response) => {
+          if (cancelled) return;
+
+          const managedGig = response.data;
+          if (!managedGig?.id) {
+            throw new Error('Managed gig was not returned.');
+          }
+
+          draftIdRef.current = managedGig.id;
+          draftVersionRef.current = Number(managedGig.draftVersion) || 0;
+
+          const sourceData =
+            managedGig.draftData &&
+            typeof managedGig.draftData === 'object'
+              ? managedGig.draftData
+              : {};
+
+          const firstPackage = Array.isArray(managedGig.packages)
+            ? managedGig.packages[0]
+            : null;
+
+          const hydratedData = {
+            ...sourceData,
+            basics: {
+              ...(sourceData.basics || {}),
+              title: sourceData.basics?.title || managedGig.title || '',
+              categoryId:
+                sourceData.basics?.categoryId ||
+                managedGig.category ||
+                '',
+              subcategoryId:
+                sourceData.basics?.subcategoryId ||
+                managedGig.subcategoryId ||
+                '',
+              serviceType:
+                sourceData.basics?.serviceType || '',
+              skills: Array.isArray(sourceData.basics?.skills)
+                ? sourceData.basics.skills
+                : []
+            },
+            description:
+              typeof sourceData.description === 'string'
+                ? sourceData.description
+                : managedGig.description || '',
+            pricing: {
+              ...(sourceData.pricing || {}),
+              basePrice:
+                sourceData.pricing?.basePrice ??
+                firstPackage?.price ??
+                '',
+              currency:
+                sourceData.pricing?.currency || 'INR'
+            },
+            delivery: {
+              ...(sourceData.delivery || {}),
+              deliveryDays:
+                sourceData.delivery?.deliveryDays ??
+                firstPackage?.deliveryDays ??
+                '',
+              revisions:
+                sourceData.delivery?.revisions ??
+                (firstPackage?.revisions === -1
+                  ? 'unlimited'
+                  : firstPackage?.revisions ?? '')
+            },
+            media: {
+              ...(sourceData.media || {}),
+              cover:
+                sourceData.media?.cover ||
+                (managedGig.coverImage
+                  ? { url: managedGig.coverImage }
+                  : null)
+            },
+            requirements: Array.isArray(sourceData.requirements)
+              ? sourceData.requirements
+              : [],
+            faqs: Array.isArray(sourceData.faqs)
+              ? sourceData.faqs
+              : []
+          };
+
+          restoreGigDraft({ draftData: hydratedData });
+          latestSavedSnapshotRef.current = JSON.stringify(hydratedData);
+          latestSnapshotRef.current = latestSavedSnapshotRef.current;
+          hasUnsavedChangesRef.current = false;
+          setLastSavedAt(managedGig.updatedAt || null);
+          setSaveState('saved');
+        })
+        .catch(() => {
+          if (!cancelled) setSaveState('error');
+        })
+        .finally(() => {
+          if (!cancelled) draftHydratedRef.current = true;
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!requestedDraftId) {
       draftHydratedRef.current = true;
       return undefined;
@@ -1202,7 +1316,7 @@ export default function StudentGigCreatePage() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [searchParams, managementGigId, isManagementEdit]);
 
   const draftSnapshot = JSON.stringify(serializeGigDraft());
 
@@ -5316,10 +5430,12 @@ export default function StudentGigCreatePage() {
                         Student Workspace
                       </p>
                       <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mt-1">
-                        Create a Service
+                        {isManagementEdit ? 'Edit Service' : 'Create a Service'}
                       </h1>
                       <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-                        Build a clear, trustworthy service listing buyers can understand before they order.
+                        {isManagementEdit
+                          ? 'Update your service while keeping its current lifecycle state.'
+                          : 'Build a clear, trustworthy service listing buyers can understand before they order.'}
                       </p>
                     </div>
                   </div>
@@ -5329,7 +5445,7 @@ export default function StudentGigCreatePage() {
                   <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                      Ready to edit
+                      {isManagementEdit ? 'Editing Service' : 'Ready to edit'}
                     </span>
                   </div>
 
@@ -5354,7 +5470,11 @@ export default function StudentGigCreatePage() {
                       aria-label="Save gig draft"
                     >
                       <Save className="w-4 h-4" />
-                      {saveState === 'saving' ? 'Saving…' : 'Save Draft'}
+                      {saveState === 'saving'
+                        ? 'Saving…'
+                        : isManagementEdit
+                          ? 'Save Changes'
+                          : 'Save Draft'}
                     </button>
                 </div>
               </div>
@@ -5562,7 +5682,9 @@ export default function StudentGigCreatePage() {
                       </button>
                     )}
 
-                    {currentStep === steps.length && submissionState !== 'submitted' && (
+                    {currentStep === steps.length &&
+                      submissionState !== 'submitted' &&
+                      !isManagementEdit && (
                       <button
                         type="button"
                         onClick={handleSubmitGig}
