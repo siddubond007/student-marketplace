@@ -21,6 +21,42 @@ import {
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 
+const GIG_LIFECYCLE_META = {
+  DRAFT: {
+    label: 'Draft',
+    className: 'bg-slate-500/10 border-slate-500/20 text-slate-300'
+  },
+  INCOMPLETE: {
+    label: 'Incomplete',
+    className: 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+  },
+  PENDING_REVIEW: {
+    label: 'Pending Review',
+    className: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+  },
+  PUBLISHED: {
+    label: 'Published',
+    className: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+  },
+  PAUSED: {
+    label: 'Paused',
+    className: 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+  },
+  REJECTED: {
+    label: 'Rejected',
+    className: 'bg-red-500/10 border-red-500/20 text-red-300'
+  },
+  NEEDS_CHANGES: {
+    label: 'Needs Changes',
+    className: 'bg-orange-500/10 border-orange-500/20 text-orange-300'
+  },
+  ARCHIVED: {
+    label: 'Archived',
+    className: 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+  }
+};
+
+
 const getReputationLevel = (points = 0) => {
   if (points >= 1000) return { title: 'Legend', color: 'text-yellow-400' };
   if (points >= 500) return { title: 'Elite', color: 'text-purple-400' };
@@ -193,7 +229,7 @@ export default function StudentDashboard({ currentUser }) {
     }
 
     API.get('/orders').then(res => setOrders(res.data || [])).catch(() => {});
-    API.get('/gigs').then(res => setGigs(res.data || [])).catch(() => {});
+    API.get('/gigs/mine').then(res => setGigs(res.data || [])).catch(() => {});
     API.get('/jobs')
       .then(res => {
         const jobs = res.data || [];
@@ -756,7 +792,7 @@ export default function StudentDashboard({ currentUser }) {
               My Gigs
             </p>
             <h3 className="text-lg font-black text-white mt-1">
-              Your latest published services
+              Your latest gig lifecycle states
             </h3>
           </div>
 
@@ -782,13 +818,17 @@ export default function StudentDashboard({ currentUser }) {
           <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-8 text-center">
             <Briefcase className="w-6 h-6 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-500 mt-3">
-              You have not published any gigs yet.
+              You have not created any gigs yet.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {gigs.slice(0, 2).map((gig) => {
               const firstPackage = gig.packages?.[0];
+              const lifecycle = GIG_LIFECYCLE_META[gig.status] || {
+                label: 'Unknown',
+                className: 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+              };
 
               return (
                 <article
@@ -809,8 +849,11 @@ export default function StudentDashboard({ currentUser }) {
                         {gig.category || 'Service'}
                       </span>
 
-                      <span className="text-[10px] font-black text-slate-500">
-                        {new Date(gig.createdAt).toLocaleDateString()}
+                      <span
+                        className={`px-2.5 py-1 rounded-full border text-[10px] font-black ${lifecycle.className}`}
+                        title={lifecycle.label}
+                      >
+                        {lifecycle.label}
                       </span>
                     </div>
 

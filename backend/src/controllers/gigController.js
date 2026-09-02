@@ -84,6 +84,35 @@ exports.getGigById = async (req, res) => {
   }
 };
 
+exports.getMyGigs = async (req, res) => {
+  try {
+    if (req.user.role !== 'STUDENT_FREELANCER' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'Only Student Freelancer accounts can view their gigs.'
+      });
+    }
+
+    const gigs = await prisma.gig.findMany({
+      where: {
+        sellerId: req.user.id,
+        isDeleted: false
+      },
+      include: {
+        packages: {
+          orderBy: { price: 'asc' }
+        },
+        orders: true
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    return res.json(gigs);
+  } catch (err) {
+    console.error('Get My Gigs Error:', err);
+    return res.status(500).json({ error: 'Failed to load your gigs.' });
+  }
+};
+
 exports.getGigs = async (req, res) => {
   try {
     const gigs = await prisma.gig.findMany({

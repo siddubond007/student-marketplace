@@ -3,12 +3,56 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Briefcase, PlusCircle, PackageCheck } from 'lucide-react';
 import API from '../services/api';
 
+const GIG_LIFECYCLE_META = {
+  DRAFT: {
+    label: 'Draft',
+    description: 'Saved work that can still be edited.',
+    className: 'bg-slate-500/10 border-slate-500/20 text-slate-300'
+  },
+  INCOMPLETE: {
+    label: 'Incomplete',
+    description: 'Required information still needs to be fixed.',
+    className: 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+  },
+  PENDING_REVIEW: {
+    label: 'Pending Review',
+    description: 'Submitted and awaiting marketplace review.',
+    className: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+  },
+  PUBLISHED: {
+    label: 'Published',
+    description: 'Visible and orderable in the marketplace.',
+    className: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+  },
+  PAUSED: {
+    label: 'Paused',
+    description: 'Saved but not accepting new orders.',
+    className: 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+  },
+  REJECTED: {
+    label: 'Rejected',
+    description: 'Submission was rejected by moderation.',
+    className: 'bg-red-500/10 border-red-500/20 text-red-300'
+  },
+  NEEDS_CHANGES: {
+    label: 'Needs Changes',
+    description: 'Requested edits are needed before resubmission.',
+    className: 'bg-orange-500/10 border-orange-500/20 text-orange-300'
+  },
+  ARCHIVED: {
+    label: 'Archived',
+    description: 'No longer active.',
+    className: 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+  }
+};
+
+
 export default function StudentGigsPage({ currentUser }) {
   const [gigs, setGigs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    API.get('/gigs')
+    API.get('/gigs/mine')
       .then((res) => {
         setGigs(res.data || []);
       })
@@ -21,12 +65,7 @@ export default function StudentGigsPage({ currentUser }) {
   }, []);
 
   const myGigs = useMemo(
-    () =>
-      gigs.filter(
-        (gig) =>
-          gig.seller?.id === currentUser?.id ||
-          gig.sellerId === currentUser?.id
-      ),
+    () => gigs.filter((gig) => gig.sellerId === currentUser?.id),
     [gigs, currentUser?.id]
   );
 
@@ -60,7 +99,7 @@ export default function StudentGigsPage({ currentUser }) {
               </div>
 
               <p className="text-xs text-slate-500 mt-3">
-                Manage the services you have published for clients.
+                Track the current lifecycle state of your student services.
               </p>
             </div>
 
@@ -86,11 +125,11 @@ export default function StudentGigsPage({ currentUser }) {
           </div>
 
           <h2 className="text-lg font-black text-white mt-4">
-            You have not published a gig yet
+            You have not created a gig yet
           </h2>
 
           <p className="max-w-md mx-auto text-xs leading-6 text-slate-500 mt-2">
-            Create your first service and start showing clients what you can do.
+            Create your first service and track its lifecycle from draft to publication.
           </p>
 
           <Link
@@ -98,7 +137,7 @@ export default function StudentGigsPage({ currentUser }) {
             className="inline-flex mt-6 px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
-            Publish Your First Gig
+            Create Your First Gig
           </Link>
         </section>
       ) : (
@@ -106,7 +145,7 @@ export default function StudentGigsPage({ currentUser }) {
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-                Published Services
+                Gig Lifecycle
               </p>
               <h2 className="text-lg font-black text-white mt-1">
                 {myGigs.length} gig{myGigs.length === 1 ? '' : 's'}
@@ -117,9 +156,13 @@ export default function StudentGigsPage({ currentUser }) {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {myGigs.map((gig) => {
               const firstPackage = gig.packages?.[0];
-
               const packageCount = gig.packages?.length || 0;
               const orderCount = gig.orders?.length || 0;
+              const lifecycle = GIG_LIFECYCLE_META[gig.status] || {
+                label: 'Unknown',
+                description: 'Lifecycle status is unavailable.',
+                className: 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+              };
 
               return (
                 <article
@@ -140,8 +183,11 @@ export default function StudentGigsPage({ currentUser }) {
                         {gig.category || 'Service'}
                       </span>
 
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-300">
-                        Published
+                      <span
+                        className={`px-2.5 py-1 rounded-full border text-[10px] font-black ${lifecycle.className}`}
+                        title={lifecycle.description}
+                      >
+                        {lifecycle.label}
                       </span>
                     </div>
 
