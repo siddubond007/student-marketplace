@@ -102,6 +102,8 @@ model User {
   razorpayAccountId        String?
   strikeLogs               StrikeLog[]
   activityEvents           OrderActivityEvent[]
+  gigAnalyticsEvents       GigAnalyticsEvent[]
+  gigFavorites             GigFavorite[]
   isDeleted                Boolean               @default(false)
   deletedAt                DateTime?
 }
@@ -175,6 +177,8 @@ model Gig {
 
   packages       GigPackage[]
   orders         Order[]
+  analyticsEvents GigAnalyticsEvent[]
+  favorites      GigFavorite[]
   isDeleted      Boolean      @default(false)
   deletedAt      DateTime?
   categoryId     String?
@@ -186,6 +190,35 @@ model Gig {
   @@index([sellerId])
   @@index([categoryId])
   @@index([subcategoryId])
+}
+
+model GigAnalyticsEvent {
+  id            String   @id @default(uuid())
+  gigId         String
+  actorId       String?
+  type          String
+  eventId       String   @unique
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  gig           Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  actor         User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([gigId, type, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model GigFavorite {
+  id        String   @id @default(uuid())
+  gigId     String
+  userId    String
+  createdAt DateTime @default(now())
+
+  gig       Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gigId, userId])
+  @@index([userId, createdAt])
 }
 
 model GigPackage {

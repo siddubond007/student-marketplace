@@ -3,6 +3,15 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Briefcase, PlusCircle, PackageCheck, Edit3, Pause, Play, Copy, Archive } from 'lucide-react';
 import API from '../services/api';
 
+const stripHtmlForPreview = (value) =>
+  String(value || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const GIG_LIFECYCLE_META = {
   DRAFT: {
     label: 'Draft',
@@ -52,14 +61,32 @@ export default function StudentGigsPage({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [actionState, setActionState] = useState({});
   const [actionError, setActionError] = useState('');
+  const [analyticsByGig, setAnalyticsByGig] = useState({});
 
   useEffect(() => {
     API.get('/gigs/mine')
-      .then((res) => {
-        setGigs(res.data || []);
+      .then(async (res) => {
+        const nextGigs = res.data || [];
+        setGigs(nextGigs);
+
+        const analyticsResults = await Promise.all(
+          nextGigs
+            .filter((gig) => ['PUBLISHED', 'PAUSED'].includes(gig.status))
+            .map(async (gig) => {
+              try {
+                const response = await API.get(`/gigs/${gig.id}/analytics`);
+                return [gig.id, response.data];
+              } catch {
+                return [gig.id, null];
+              }
+            })
+        );
+
+        setAnalyticsByGig(Object.fromEntries(analyticsResults));
       })
       .catch(() => {
         setGigs([]);
+        setAnalyticsByGig({});
       })
       .finally(() => {
         setLoading(false);
@@ -209,6 +236,7 @@ export default function StudentGigsPage({ currentUser }) {
               const firstPackage = gig.packages?.[0];
               const packageCount = gig.packages?.length || 0;
               const orderCount = gig.orders?.length || 0;
+              const analytics = analyticsByGig[gig.id];
               const lifecycle = GIG_LIFECYCLE_META[gig.status] || {
                 label: 'Unknown',
                 description: 'Lifecycle status is unavailable.',
@@ -247,7 +275,7 @@ export default function StudentGigsPage({ currentUser }) {
                     </h3>
 
                     <p className="text-sm leading-6 text-slate-400 mt-2 line-clamp-3">
-                      {gig.description}
+                      {stripHtmlForPreview(gig.description) || 'No service description added yet.'}
                     </p>
 
                     <div className="grid grid-cols-2 gap-3 mt-5">
@@ -269,6 +297,37 @@ export default function StudentGigsPage({ currentUser }) {
                         </p>
                       </div>
                     </div>
+
+                    {analytics && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Views</p>
+                          <p className="text-sm font-black text-white mt-1">{analytics.views ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Clicks</p>
+                          <p className="text-sm font-black text-white mt-1">{analytics.clicks ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Favorites</p>
+                          <p className="text-sm font-black text-white mt-1">{analytics.favorites ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Orders</p>
+                          <p className="text-sm font-black text-white mt-1">{analytics.orders ?? 0}</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Conversion</p>
+                          <p className="text-sm font-black text-emerald-300 mt-1">{analytics.conversionRate ?? 0}%</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Revenue</p>
+                          <p className="text-sm font-black text-emerald-300 mt-1">
+                            ₹{Number(analytics.revenue || 0).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 mt-3">
                       <div className="rounded-xl bg-slate-900/80 px-3 py-2.5">
@@ -296,8 +355,15 @@ export default function StudentGigsPage({ currentUser }) {
                       </p>
                     )}
 
-                    {(gig.status === 'PUBLISHED' || gig.status === 'PAUSED') && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                    {['PUBLISHED', 'PAUSED'].includes(gig.status) ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4">
+                        <Link
+                          to={`/gigs/${gig.id}`}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2.5 text-[10px] font-black text-cyan-300 hover:border-cyan-400/50 hover:text-white transition"
+                        >
+                          View Gig
+                        </Link>
+
                         <button
                           type="button"
                           onClick={() => runGigAction(gig, 'edit')}
@@ -351,13 +417,24 @@ export default function StudentGigsPage({ currentUser }) {
                           Archive
                         </button>
                       </div>
+                    ) : (
+                      <div className="mt-4">
+                        <Link
+                          to={`/student/gigs/create?draftId=${encodeURIComponent(gig.id)}`}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-[10px] font-black text-cyan-300 hover:border-cyan-400/50 hover:text-white transition"
+                        >
+                          Open Draft
+                        </Link>
+                      </div>
                     )}
 
                     <div className="flex items-center justify-between gap-3 mt-4">
                       <div className="flex items-center gap-2 min-w-0">
                         <PackageCheck className="w-4 h-4 text-indigo-400 shrink-0" />
                         <span className="text-xs text-slate-500 truncate">
-                          Published {new Date(gig.createdAt).toLocaleDateString('en-IN')}
+                          {gig.status === 'PUBLISHED'
+                            ? `Published ${new Date(gig.updatedAt || gig.createdAt).toLocaleDateString('en-IN')}`
+                            : `Created ${new Date(gig.createdAt).toLocaleDateString('en-IN')}`}
                         </span>
                       </div>
 

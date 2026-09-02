@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const gigController = require('../controllers/gigController');
-const { requireAuth } = require('../middlewares/authMiddleware');
+const { requireAuth, optionalAuth } = require('../middlewares/authMiddleware');
 
 router.get('/', gigController.getGigs);
 router.get('/mine', requireAuth, gigController.getMyGigs);
@@ -13,7 +13,10 @@ router.put('/:gigId/lifecycle', requireAuth, gigController.updateGigLifecycle);
 router.post('/:gigId/duplicate', requireAuth, gigController.duplicateGig);
 router.get('/:gigId/manage', requireAuth, gigController.getGigForManagement);
 router.put('/:gigId/manage', requireAuth, gigController.updateGigForManagement);
-router.get('/:gigId', gigController.getGigById);
+router.post('/:gigId/analytics', optionalAuth, gigController.recordGigAnalytics);
+router.post('/:gigId/favorite', requireAuth, gigController.toggleGigFavorite);
+router.get('/:gigId/analytics', requireAuth, gigController.getGigAnalytics);
+router.get('/:gigId', optionalAuth, gigController.getGigById);
 router.post('/', requireAuth, gigController.createGig);
 
 module.exports = router;

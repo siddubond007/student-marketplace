@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Bookmark,
   CheckCircle2,
   Clock3,
   ShieldCheck,
   Star
 } from 'lucide-react';
 import API from '../services/api';
+
+const pendingGigViewEvents = new Map();
 
 export default function GigDetailsPage({ currentUser }) {
   const { gigId } = useParams();
@@ -19,6 +22,42 @@ export default function GigDetailsPage({ currentUser }) {
   const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [error, setError] = useState('');
   const [purchaseError, setPurchaseError] = useState('');
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const recordAnalyticsEvent = useCallback((type) => {
+    const eventId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return API.post(`/gigs/${gigId}/analytics`, {
+      type,
+      eventId,
+      metadata: { source: 'gig_detail' }
+    }).catch((analyticsError) => {
+      console.debug('Gig analytics event skipped:', analyticsError);
+    });
+  }, [gigId]);
+
+  const toggleFavorite = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    setFavoriteBusy(true);
+
+    try {
+      const response = await API.post(`/gigs/${gigId}/favorite`);
+      setFavorited(Boolean(response.data?.favorited));
+      setFavoriteCount(Number(response.data?.favorites || 0));
+    } catch (favoriteError) {
+      console.error('Gig favorite update failed:', favoriteError);
+    } finally {
+      setFavoriteBusy(false);
+    }
+  };
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -39,6 +78,7 @@ export default function GigDetailsPage({ currentUser }) {
     if (!currentUser || !selectedPackage?.id) return;
 
     setPurchaseError('');
+    void recordAnalyticsEvent('PURCHASE_CLICK');
 
     try {
       const res = await API.post('/orders/gig-purchase', {
@@ -131,6 +171,15 @@ export default function GigDetailsPage({ currentUser }) {
 
         const nextGig = res.data;
         setGig(nextGig);
+        setFavorited(Boolean(nextGig?.analytics?.favorited));
+        setFavoriteCount(Number(nextGig?.analytics?.favorites || 0));
+
+        if (!pendingGigViewEvents.has(gigId)) {
+          const viewPromise = recordAnalyticsEvent('VIEW').finally(() => {
+            pendingGigViewEvents.delete(gigId);
+          });
+          pendingGigViewEvents.set(gigId, viewPromise);
+        }
 
         const firstPackage = Array.isArray(nextGig?.packages)
           ? nextGig.packages[0]
@@ -149,7 +198,7 @@ export default function GigDetailsPage({ currentUser }) {
     return () => {
       cancelled = true;
     };
-  }, [gigId]);
+  }, [gigId, recordAnalyticsEvent]);
 
   if (loading) {
     return (
@@ -317,9 +366,23 @@ export default function GigDetailsPage({ currentUser }) {
                 </h2>
               </div>
 
-              <span className="text-xs font-black text-slate-500">
-                {packages.length} option{packages.length === 1 ? '' : 's'}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleFavorite}
+                  disabled={favoriteBusy}
+                  aria-pressed={favorited}
+                  aria-label={favorited ? 'Remove gig from favorites' : 'Add gig to favorites'}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs font-black text-slate-300 hover:border-indigo-500/40 hover:text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Bookmark className={`w-4 h-4 ${favorited ? 'fill-current text-indigo-400' : ''}`} />
+                  <span>{favoriteCount}</span>
+                </button>
+
+                <span className="text-xs font-black text-slate-500">
+                  {packages.length} option{packages.length === 1 ? '' : 's'}
+                </span>
+              </div>
             </div>
 
             {packages.length === 0 ? (

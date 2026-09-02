@@ -77,10 +77,226 @@ exports.getGigById = async (req, res) => {
       return res.status(404).json({ error: 'Gig not found.' });
     }
 
-    return res.json(gig);
+    const favoriteCount = await prisma.gigFavorite.count({
+      where: { gigId: gig.id }
+    });
+
+    const favorited = req.user?.id
+      ? Boolean(await prisma.gigFavorite.findUnique({
+          where: {
+            gigId_userId: {
+              gigId: gig.id,
+              userId: req.user.id
+            }
+          },
+          select: { id: true }
+        }))
+      : false;
+
+    return res.json({
+      ...gig,
+      analytics: {
+        favorites: favoriteCount,
+        favorited
+      }
+    });
   } catch (err) {
     console.error('Get Gig By ID Error:', err);
     return res.status(500).json({ error: 'Failed to load gig.' });
+  }
+};
+
+
+const GIG_ANALYTICS_EVENT_TYPES = new Set(['VIEW', 'PURCHASE_CLICK']);
+
+const normalizeEventId = (value) => {
+  const eventId = String(value || '').trim();
+  return eventId.length >= 8 && eventId.length <= 120 ? eventId : null;
+};
+
+exports.recordGigAnalytics = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+    const { type, eventId, metadata } = req.body || {};
+
+    if (!GIG_ANALYTICS_EVENT_TYPES.has(type)) {
+      return res.status(400).json({ error: 'Unsupported analytics event.' });
+    }
+
+    const normalizedEventId = normalizeEventId(eventId);
+    if (!normalizedEventId) {
+      return res.status(400).json({ error: 'A valid eventId is required.' });
+    }
+
+    const gig = await prisma.gig.findFirst({
+      where: {
+        id: gigId,
+        status: 'PUBLISHED',
+        isDeleted: false
+      },
+      select: {
+        id: true,
+        sellerId: true
+      }
+    });
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    // The seller's own traffic is not a marketplace performance signal.
+    if (req.user?.id === gig.sellerId) {
+      return res.json({ recorded: false, ignored: 'OWNER_VIEW' });
+    }
+
+    await prisma.gigAnalyticsEvent.create({
+      data: {
+        gigId: gig.id,
+        actorId: req.user?.id || null,
+        type,
+        eventId: normalizedEventId,
+        metadata:
+          metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+            ? metadata
+            : null
+      }
+    });
+
+    return res.status(201).json({ recorded: true });
+  } catch (err) {
+    if (err?.code === 'P2002') {
+      return res.json({ recorded: false, duplicate: true });
+    }
+
+    console.error('Record Gig Analytics Error:', err);
+    return res.status(500).json({ error: 'Failed to record analytics event.' });
+  }
+};
+
+exports.toggleGigFavorite = async (req, res) => {
+  try {
+    if (req.user.role !== 'CLIENT' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'Only client accounts can favorite gigs.'
+      });
+    }
+
+    const { gigId } = req.params;
+
+    const gig = await prisma.gig.findFirst({
+      where: {
+        id: gigId,
+        status: 'PUBLISHED',
+        isDeleted: false
+      },
+      select: { id: true }
+    });
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    const existing = await prisma.gigFavorite.findUnique({
+      where: {
+        gigId_userId: {
+          gigId,
+          userId: req.user.id
+        }
+      }
+    });
+
+    if (existing) {
+      await prisma.gigFavorite.delete({ where: { id: existing.id } });
+
+      const favorites = await prisma.gigFavorite.count({
+        where: { gigId }
+      });
+
+      return res.json({ favorited: false, favorites });
+    }
+
+    await prisma.gigFavorite.create({
+      data: {
+        gigId,
+        userId: req.user.id
+      }
+    });
+
+    const favorites = await prisma.gigFavorite.count({
+      where: { gigId }
+    });
+
+    return res.status(201).json({ favorited: true, favorites });
+  } catch (err) {
+    console.error('Toggle Gig Favorite Error:', err);
+    return res.status(500).json({ error: 'Failed to update gig favorite.' });
+  }
+};
+
+exports.getGigAnalytics = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+
+    const gig = await prisma.gig.findFirst({
+      where: {
+        id: gigId,
+        sellerId: req.user.id,
+        isDeleted: false
+      },
+      select: { id: true }
+    });
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    const [eventGroups, favoriteCount, completedOrderAggregate] = await Promise.all([
+      prisma.gigAnalyticsEvent.groupBy({
+        by: ['type'],
+        where: { gigId },
+        _count: { _all: true }
+      }),
+      prisma.gigFavorite.count({
+        where: { gigId }
+      }),
+      prisma.order.aggregate({
+        where: {
+          gigId,
+          status: 'COMPLETED'
+        },
+        _count: { _all: true },
+        _sum: {
+          totalAmount: true,
+          sellerEarnings: true
+        }
+      })
+    ]);
+
+    const counts = Object.fromEntries(
+      eventGroups.map((group) => [group.type, group._count._all])
+    );
+
+    const views = counts.VIEW || 0;
+    const clicks = counts.PURCHASE_CLICK || 0;
+    const orders = completedOrderAggregate._count._all || 0;
+    const revenue = Number(completedOrderAggregate._sum.totalAmount || 0);
+    const sellerRevenue = Number(completedOrderAggregate._sum.sellerEarnings || 0);
+
+    return res.json({
+      gigId,
+      views,
+      clicks,
+      favorites: favoriteCount,
+      orders,
+      conversionRate: views > 0
+        ? Number(((orders / views) * 100).toFixed(2))
+        : 0,
+      revenue,
+      sellerRevenue
+    });
+  } catch (err) {
+    console.error('Get Gig Analytics Error:', err);
+    return res.status(500).json({ error: 'Failed to load gig analytics.' });
   }
 };
 
@@ -465,6 +681,33 @@ exports.createGigDraft = async (req, res) => {
     const clientVersion = normalizeDraftVersion(draftVersion);
     const { categoryId, subcategoryId } = await resolveDraftTaxonomyIds(draftData);
 
+    const pricing = draftData?.pricing || {};
+    const delivery = draftData?.delivery || {};
+    const parsedPrice = Number(pricing.basePrice);
+    const parsedDays = Number(delivery.deliveryDays);
+    const parsedRevisions =
+      delivery.revisions === 'unlimited'
+        ? -1
+        : Number(delivery.revisions);
+
+    const packageData = (
+      Number.isFinite(parsedPrice) &&
+      parsedPrice > 0 &&
+      Number.isInteger(parsedDays) &&
+      parsedDays > 0
+    )
+      ? [{
+          tierName: 'Single',
+          price: parsedPrice,
+          deliveryDays: parsedDays,
+          revisions:
+            Number.isInteger(parsedRevisions) && parsedRevisions >= -1
+              ? parsedRevisions
+              : 0,
+          description: 'Standard student delivery'
+        }]
+      : [];
+
     const gig = await prisma.gig.create({
       data: {
         sellerId: req.user.id,
@@ -484,7 +727,10 @@ exports.createGigDraft = async (req, res) => {
           : '',
         status: 'DRAFT',
         draftData,
-        draftVersion: Math.max(clientVersion, 1)
+        draftVersion: Math.max(clientVersion, 1),
+        packages: {
+          create: packageData
+        }
       }
     });
 
@@ -582,32 +828,86 @@ exports.updateGigDraft = async (req, res) => {
       }
     );
 
-    const result = await prisma.gig.updateMany({
-      where: {
-        id: gigId,
-        sellerId: req.user.id,
-        status: 'DRAFT',
-        isDeleted: false,
-        draftVersion: existingGig.draftVersion
-      },
-      data: {
-        title: typeof draftData?.basics?.title === 'string'
-          ? draftData.basics.title
-          : existingGig.title,
-        category: typeof draftData?.basics?.categoryId === 'string'
-          ? draftData.basics.categoryId
-          : existingGig.category,
-        categoryId,
-        subcategoryId,
-        description: typeof draftData.description === 'string'
-          ? draftData.description
-          : existingGig.description,
-        coverImage: typeof draftData?.media?.cover?.url === 'string'
-          ? draftData.media.cover.url
-          : existingGig.coverImage,
-        draftData,
-        draftVersion: clientVersion
+    const pricing = draftData?.pricing || {};
+    const delivery = draftData?.delivery || {};
+    const parsedPrice = Number(pricing.basePrice);
+    const parsedDays = Number(delivery.deliveryDays);
+    const parsedRevisions =
+      delivery.revisions === 'unlimited'
+        ? -1
+        : Number(delivery.revisions);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const gigUpdate = await tx.gig.updateMany({
+        where: {
+          id: gigId,
+          sellerId: req.user.id,
+          status: 'DRAFT',
+          isDeleted: false,
+          draftVersion: existingGig.draftVersion
+        },
+        data: {
+          title: typeof draftData?.basics?.title === 'string'
+            ? draftData.basics.title
+            : existingGig.title,
+          category: typeof draftData?.basics?.categoryId === 'string'
+            ? draftData.basics.categoryId
+            : existingGig.category,
+          categoryId,
+          subcategoryId,
+          description: typeof draftData.description === 'string'
+            ? draftData.description
+            : existingGig.description,
+          coverImage: typeof draftData?.media?.cover?.url === 'string'
+            ? draftData.media.cover.url
+            : existingGig.coverImage,
+          draftData,
+          draftVersion: clientVersion
+        }
+      });
+
+      if (gigUpdate.count === 1) {
+        const firstPackage = await tx.gigPackage.findFirst({
+          where: { gigId },
+          orderBy: { price: 'asc' }
+        });
+
+        if (
+          Number.isFinite(parsedPrice) &&
+          parsedPrice > 0 &&
+          Number.isInteger(parsedDays) &&
+          parsedDays > 0
+        ) {
+          const safeRevisions =
+            Number.isInteger(parsedRevisions) && parsedRevisions >= -1
+              ? parsedRevisions
+              : 0;
+
+          if (firstPackage) {
+            await tx.gigPackage.update({
+              where: { id: firstPackage.id },
+              data: {
+                price: parsedPrice,
+                deliveryDays: parsedDays,
+                revisions: safeRevisions
+              }
+            });
+          } else {
+            await tx.gigPackage.create({
+              data: {
+                gigId,
+                tierName: 'Single',
+                price: parsedPrice,
+                deliveryDays: parsedDays,
+                revisions: safeRevisions,
+                description: 'Standard student delivery'
+              }
+            });
+          }
+        }
       }
+
+      return gigUpdate;
     });
 
     if (result.count !== 1) {
