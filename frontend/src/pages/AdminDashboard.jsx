@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, Users, Briefcase, Trash2, Ban, CheckCircle2, 
   Search, AlertTriangle, ArrowUpRight, Award, Lock, RefreshCw, Eye, KeyRound, Mail, LogIn, LogOut,
-  GraduationCap, Upload, Clock, Check, ExternalLink
+  GraduationCap, Upload, Clock, Check, ExternalLink, History, ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
@@ -27,6 +27,9 @@ export default function AdminDashboard({ currentUser }) {
   });
   const [moderationLogs, setModerationLogs] = useState([]);
   const [gigModerationQueue, setGigModerationQueue] = useState([]);
+  const [gigRevisionHistory, setGigRevisionHistory] = useState({});
+  const [gigRevisionLoading, setGigRevisionLoading] = useState({});
+  const [gigRevisionErrors, setGigRevisionErrors] = useState({});
   const [verifications, setVerifications] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -177,6 +180,38 @@ export default function AdminDashboard({ currentUser }) {
       fetchAdminData();
     } catch (err) {
       alert('Failed to update gig moderation: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const loadGigRevisionHistory = async (gigId) => {
+    if (gigRevisionHistory[gigId] || gigRevisionLoading[gigId]) return;
+
+    setGigRevisionLoading((previous) => ({ ...previous, [gigId]: true }));
+    setGigRevisionErrors((previous) => {
+      const next = { ...previous };
+      delete next[gigId];
+      return next;
+    });
+
+    try {
+      const response = await API.get(`/gigs/${gigId}/revisions`);
+      setGigRevisionHistory((previous) => ({
+        ...previous,
+        [gigId]: response.data?.revisions || []
+      }));
+    } catch (err) {
+      setGigRevisionErrors((previous) => ({
+        ...previous,
+        [gigId]:
+          err.response?.data?.error ||
+          'Failed to load gig version history.'
+      }));
+    } finally {
+      setGigRevisionLoading((previous) => {
+        const next = { ...previous };
+        delete next[gigId];
+        return next;
+      });
     }
   };
 
@@ -2167,6 +2202,140 @@ export default function AdminDashboard({ currentUser }) {
                             </div>
                           ) : null;
                         })()}
+                      </div>
+                    </details>
+
+                    <details
+                      className="group rounded-2xl border border-slate-800 bg-slate-900/40"
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) {
+                          loadGigRevisionHistory(gig.id);
+                        }
+                      }}
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-xs font-black text-slate-200">
+                        <span className="flex items-center gap-2">
+                          <History className="w-3.5 h-3.5 text-cyan-300" />
+                          Version History
+                        </span>
+                        <span className="flex items-center gap-2 text-[10px] font-bold text-slate-500 group-open:text-cyan-300">
+                          {gigRevisionHistory[gig.id]
+                            ? `${gigRevisionHistory[gig.id].length} revision${gigRevisionHistory[gig.id].length === 1 ? '' : 's'}`
+                            : 'Load history'}
+                          <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                        </span>
+                      </summary>
+
+                      <div className="border-t border-slate-800 p-4 sm:p-5">
+                        {gigRevisionLoading[gig.id] ? (
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            Loading saved revisions…
+                          </div>
+                        ) : gigRevisionErrors[gig.id] ? (
+                          <p className="text-xs text-red-300">
+                            {gigRevisionErrors[gig.id]}
+                          </p>
+                        ) : !gigRevisionHistory[gig.id]?.length ? (
+                          <p className="text-xs text-slate-500">
+                            No saved revisions are available for this gig yet.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {gigRevisionHistory[gig.id].map((revision) => {
+                              const snapshot =
+                                revision.snapshot &&
+                                typeof revision.snapshot === 'object'
+                                  ? revision.snapshot
+                                  : {};
+
+                              const snapshotPackage = Array.isArray(snapshot.packages)
+                                ? snapshot.packages[0]
+                                : null;
+
+                              return (
+                                <details
+                                  key={revision.id}
+                                  className="rounded-xl border border-slate-800 bg-slate-950/50"
+                                >
+                                  <summary className="flex cursor-pointer list-none flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-3">
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[10px] font-black text-cyan-300">
+                                          v{revision.version}
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-black uppercase">
+                                          {revision.changeType}
+                                        </span>
+                                        <span className="text-[9px] text-slate-600">
+                                          Draft v{snapshot.draftVersion ?? '—'}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs font-bold text-slate-200 truncate">
+                                        {snapshot.title || 'Untitled revision'}
+                                      </p>
+                                    </div>
+
+                                    <time
+                                      dateTime={revision.createdAt}
+                                      className="shrink-0 text-[9px] font-bold text-slate-600"
+                                    >
+                                      {new Date(revision.createdAt).toLocaleString()}
+                                    </time>
+                                  </summary>
+
+                                  <div className="border-t border-slate-800 p-3 space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2.5">
+                                        <p className="text-[8px] font-black uppercase tracking-wider text-slate-600">
+                                          Status
+                                        </p>
+                                        <p className="mt-1 text-[10px] font-bold text-slate-300">
+                                          {snapshot.status || '—'}
+                                        </p>
+                                      </div>
+
+                                      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2.5">
+                                        <p className="text-[8px] font-black uppercase tracking-wider text-slate-600">
+                                          Price
+                                        </p>
+                                        <p className="mt-1 text-[10px] font-bold text-slate-300">
+                                          {snapshotPackage?.price ?? '—'}
+                                        </p>
+                                      </div>
+
+                                      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2.5">
+                                        <p className="text-[8px] font-black uppercase tracking-wider text-slate-600">
+                                          Delivery
+                                        </p>
+                                        <p className="mt-1 text-[10px] font-bold text-slate-300">
+                                          {snapshotPackage?.deliveryDays != null
+                                            ? `${snapshotPackage.deliveryDays} days`
+                                            : '—'}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <p className="text-[8px] font-black uppercase tracking-wider text-slate-600">
+                                        Description
+                                      </p>
+                                      <p className="mt-1 text-[11px] leading-5 text-slate-400 whitespace-pre-wrap break-words">
+                                        {snapshot.description || 'No description recorded.'}
+                                      </p>
+                                    </div>
+
+                                    {snapshot.moderationReasonCode && (
+                                      <p className="text-[10px] text-amber-300">
+                                        Moderation reason: {snapshot.moderationReasonCode}
+                                      </p>
+                                    )}
+                                  </div>
+                                </details>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </details>
 

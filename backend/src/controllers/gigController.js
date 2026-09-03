@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { moderateGig } = require('../services/gigModerationService');
+const { createGigRevision } = require('../services/gigRevisionService');
 
 exports.createGig = async (req, res) => {
   try {
@@ -714,30 +715,35 @@ exports.createGigDraft = async (req, res) => {
         }]
       : [];
 
-    const gig = await prisma.gig.create({
-      data: {
-        sellerId: req.user.id,
-        title: typeof draftData?.basics?.title === 'string'
-          ? draftData.basics.title
-          : 'Untitled Draft',
-        category: typeof draftData?.basics?.categoryId === 'string'
-          ? draftData.basics.categoryId
-          : '',
-        categoryId,
-        subcategoryId,
-        description: typeof draftData.description === 'string'
-          ? draftData.description
-          : '',
-        coverImage: typeof draftData?.media?.cover?.url === 'string'
-          ? draftData.media.cover.url
-          : '',
-        status: 'DRAFT',
-        draftData,
-        draftVersion: Math.max(clientVersion, 1),
-        packages: {
-          create: packageData
+    const gig = await prisma.$transaction(async (tx) => {
+      const createdGig = await tx.gig.create({
+        data: {
+          sellerId: req.user.id,
+          title: typeof draftData?.basics?.title === 'string'
+            ? draftData.basics.title
+            : 'Untitled Draft',
+          category: typeof draftData?.basics?.categoryId === 'string'
+            ? draftData.basics.categoryId
+            : '',
+          categoryId,
+          subcategoryId,
+          description: typeof draftData.description === 'string'
+            ? draftData.description
+            : '',
+          coverImage: typeof draftData?.media?.cover?.url === 'string'
+            ? draftData.media.cover.url
+            : '',
+          status: 'DRAFT',
+          draftData,
+          draftVersion: Math.max(clientVersion, 1),
+          packages: {
+            create: packageData
+          }
         }
-      }
+      });
+
+      await createGigRevision(tx, createdGig.id, req.user.id, 'CREATED');
+      return createdGig;
     });
 
     return res.status(201).json({
@@ -990,30 +996,45 @@ exports.submitGigDraft = async (req, res) => {
       prisma
     });
 
-    const submittedGig = await prisma.gig.updateMany({
-      where: {
-        id: gigId,
-        sellerId: req.user.id,
-        status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
-        isDeleted: false,
-        draftVersion: gig.draftVersion
-      },
-      data: {
-        status: 'PENDING_REVIEW',
-        moderationStatus: moderationResult.status,
-        moderationReasonCode: moderationResult.findings[0]?.reasonCode || null,
-        moderationFindings: moderationResult
-      }
-    });
-
-    if (submittedGig.count !== 1) {
-      return res.status(409).json({
-        error: 'The gig changed before submission. Refresh the draft and try again.'
+    const updatedGig = await prisma.$transaction(async (tx) => {
+      const submittedGig = await tx.gig.updateMany({
+        where: {
+          id: gigId,
+          sellerId: req.user.id,
+          status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
+          isDeleted: false,
+          draftVersion: gig.draftVersion
+        },
+        data: {
+          status: 'PENDING_REVIEW',
+          moderationStatus: moderationResult.status,
+          moderationReasonCode: moderationResult.findings[0]?.reasonCode || null,
+          moderationFindings: moderationResult
+        }
       });
-    }
 
-    const updatedGig = await prisma.gig.findUnique({
-      where: { id: gigId }
+      if (submittedGig.count !== 1) {
+        const error = new Error('Gig changed before submission.');
+        error.code = 'SUBMISSION_CONFLICT';
+        throw error;
+      }
+
+      const currentGig = await tx.gig.findUnique({
+        where: { id: gigId }
+      });
+
+      if (!currentGig) {
+        throw new Error('Gig not found after submission.');
+      }
+
+      await createGigRevision(
+        tx,
+        currentGig.id,
+        req.user.id,
+        'SUBMITTED_FOR_REVIEW'
+      );
+
+      return currentGig;
     });
 
     return res.json({
@@ -1028,6 +1049,12 @@ exports.submitGigDraft = async (req, res) => {
       }
     });
   } catch (err) {
+    if (err?.code === 'SUBMISSION_CONFLICT') {
+      return res.status(409).json({
+        error: 'The gig changed before submission. Refresh the draft and try again.'
+      });
+    }
+
     console.error('Submit Gig Draft Error:', err);
     return res.status(500).json({ error: 'Failed to submit gig for review.' });
   }
@@ -1047,6 +1074,48 @@ const assertGigOwner = async (gigId, sellerId) => {
       }
     }
   });
+};
+
+exports.getGigRevisions = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+
+    const gig = await prisma.gig.findFirst({
+      where: {
+        id: gigId,
+        isDeleted: false,
+        ...(req.user.role === 'ADMIN' ? {} : { sellerId: req.user.id })
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    const revisions = await prisma.gigRevision.findMany({
+      where: { gigId },
+      orderBy: { version: 'desc' },
+      select: {
+        id: true,
+        version: true,
+        actorId: true,
+        changeType: true,
+        snapshot: true,
+        createdAt: true
+      }
+    });
+
+    return res.json({
+      gigId,
+      revisions
+    });
+  } catch (err) {
+    console.error('Get Gig Revisions Error:', err);
+    return res.status(500).json({ error: 'Failed to load gig revision history.' });
+  }
 };
 
 exports.getGigForManagement = async (req, res) => {
@@ -1300,6 +1369,13 @@ exports.updateGigForManagement = async (req, res) => {
           }
         });
       }
+
+      await createGigRevision(
+        tx,
+        gig.id,
+        req.user.id,
+        'CONTENT_UPDATED'
+      );
 
       return gig;
     });

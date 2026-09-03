@@ -104,6 +104,7 @@ model User {
   activityEvents           OrderActivityEvent[]
   gigAnalyticsEvents       GigAnalyticsEvent[]
   gigFavorites             GigFavorite[]
+  gigRevisions             GigRevision[]
   isDeleted                Boolean               @default(false)
   deletedAt                DateTime?
 }
@@ -184,6 +185,7 @@ model Gig {
   orders         Order[]
   analyticsEvents GigAnalyticsEvent[]
   favorites      GigFavorite[]
+  revisions      GigRevision[]
   isDeleted      Boolean      @default(false)
   deletedAt      DateTime?
   categoryId     String?
@@ -195,6 +197,22 @@ model Gig {
   @@index([sellerId])
   @@index([categoryId])
   @@index([subcategoryId])
+}
+
+model GigRevision {
+  id         String   @id @default(uuid())
+  gigId      String
+  gig        Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  version    Int
+  changeType String
+  snapshot   Json
+  createdAt  DateTime @default(now())
+
+  @@unique([gigId, version])
+  @@index([gigId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model GigAnalyticsEvent {

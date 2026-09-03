@@ -11,6 +11,7 @@ router.put('/drafts/:gigId', requireAuth, gigController.updateGigDraft);
 router.post('/drafts/:gigId/submit', requireAuth, gigController.submitGigDraft);
 router.put('/:gigId/lifecycle', requireAuth, gigController.updateGigLifecycle);
 router.post('/:gigId/duplicate', requireAuth, gigController.duplicateGig);
+router.get('/:gigId/revisions', requireAuth, gigController.getGigRevisions);
 router.get('/:gigId/manage', requireAuth, gigController.getGigForManagement);
 router.put('/:gigId/manage', requireAuth, gigController.updateGigForManagement);
 router.post('/:gigId/analytics', optionalAuth, gigController.recordGigAnalytics);
