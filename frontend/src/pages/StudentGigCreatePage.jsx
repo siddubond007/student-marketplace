@@ -577,7 +577,7 @@ const formatRelativeSavedTime = (timestamp) => {
   return `${elapsedHours} hour${elapsedHours === 1 ? '' : 's'} ago`;
 };
 
-export default function StudentGigCreatePage() {
+export default function StudentGigCreatePage({ currentUser }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
@@ -590,6 +590,29 @@ export default function StudentGigCreatePage() {
   const [submissionError, setSubmissionError] = useState('');
   const [submissionBlockers, setSubmissionBlockers] = useState([]);
   const [moderationFeedback, setModerationFeedback] = useState(null);
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    API.get(`/users/${currentUser.id}`)
+      .then((response) => {
+        if (cancelled) return;
+        setProfileData(response.data || null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProfileData(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
 
   const managementGigId = searchParams.get('manageId') || '';
   const isManagementEdit = Boolean(managementGigId);
@@ -5859,6 +5882,7 @@ export default function StudentGigCreatePage() {
                                 }))}
                                 categoryName={selectedCategory?.name}
                                 subcategoryName={selectedSubcategory?.name}
+                                sellerProfile={profileData}
                                 serviceTypeName={
                                   serviceTypes.find(
                                     (serviceType) => serviceType.id === basics.serviceType

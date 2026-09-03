@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Check,
+  CheckCircle2,
   Clock3,
   HelpCircle,
   Image as ImageIcon,
@@ -64,12 +65,23 @@ export default function GigBuyerPreview({
   categoryName,
   subcategoryName,
   serviceTypeName,
-  sellerName
+  sellerName,
+  sellerProfile
 }) {
   const safeBasics = basics || {};
   const safePricing = pricing || {};
   const safeDelivery = delivery || {};
   const safeMedia = media || {};
+  const profile = sellerProfile?.profile || {};
+  const sellerRating = Number(sellerProfile?.averageRating || 0);
+  const sellerReviewCount = Number(sellerProfile?.totalReviews || 0);
+  const sellerVerified = sellerProfile?.verification?.status === 'APPROVED';
+  const profileSkills = Array.isArray(profile.skills)
+    ? profile.skills.map((skill) => String(skill || '').trim()).filter(Boolean)
+    : [];
+  const profilePortfolio = Array.isArray(profile.portfolioItems)
+    ? profile.portfolioItems.filter((item) => item && typeof item === 'object')
+    : [];
 
   const includedItems = meaningfulItems(safeDelivery.includedItems);
   const excludedItems = meaningfulItems(safeDelivery.excludedItems);
@@ -195,6 +207,72 @@ export default function GigBuyerPreview({
               Student creator
             </p>
           )}
+
+          {(sellerProfile || profileSkills.length > 0) ? (
+            <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/45 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {sellerVerified && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black text-emerald-300">
+                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Verified student
+                  </span>
+                )}
+                {sellerRating > 0 && (
+                  <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-black text-amber-300">
+                    ★ {sellerRating.toFixed(1)}{sellerReviewCount > 0 ? ` · ${sellerReviewCount} reviews` : ''}
+                  </span>
+                )}
+                {profile.college && (
+                  <span className="rounded-full border border-slate-800 bg-slate-950/60 px-2.5 py-1 text-[10px] font-bold text-slate-400">
+                    {profile.college}
+                  </span>
+                )}
+              </div>
+
+              {profileSkills.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    Profile skills
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {profileSkills.slice(0, 10).map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full border border-indigo-500/20 bg-indigo-500/5 px-2.5 py-1 text-[10px] font-bold text-indigo-200"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {profilePortfolio.length > 0 && (
+                <div className="mt-4 border-t border-slate-800 pt-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    From your profile portfolio
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {profilePortfolio.slice(0, 4).map((item, index) => (
+                      <div
+                        key={item.id || `${item.title || 'portfolio'}-${index}`}
+                        className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2"
+                      >
+                        <p className="truncate text-xs font-bold text-slate-200">
+                          {String(item.title || 'Portfolio item')}
+                        </p>
+                        {item.category && (
+                          <p className="mt-0.5 truncate text-[10px] text-slate-500">
+                            {String(item.category)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
