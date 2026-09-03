@@ -33,15 +33,31 @@ const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-  'http://192.168.1.75:5173',
-  'http://192.168.1.75:5174'
+  'http://127.0.0.1:5174'
 ].filter(Boolean));
+
+const isAllowedDevOrigin = (origin) => {
+  if (process.env.NODE_ENV === 'production' || !origin) return false;
+
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    const isPrivateIpv4 =
+      /^10\.(?:[0-9]{1,3}\.){2}[0-9]{1,3}$/.test(hostname) ||
+      /^192\.168\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})$/.test(hostname) ||
+      /^172\.(?:1[6-9]|2[0-9]|3[0-1])\.(?:[0-9]{1,3}\.)[0-9]{1,3}$/.test(hostname);
+
+    return (url.protocol === 'http:' && isPrivateIpv4 &&
+      (url.port === '5173' || url.port === '5174'));
+  } catch {
+    return false;
+  }
+};
 
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (!origin || allowedOrigins.has(origin) || isAllowedDevOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error('Socket origin not allowed'));
@@ -53,7 +69,7 @@ const io = new Server(server, {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) {
+    if (!origin || allowedOrigins.has(origin) || isAllowedDevOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('API origin not allowed'));
