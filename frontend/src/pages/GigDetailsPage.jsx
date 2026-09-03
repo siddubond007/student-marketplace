@@ -10,6 +10,7 @@ import {
   Star
 } from 'lucide-react';
 import API from '../services/api';
+import { sanitizeRichTextHtml } from '../utils/richText.js';
 
 const pendingGigViewEvents = new Map();
 
@@ -277,9 +278,18 @@ export default function GigDetailsPage({ currentUser }) {
                 {gig.title}
               </h1>
 
-              <p className="text-base leading-7 text-slate-300 mt-5 whitespace-pre-wrap">
-                {gig.description}
-              </p>
+              {sanitizeRichTextHtml(gig.description || '') ? (
+                <div
+                  className="mt-5 max-w-none break-words text-base leading-7 text-slate-300 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:font-black [&_strong]:text-white [&_b]:font-black [&_b]:text-white [&_em]:italic [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal [&_li]:pl-1"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeRichTextHtml(gig.description || '')
+                  }}
+                />
+              ) : (
+                <p className="text-base leading-7 text-slate-500 mt-5">
+                  No service description has been added yet.
+                </p>
+              )}
             </div>
           </div>
 

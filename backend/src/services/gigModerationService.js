@@ -119,17 +119,28 @@ const countRepeatedPhrases = (text) => {
     .slice(0, 5);
 };
 
-const checkSpam = (text) => {
-  const repeatedPhrases = countRepeatedPhrases(text);
-  if (repeatedPhrases.length === 0) return [];
+const checkSpam = (parts) => {
+  const textFields = [
+    ['title', parts.title],
+    ['description', parts.description]
+  ];
 
-  return [{
-    check: 'SPAM_KEYWORD_STUFFING',
-    reasonCode: 'REPEATED_KEYWORD_PHRASE',
-    severity: 'MEDIUM',
-    message: 'Repeated keyword phrases may indicate keyword stuffing.',
-    details: repeatedPhrases.map(([phrase, count]) => ({ phrase, count }))
-  }];
+  const findings = [];
+
+  for (const [field, text] of textFields) {
+    const repeatedPhrases = countRepeatedPhrases(text);
+    if (repeatedPhrases.length === 0) continue;
+
+    findings.push({
+      check: 'SPAM_KEYWORD_STUFFING',
+      reasonCode: 'REPEATED_KEYWORD_PHRASE',
+      severity: 'MEDIUM',
+      message: `Repeated keyword phrases in the ${field} may indicate keyword stuffing.`,
+      details: repeatedPhrases.map(([phrase, count]) => ({ phrase, count }))
+    });
+  }
+
+  return findings;
 };
 
 const checkTextPolicies = (text) => {
@@ -261,7 +272,7 @@ async function moderateGig({ draftData, sellerId, gigId, prisma }) {
   const combinedText = flattenComparableText(parts);
   const findings = [
     ...checkTextPolicies(combinedText),
-    ...checkSpam(combinedText),
+    ...checkSpam(parts),
     ...checkPricing(draftData),
     ...checkUrls(parts)
   ];

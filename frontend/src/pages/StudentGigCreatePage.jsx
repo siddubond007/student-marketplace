@@ -3126,6 +3126,7 @@ export default function StudentGigCreatePage() {
 
       setSubmissionState('submitted');
       setSaveState('saved');
+      setModerationFeedback(null);
     } catch (error) {
       const blockers = Array.isArray(error?.response?.data?.blockers)
         ? error.response.data.blockers
@@ -5478,11 +5479,50 @@ export default function StudentGigCreatePage() {
                       )}
                     </div>
                     {finding.details && (
-                      <p className="mt-1 text-xs leading-5 text-slate-400">
-                        {typeof finding.details === 'string'
-                          ? finding.details
-                          : JSON.stringify(finding.details)}
-                      </p>
+                      <div className="mt-3 space-y-2">
+                        {Array.isArray(finding.details) ? (
+                          finding.details.map((detail, detailIndex) => (
+                            <div
+                              key={`${finding.reasonCode || finding.check || 'finding'}-detail-${detailIndex}`}
+                              className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2.5"
+                            >
+                              {typeof detail === 'object' && detail !== null ? (
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                                  {Object.entries(detail).map(([key, value]) => (
+                                    <span key={key} className="text-slate-400">
+                                      <span className="font-black uppercase tracking-wider text-slate-600">
+                                        {key === 'phrase' ? 'Phrase' : key === 'count' ? 'Occurrences' : key}
+                                      </span>{' '}
+                                      <span className="font-bold text-slate-300">
+                                        {String(value)}
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-300">{String(detail)}</p>
+                              )}
+                            </div>
+                          ))
+                        ) : typeof finding.details === 'object' ? (
+                          <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2.5">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                              {Object.entries(finding.details).map(([key, value]) => (
+                                <span key={key} className="text-slate-400">
+                                  <span className="font-black uppercase tracking-wider text-slate-600">
+                                    {key}
+                                  </span>{' '}
+                                  <span className="font-bold text-slate-300">
+                                    {String(value)}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-400">{String(finding.details)}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
