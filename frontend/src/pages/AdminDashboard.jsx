@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
+import { sanitizeRichTextHtml } from '../utils/richText.js';
 
 export default function AdminDashboard({ currentUser }) {
   const [users, setUsers] = useState([]);
@@ -1988,6 +1989,187 @@ export default function AdminDashboard({ currentUser }) {
                       </div>
                     )}
 
+                    <details className="group rounded-2xl border border-slate-800 bg-slate-900/40">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-xs font-black text-slate-200">
+                        <span>Review Full Gig</span>
+                        <span className="text-[10px] font-bold text-slate-500 group-open:text-cyan-300">
+                          {gig.draftData?.media?.cover?.url || gig.coverImage ? 'Content + Media' : 'Content'}
+                        </span>
+                      </summary>
+
+                      <div className="border-t border-slate-800 p-4 sm:p-5 space-y-5">
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                            Service Description
+                          </p>
+                          {sanitizeRichTextHtml(gig.draftData?.description || gig.description || '') ? (
+                            <div
+                              className="mt-2 max-w-none break-words text-sm leading-6 text-slate-300 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_strong]:font-black [&_strong]:text-white [&_b]:font-black [&_b]:text-white [&_em]:italic [&_ul]:ml-5 [&_ul]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal [&_li]:pl-1"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeRichTextHtml(gig.draftData?.description || gig.description || '')
+                              }}
+                            />
+                          ) : (
+                            <p className="mt-2 text-sm leading-6 text-slate-500">
+                              No description provided.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Service Type</p>
+                            <p className="mt-1 text-xs font-bold text-slate-200">
+                              {gig.draftData?.basics?.serviceType || 'Not specified'}
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">Skills</p>
+                            <p className="mt-1 text-xs font-bold text-slate-200">
+                              {Array.isArray(gig.draftData?.basics?.skills) && gig.draftData.basics.skills.length
+                                ? gig.draftData.basics.skills.join(', ')
+                                : 'None specified'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {gig.draftData?.delivery && (
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                              Scope & Deliverables
+                            </p>
+
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {[
+                                ['Included', gig.draftData.delivery.includedItems],
+                                ['Excluded', gig.draftData.delivery.excludedItems],
+                                ['Deliverables', gig.draftData.delivery.deliverables]
+                              ].map(([label, items]) => (
+                                <div key={label} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                    {label}
+                                  </p>
+
+                                  <div className="mt-2 space-y-1">
+                                    {Array.isArray(items) && items.filter(Boolean).length > 0 ? (
+                                      items.filter(Boolean).map((item, index) => (
+                                        <p key={`${label}-${index}`} className="text-xs text-slate-300">
+                                          • {item}
+                                        </p>
+                                      ))
+                                    ) : (
+                                      <p className="text-xs text-slate-600">None specified</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {Array.isArray(gig.draftData?.requirements) && gig.draftData.requirements.length > 0 && (
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                              Buyer Requirements
+                            </p>
+
+                            <div className="mt-2 space-y-2">
+                              {gig.draftData.requirements.map((item, index) => (
+                                <div
+                                  key={`requirement-${index}`}
+                                  className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"
+                                >
+                                  <p className="text-xs font-bold text-slate-200">
+                                    {item.question || 'Requirement'}
+                                  </p>
+
+                                  {Array.isArray(item.options) && item.options.filter(Boolean).length > 0 && (
+                                    <p className="mt-1 text-[11px] text-slate-500">
+                                      Options: {item.options.filter(Boolean).join(', ')}
+                                    </p>
+                                  )}
+
+                                  <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-600">
+                                    {item.required ? 'Required' : 'Optional'}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {Array.isArray(gig.draftData?.faqs) && gig.draftData.faqs.length > 0 && (
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                              FAQs
+                            </p>
+
+                            <div className="mt-2 space-y-2">
+                              {gig.draftData.faqs.map((faq, index) => (
+                                <div
+                                  key={`faq-${index}`}
+                                  className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"
+                                >
+                                  <p className="text-xs font-bold text-slate-200">
+                                    {faq.question || 'Question'}
+                                  </p>
+
+                                  {faq.answer && (
+                                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                                      {faq.answer}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {(() => {
+                          const coverUrl =
+                            gig.draftData?.media?.cover?.url ||
+                            gig.coverImage ||
+                            '';
+
+                          const gallery = Array.isArray(gig.draftData?.media?.gallery)
+                            ? gig.draftData.media.gallery
+                                .map((item) => item?.url)
+                                .filter(Boolean)
+                            : [];
+
+                          const mediaUrls = [coverUrl, ...gallery].filter(Boolean);
+
+                          return mediaUrls.length > 0 ? (
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                                Media
+                              </p>
+
+                              <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {mediaUrls.map((url, index) => (
+                                  <a
+                                    key={`${url}-${index}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block overflow-hidden rounded-xl border border-slate-800 bg-slate-950/50"
+                                    title="Open media in new tab"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`${gig.title} media ${index + 1}`}
+                                      className="h-28 w-full object-cover hover:scale-105 transition"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    </details>
+
                     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
@@ -2025,9 +2207,50 @@ export default function AdminDashboard({ currentUser }) {
                                 {finding.message}
                               </p>
                               {finding.details && (
-                                <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] text-slate-600 overflow-x-auto">
-                                  {JSON.stringify(finding.details, null, 2)}
-                                </pre>
+                                <div className="mt-3 space-y-2">
+                                  {Array.isArray(finding.details) ? (
+                                    finding.details.map((detail, detailIndex) => (
+                                      <div
+                                        key={`${finding.reasonCode || finding.check || 'finding'}-detail-${detailIndex}`}
+                                        className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2.5"
+                                      >
+                                        {typeof detail === 'object' && detail !== null ? (
+                                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                                            {Object.entries(detail).map(([key, value]) => (
+                                              <span key={key} className="text-slate-400">
+                                                <span className="font-black uppercase tracking-wider text-slate-600">
+                                                  {key === 'phrase' ? 'Phrase' : key === 'count' ? 'Occurrences' : key}
+                                                </span>{' '}
+                                                <span className="font-bold text-slate-300">
+                                                  {String(value)}
+                                                </span>
+                                              </span>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p className="text-[11px] text-slate-300">{String(detail)}</p>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : typeof finding.details === 'object' ? (
+                                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2.5">
+                                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                                        {Object.entries(finding.details).map(([key, value]) => (
+                                          <span key={key} className="text-slate-400">
+                                            <span className="font-black uppercase tracking-wider text-slate-600">
+                                              {key}
+                                            </span>{' '}
+                                            <span className="font-bold text-slate-300">
+                                              {String(value)}
+                                            </span>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[11px] text-slate-400">{String(finding.details)}</p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           ))}
