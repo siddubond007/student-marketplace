@@ -58,6 +58,7 @@ export default function GigBuyerPreview({
   description,
   pricing,
   delivery,
+  packages = [],
   requirements,
   media,
   faqs,
@@ -71,6 +72,11 @@ export default function GigBuyerPreview({
   const safeBasics = basics || {};
   const safePricing = pricing || {};
   const safeDelivery = delivery || {};
+  const safePackages = Array.isArray(packages)
+    ? packages.filter((pkg) => pkg && typeof pkg === 'object')
+    : [];
+  const isMultiPackage =
+    safePricing.packageModel === 'multi' && safePackages.length > 0;
   const safeMedia = media || {};
   const profile = sellerProfile?.profile || {};
   const sellerRating = Number(sellerProfile?.averageRating || 0);
@@ -309,6 +315,146 @@ export default function GigBuyerPreview({
           </div>
         </div>
       </div>
+
+      {isMultiPackage ? (
+        <PreviewSection eyebrow="Packages" title="Choose the package that fits">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {['Basic', 'Standard', 'Premium'].map((tierName) => {
+              const pkg = safePackages.find((item) => item.tierName === tierName);
+              if (!pkg) return null;
+
+              const pkgIncluded = meaningfulItems(pkg.includedItems);
+              const pkgExcluded = meaningfulItems(pkg.excludedItems);
+              const pkgDeliverables = meaningfulItems(pkg.deliverables);
+              const pkgFeatures = meaningfulItems(pkg.features);
+              const pkgPrice = Number(pkg.price);
+              const pkgRevisions =
+                pkg.revisions === 'unlimited'
+                  ? 'Unlimited revisions'
+                  : pkg.revisions !== '' && pkg.revisions !== undefined
+                    ? `${pkg.revisions} revision${Number(pkg.revisions) === 1 ? '' : 's'}`
+                    : 'Revision allowance not set';
+
+              return (
+                <article
+                  key={tierName}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-black text-white">{tierName}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        {pkg.description || 'Package details'}
+                      </p>
+                    </div>
+
+                    <p className="shrink-0 text-xl font-black text-emerald-300">
+                      {Number.isFinite(pkgPrice) && pkgPrice > 0
+                        ? `${safePricing.currency || 'INR'} ${pkgPrice.toLocaleString('en-IN')}`
+                        : 'Price not set'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
+                        Delivery
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-white">
+                        {pkg.deliveryDays
+                          ? `${pkg.deliveryDays} day${Number(pkg.deliveryDays) === 1 ? '' : 's'}`
+                          : 'Not set'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
+                        Revisions
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-white">{pkgRevisions}</p>
+                    </div>
+                  </div>
+
+                  {pkgFeatures.length > 0 ? (
+                    <div className="mt-5">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                        Features
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {pkgFeatures.map((item, index) => (
+                          <li
+                            key={`${tierName}-feature-${index}`}
+                            className="flex items-start gap-2 text-xs leading-5 text-slate-300"
+                          >
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden="true" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {pkgIncluded.length > 0 ? (
+                    <div className="mt-5 border-t border-slate-800 pt-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                        Included
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {pkgIncluded.map((item, index) => (
+                          <li
+                            key={`${tierName}-included-${index}`}
+                            className="flex items-start gap-2 text-xs leading-5 text-slate-300"
+                          >
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden="true" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {pkgExcluded.length > 0 ? (
+                    <div className="mt-5 border-t border-slate-800 pt-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                        Not included
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {pkgExcluded.map((item, index) => (
+                          <li
+                            key={`${tierName}-excluded-${index}`}
+                            className="flex items-start gap-2 text-xs leading-5 text-slate-400"
+                          >
+                            <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-300" aria-hidden="true" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {pkgDeliverables.length > 0 ? (
+                    <div className="mt-5 border-t border-slate-800 pt-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                        Deliverables
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {pkgDeliverables.map((item, index) => (
+                          <li
+                            key={`${tierName}-deliverable-${index}`}
+                            className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs leading-5 text-slate-300"
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </PreviewSection>
+      ) : null}
 
       {visibleCategorySpecificFields.length > 0 ? (
         <PreviewSection eyebrow="Service details" title="Service-specific details">

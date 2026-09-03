@@ -447,7 +447,109 @@ export default function GigDetailsPage({ currentUser }) {
             )}
 
             {selectedPackage && (
-              <div className="mt-5 pt-5 border-t border-slate-800">
+              <>
+                <div className="mt-5 border-t border-slate-800 pt-5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-indigo-400">
+                    {selectedPackage.tierName} package details
+                  </p>
+
+                  {selectedPackage.description ? (
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      {selectedPackage.description}
+                    </p>
+                  ) : null}
+
+                  {Array.isArray(selectedPackage.features) &&
+                  selectedPackage.features.filter((item) => String(item || '').trim()).length > 0 ? (
+                    <div className="mt-5">
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                        Features
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {selectedPackage.features
+                          .filter((item) => String(item || '').trim())
+                          .map((item, index) => (
+                            <li
+                              key={`selected-feature-${index}`}
+                              className="flex items-start gap-2 text-sm leading-6 text-slate-300"
+                            >
+                              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {selectedPackage.scope &&
+                  Array.isArray(selectedPackage.scope.includedItems) &&
+                  selectedPackage.scope.includedItems.filter((item) => String(item || '').trim()).length > 0 ? (
+                    <div className="mt-5">
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                        Included
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {selectedPackage.scope.includedItems
+                          .filter((item) => String(item || '').trim())
+                          .map((item, index) => (
+                            <li
+                              key={`selected-included-${index}`}
+                              className="flex items-start gap-2 text-sm leading-6 text-slate-300"
+                            >
+                              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {selectedPackage.scope &&
+                  Array.isArray(selectedPackage.scope.excludedItems) &&
+                  selectedPackage.scope.excludedItems.filter((item) => String(item || '').trim()).length > 0 ? (
+                    <div className="mt-5 border-t border-slate-800 pt-4">
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                        Not included
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {selectedPackage.scope.excludedItems
+                          .filter((item) => String(item || '').trim())
+                          .map((item, index) => (
+                            <li
+                              key={`selected-excluded-${index}`}
+                              className="text-sm leading-6 text-slate-400"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {selectedPackage.scope &&
+                  Array.isArray(selectedPackage.scope.deliverables) &&
+                  selectedPackage.scope.deliverables.filter((item) => String(item || '').trim()).length > 0 ? (
+                    <div className="mt-5 border-t border-slate-800 pt-4">
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                        Deliverables
+                      </p>
+                      <ul className="mt-3 space-y-2">
+                        {selectedPackage.scope.deliverables
+                          .filter((item) => String(item || '').trim())
+                          .map((item, index) => (
+                            <li
+                              key={`selected-deliverable-${index}`}
+                              className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm leading-6 text-slate-300"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-5 pt-5 border-t border-slate-800">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-500">Selected</span>
                   <span className="text-sm font-black text-white">
@@ -485,7 +587,8 @@ export default function GigDetailsPage({ currentUser }) {
                     Sign in to continue
                   </Link>
                 )}
-              </div>
+                </div>
+              </>
             )}
           </section>
         </aside>

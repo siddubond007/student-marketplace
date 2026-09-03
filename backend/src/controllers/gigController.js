@@ -40,6 +40,11 @@ exports.getGigById = async (req, res) => {
       },
       include: {
         packages: {
+          where: {
+            tierName: {
+              in: ['Single', 'Basic', 'Standard', 'Premium']
+            }
+          },
           orderBy: { price: 'asc' }
         },
         seller: {
@@ -95,8 +100,15 @@ exports.getGigById = async (req, res) => {
         }))
       : false;
 
+    const activePackageNames = gig.isTiered
+      ? new Set(['Basic', 'Standard', 'Premium'])
+      : new Set(['Single']);
+
     return res.json({
       ...gig,
+      packages: gig.packages.filter((pkg) =>
+        activePackageNames.has(pkg.tierName)
+      ),
       analytics: {
         favorites: favoriteCount,
         favorited
@@ -338,10 +350,35 @@ exports.getGigs = async (req, res) => {
         status: 'PUBLISHED',
         isDeleted: false
       },
-      include: { packages: true, seller: { select: { id: true, fullName: true, age: true, profile: true } } },
+      include: {
+        packages: {
+          where: {
+            tierName: {
+              in: ['Single', 'Basic', 'Standard', 'Premium']
+            }
+          },
+          orderBy: { price: 'asc' }
+        },
+        seller: {
+          select: { id: true, fullName: true, age: true, profile: true }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(gigs);
+    const result = gigs.map((gig) => {
+      const activePackageNames = gig.isTiered
+        ? new Set(['Basic', 'Standard', 'Premium'])
+        : new Set(['Single']);
+
+      return {
+        ...gig,
+        packages: gig.packages.filter((pkg) =>
+          activePackageNames.has(pkg.tierName)
+        )
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -411,7 +448,9 @@ const validateGigSubmission = (draftData) => {
 
   const rawPrice = String(pricing.basePrice ?? '').trim();
   const price = Number(rawPrice);
-  if (!rawPrice || !Number.isFinite(price) || !(price > 0)) {
+  const isMultiPackage = pricing.packageModel === 'multi';
+
+  if (!isMultiPackage && (!rawPrice || !Number.isFinite(price) || !(price > 0))) {
     addBlocker(
       3,
       'basePrice',
@@ -426,16 +465,100 @@ const validateGigSubmission = (draftData) => {
     addBlocker(3, 'currency', 'Complete your pricing.', 'Select a currency.');
   }
 
-  if (pricing.packageModel !== 'single') {
-    addBlocker(3, 'packageModel', 'Complete your pricing.', 'Use single-price mode.');
+  if (isMultiPackage) {
+    const packageRows = getDraftPackagePayload(draftData);
+
+    if (packageRows.length !== 3) {
+      addBlocker(
+        3,
+        'packages',
+        'Complete your package pricing.',
+        'Add Basic, Standard, and Premium package details.'
+      );
+    } else {
+      const seenTiers = new Set();
+
+      packageRows.forEach((pkg) => {
+        seenTiers.add(pkg.tierName);
+
+        if (!Number.isFinite(pkg.price) || !(pkg.price > 0)) {
+          addBlocker(
+            3,
+            `packages.${pkg.tierName}.price`,
+            'Complete your package pricing.',
+            `${pkg.tierName} price must be greater than 0.`
+          );
+        }
+
+        if (!Number.isInteger(pkg.deliveryDays) || pkg.deliveryDays <= 0) {
+          addBlocker(
+            4,
+            `packages.${pkg.tierName}.deliveryDays`,
+            'Complete package delivery details.',
+            `${pkg.tierName} delivery time must be a positive whole number of days.`
+          );
+        }
+
+        if (
+          !Number.isInteger(pkg.revisions) ||
+          pkg.revisions < -1
+        ) {
+          addBlocker(
+            4,
+            `packages.${pkg.tierName}.revisions`,
+            'Complete package revision details.',
+            `${pkg.tierName} revisions must be 0 or more, or unlimited.`
+          );
+        }
+
+        if (pkg.scope.includedItems.length === 0) {
+          addBlocker(
+            4,
+            `packages.${pkg.tierName}.includedItems`,
+            'Complete package scope.',
+            `${pkg.tierName} needs at least one included item.`
+          );
+        }
+
+        if (pkg.scope.deliverables.length === 0) {
+          addBlocker(
+            4,
+            `packages.${pkg.tierName}.deliverables`,
+            'Complete package deliverables.',
+            `${pkg.tierName} needs at least one deliverable.`
+          );
+        }
+
+        if (pkg.features.length === 0) {
+          addBlocker(
+            4,
+            `packages.${pkg.tierName}.features`,
+            'Complete package features.',
+            `${pkg.tierName} needs at least one package feature.`
+          );
+        }
+      });
+
+      PACKAGE_TIER_NAMES.forEach((tierName) => {
+        if (!seenTiers.has(tierName)) {
+          addBlocker(
+            3,
+            'packages',
+            'Complete your package pricing.',
+            `${tierName} package is required.`
+          );
+        }
+      });
+    }
   }
 
   const rawDelivery = String(delivery.deliveryDays ?? '').trim();
   const deliveryDays = Number(rawDelivery);
   if (
-    !rawDelivery ||
-    !Number.isInteger(deliveryDays) ||
-    !(deliveryDays > 0)
+    !isMultiPackage &&
+    (!rawDelivery ||
+      !Number.isInteger(deliveryDays) ||
+      !(deliveryDays > 0))
   ) {
     addBlocker(
       4,
@@ -450,9 +573,10 @@ const validateGigSubmission = (draftData) => {
   const rawRevisions = String(delivery.revisions ?? '').trim();
   const revisions = Number(rawRevisions);
   if (
-    !rawRevisions ||
-    (rawRevisions !== 'unlimited' &&
-      (!Number.isInteger(revisions) || revisions < 0))
+    !isMultiPackage &&
+    (!rawRevisions ||
+      (rawRevisions !== 'unlimited' &&
+        (!Number.isInteger(revisions) || revisions < 0)))
   ) {
     addBlocker(
       4,
@@ -490,13 +614,16 @@ const validateGigSubmission = (draftData) => {
     }
   };
 
-  validateList(delivery.includedItems, 'includedItems', 'included item');
-  validateList(delivery.deliverables, 'deliverables', 'deliverable');
+  if (!isMultiPackage) {
+    validateList(delivery.includedItems, 'includedItems', 'included item');
+    validateList(delivery.deliverables, 'deliverables', 'deliverable');
+  }
 
   const excludedItems = Array.isArray(delivery.excludedItems)
     ? delivery.excludedItems
     : [];
   if (
+    !isMultiPackage &&
     excludedItems.length > 0 &&
     excludedItems.some((item) => String(item || '').trim().length === 0)
   ) {
@@ -602,6 +729,171 @@ const areDraftsEqual = (left, right) =>
   JSON.stringify(canonicalizeJson(left)) ===
   JSON.stringify(canonicalizeJson(right));
 
+const PACKAGE_TIER_NAMES = ['Basic', 'Standard', 'Premium'];
+
+const normalizePackageList = (items) =>
+  Array.isArray(items)
+    ? items.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+
+const normalizePackageDraft = (pkg, fallbackTierName) => {
+  const scope = pkg?.scope && typeof pkg.scope === 'object' ? pkg.scope : {};
+
+  return {
+    id: typeof pkg?.id === 'string' ? pkg.id : null,
+    tierName:
+      PACKAGE_TIER_NAMES.includes(String(pkg?.tierName || ''))
+        ? String(pkg.tierName)
+        : fallbackTierName,
+    price: Number(pkg?.price),
+    deliveryDays: Number(pkg?.deliveryDays),
+    revisions:
+      pkg?.revisions === 'unlimited'
+        ? -1
+        : Number(pkg?.revisions),
+    description:
+      typeof pkg?.description === 'string' && pkg.description.trim()
+        ? pkg.description.trim()
+        : `${fallbackTierName} service package`,
+    scope: {
+      includedItems: normalizePackageList(scope.includedItems),
+      excludedItems: normalizePackageList(scope.excludedItems),
+      deliverables: normalizePackageList(scope.deliverables)
+    },
+    features: normalizePackageList(pkg?.features)
+  };
+};
+
+const getDraftPackagePayload = (draftData) => {
+  const pricing = draftData?.pricing || {};
+  const delivery = draftData?.delivery || {};
+
+  if (pricing.packageModel !== 'multi') {
+    const revisions =
+      delivery.revisions === 'unlimited'
+        ? -1
+        : Number(delivery.revisions);
+
+    return [{
+      tierName: 'Single',
+      price: Number(pricing.basePrice),
+      deliveryDays: Number(delivery.deliveryDays),
+      revisions,
+      description: 'Standard student delivery',
+      scope: {
+        includedItems: normalizePackageList(delivery.includedItems),
+        excludedItems: normalizePackageList(delivery.excludedItems),
+        deliverables: normalizePackageList(delivery.deliverables)
+      },
+      features: []
+    }];
+  }
+
+  if (!Array.isArray(draftData?.packages)) return [];
+
+  return draftData.packages
+    .filter(
+      (pkg) =>
+        pkg &&
+        PACKAGE_TIER_NAMES.includes(String(pkg.tierName || ''))
+    )
+    .map((pkg) => normalizePackageDraft(pkg, String(pkg.tierName)));
+};
+
+const syncGigPackages = async (tx, gigId, draftData) => {
+  const desiredPackages = getDraftPackagePayload(draftData);
+  const existingPackages = await tx.gigPackage.findMany({
+    where: { gigId },
+    orderBy: { price: 'asc' },
+    include: {
+      orders: {
+        select: { id: true },
+        take: 1
+      }
+    }
+  });
+
+  const existingByTier = new Map(
+    existingPackages.map((pkg) => [pkg.tierName, pkg])
+  );
+
+  const isMulti = draftData?.pricing?.packageModel === 'multi';
+
+  for (const desired of desiredPackages) {
+    let existing = existingByTier.get(desired.tierName);
+
+    if (!existing && isMulti && desired.tierName === 'Basic') {
+      const singlePackage = existingByTier.get('Single');
+      if (singlePackage && singlePackage.orders.length === 0) {
+        existing = singlePackage;
+      }
+    }
+
+    const data = {
+      tierName: desired.tierName,
+      price: Number.isFinite(desired.price) ? desired.price : 0,
+      deliveryDays:
+        Number.isInteger(desired.deliveryDays) && desired.deliveryDays > 0
+          ? desired.deliveryDays
+          : 1,
+      revisions:
+        Number.isInteger(desired.revisions) && desired.revisions >= -1
+          ? desired.revisions
+          : 0,
+      description: desired.description,
+      scope: desired.scope,
+      features: desired.features
+    };
+
+    if (existing) {
+      await tx.gigPackage.update({
+        where: { id: existing.id },
+        data
+      });
+      existingByTier.delete(existing.tierName);
+      if (isMulti && desired.tierName === 'Basic') {
+        existingByTier.delete('Basic');
+      }
+    } else {
+      await tx.gigPackage.create({
+        data: {
+          gigId,
+          ...data
+        }
+      });
+    }
+  }
+
+  const desiredTierNames = new Set(
+    desiredPackages.map((pkg) => pkg.tierName)
+  );
+
+  const removableStalePackages = existingPackages.filter(
+    (pkg) =>
+      !desiredTierNames.has(pkg.tierName) &&
+      pkg.orders === undefined
+  );
+
+  if (removableStalePackages.length > 0) {
+    await tx.gigPackage.deleteMany({
+      where: {
+        gigId,
+        id: {
+          in: removableStalePackages.map((pkg) => pkg.id)
+        },
+        orders: {
+          none: {}
+        }
+      }
+    });
+  }
+
+  return tx.gigPackage.findMany({
+    where: { gigId },
+    orderBy: { price: 'asc' }
+  });
+};
+
 const draftResponse = (gig) => ({
   id: gig.id,
   status: gig.status,
@@ -697,24 +989,6 @@ exports.createGigDraft = async (req, res) => {
         ? -1
         : Number(delivery.revisions);
 
-    const packageData = (
-      Number.isFinite(parsedPrice) &&
-      parsedPrice > 0 &&
-      Number.isInteger(parsedDays) &&
-      parsedDays > 0
-    )
-      ? [{
-          tierName: 'Single',
-          price: parsedPrice,
-          deliveryDays: parsedDays,
-          revisions:
-            Number.isInteger(parsedRevisions) && parsedRevisions >= -1
-              ? parsedRevisions
-              : 0,
-          description: 'Standard student delivery'
-        }]
-      : [];
-
     const gig = await prisma.$transaction(async (tx) => {
       const createdGig = await tx.gig.create({
         data: {
@@ -734,14 +1008,13 @@ exports.createGigDraft = async (req, res) => {
             ? draftData.media.cover.url
             : '',
           status: 'DRAFT',
+          isTiered: pricing.packageModel === 'multi',
           draftData,
-          draftVersion: Math.max(clientVersion, 1),
-          packages: {
-            create: packageData
-          }
+          draftVersion: Math.max(clientVersion, 1)
         }
       });
 
+      await syncGigPackages(tx, createdGig.id, draftData);
       await createGigRevision(tx, createdGig.id, req.user.id, 'CREATED');
       return createdGig;
     });
@@ -873,50 +1146,14 @@ exports.updateGigDraft = async (req, res) => {
           coverImage: typeof draftData?.media?.cover?.url === 'string'
             ? draftData.media.cover.url
             : existingGig.coverImage,
+          isTiered: pricing.packageModel === 'multi',
           draftData,
           draftVersion: clientVersion
         }
       });
 
       if (gigUpdate.count === 1) {
-        const firstPackage = await tx.gigPackage.findFirst({
-          where: { gigId },
-          orderBy: { price: 'asc' }
-        });
-
-        if (
-          Number.isFinite(parsedPrice) &&
-          parsedPrice > 0 &&
-          Number.isInteger(parsedDays) &&
-          parsedDays > 0
-        ) {
-          const safeRevisions =
-            Number.isInteger(parsedRevisions) && parsedRevisions >= -1
-              ? parsedRevisions
-              : 0;
-
-          if (firstPackage) {
-            await tx.gigPackage.update({
-              where: { id: firstPackage.id },
-              data: {
-                price: parsedPrice,
-                deliveryDays: parsedDays,
-                revisions: safeRevisions
-              }
-            });
-          } else {
-            await tx.gigPackage.create({
-              data: {
-                gigId,
-                tierName: 'Single',
-                price: parsedPrice,
-                deliveryDays: parsedDays,
-                revisions: safeRevisions,
-                description: 'Standard student delivery'
-              }
-            });
-          }
-        }
+        await syncGigPackages(tx, gigId, draftData);
       }
 
       return gigUpdate;
@@ -1241,7 +1478,9 @@ exports.duplicateGig = async (req, res) => {
             price: pkg.price,
             deliveryDays: pkg.deliveryDays,
             revisions: pkg.revisions,
-            description: pkg.description
+            description: pkg.description,
+            scope: pkg.scope || null,
+            features: pkg.features || null
           }))
         }
       },
@@ -1335,40 +1574,13 @@ exports.updateGigForManagement = async (req, res) => {
           subcategoryId,
           description,
           coverImage,
+          isTiered: draftData?.pricing?.packageModel === 'multi',
           draftData,
           draftVersion: existingGig.draftVersion + 1
         }
       });
 
-      const pricing = draftData?.pricing || {};
-      const delivery = draftData?.delivery || {};
-      const firstPackage = existingGig.packages[0];
-
-      const parsedPrice = Number(pricing.basePrice);
-      const parsedDays = Number(delivery.deliveryDays);
-      const parsedRevisions =
-        delivery.revisions === 'unlimited'
-          ? -1
-          : Number(delivery.revisions);
-
-      if (
-        firstPackage &&
-        Number.isFinite(parsedPrice) &&
-        parsedPrice > 0 &&
-        Number.isInteger(parsedDays) &&
-        parsedDays > 0 &&
-        Number.isInteger(parsedRevisions) &&
-        parsedRevisions >= -1
-      ) {
-        await tx.gigPackage.update({
-          where: { id: firstPackage.id },
-          data: {
-            price: parsedPrice,
-            deliveryDays: parsedDays,
-            revisions: parsedRevisions
-          }
-        });
-      }
+      await syncGigPackages(tx, existingGig.id, draftData);
 
       await createGigRevision(
         tx,

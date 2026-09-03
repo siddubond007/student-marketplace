@@ -40,7 +40,9 @@ const createGigRevision = async (tx, gigId, actorId, changeType) => {
       price: pkg.price,
       deliveryDays: pkg.deliveryDays,
       revisions: pkg.revisions,
-      description: pkg.description
+      description: pkg.description,
+      scope: pkg.scope || null,
+      features: pkg.features || null
     }))
   };
 

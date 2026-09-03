@@ -245,15 +245,17 @@ model GigFavorite {
 }
 
 model GigPackage {
-  id           String  @id @default(uuid())
-  gigId        String
-  gig          Gig     @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  tierName     String
-  price        Float
-  deliveryDays Int
-  revisions    Int
-  description  String
-  orders       Order[]
+  id             String   @id @default(uuid())
+  gigId          String
+  gig            Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  tierName       String
+  price          Float
+  deliveryDays   Int
+  revisions      Int
+  description    String
+  scope          Json?
+  features       Json?
+  orders         Order[]
 
   @@index([gigId])
 }

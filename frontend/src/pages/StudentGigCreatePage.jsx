@@ -644,6 +644,47 @@ export default function StudentGigCreatePage({ currentUser }) {
     deliverables: ['']
   });
 
+  const [packages, setPackages] = useState(() => [
+    {
+      tierName: 'Basic',
+      price: '',
+      deliveryDays: '',
+      revisions: '',
+      description: '',
+      includedItems: [''],
+      excludedItems: [],
+      deliverables: [''],
+      features: ['']
+    },
+    {
+      tierName: 'Standard',
+      price: '',
+      deliveryDays: '',
+      revisions: '',
+      description: '',
+      includedItems: [''],
+      excludedItems: [],
+      deliverables: [''],
+      features: ['']
+    },
+    {
+      tierName: 'Premium',
+      price: '',
+      deliveryDays: '',
+      revisions: '',
+      description: '',
+      includedItems: [''],
+      excludedItems: [],
+      deliverables: [''],
+      features: ['']
+    }
+  ]);
+
+  const normalizePackageItems = (items, fallback = ['']) => {
+    if (!Array.isArray(items)) return fallback;
+    return items.length ? items : fallback;
+  };
+
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
   const [faqs, setFaqs] = useState([]);
   const [media, setMedia] = useState({
@@ -734,6 +775,19 @@ export default function StudentGigCreatePage({ currentUser }) {
       excludedItems: [...delivery.excludedItems],
       deliverables: [...delivery.deliverables]
     },
+    packages: packages.map((pkg) => ({
+      tierName: pkg.tierName,
+      price: pkg.price,
+      deliveryDays: pkg.deliveryDays,
+      revisions: pkg.revisions,
+      description: pkg.description,
+      scope: {
+        includedItems: [...(pkg.includedItems || [])],
+        excludedItems: [...(pkg.excludedItems || [])],
+        deliverables: [...(pkg.deliverables || [])]
+      },
+      features: [...(pkg.features || [])]
+    })),
     requirements: requirements.map((requirement) => ({
       id: requirement.id,
       question: requirement.question,
@@ -776,6 +830,37 @@ export default function StudentGigCreatePage({ currentUser }) {
       currency: data.pricing?.currency || 'INR',
       packageModel: data.pricing?.packageModel || 'single'
     });
+
+    setPackages(
+      ['Basic', 'Standard', 'Premium'].map((tierName) => {
+        const source = Array.isArray(data.packages)
+          ? data.packages.find((pkg) => pkg?.tierName === tierName)
+          : null;
+        const scope =
+          source?.scope && typeof source.scope === 'object'
+            ? source.scope
+            : {};
+
+        return {
+          tierName,
+          price: source?.price ?? '',
+          deliveryDays: source?.deliveryDays ?? '',
+          revisions:
+            source?.revisions === -1
+              ? 'unlimited'
+              : source?.revisions ?? '',
+          description:
+            typeof source?.description === 'string'
+              ? source.description
+              : '',
+          includedItems: normalizePackageItems(scope.includedItems),
+          excludedItems: normalizePackageItems(scope.excludedItems, []),
+          deliverables: normalizePackageItems(scope.deliverables),
+          features: normalizePackageItems(source?.features)
+        };
+      })
+    );
+
     setDelivery({
       deliveryDays: data.delivery?.deliveryDays ?? '',
       revisions: data.delivery?.revisions ?? '',
@@ -974,12 +1059,31 @@ export default function StudentGigCreatePage({ currentUser }) {
   const isDescriptionComplete = descriptionCharacterCount >= 50;
 
   const basePriceNumber = Number(pricing.basePrice);
-  const isPricingComplete =
+  const isMultiPackage = pricing.packageModel === 'multi';
+
+  const isSinglePricingComplete =
     pricing.packageModel === 'single' &&
     Boolean(pricing.currency) &&
     pricing.basePrice !== '' &&
     Number.isFinite(basePriceNumber) &&
     basePriceNumber > 0;
+
+  const arePackagePricesComplete =
+    isMultiPackage &&
+    packages.length === 3 &&
+    ['Basic', 'Standard', 'Premium'].every((tierName) => {
+      const pkg = packages.find((item) => item.tierName === tierName);
+      return (
+        pkg &&
+        String(pkg.price ?? '').trim() !== '' &&
+        Number.isFinite(Number(pkg.price)) &&
+        Number(pkg.price) > 0
+      );
+    });
+
+  const isPricingComplete =
+    Boolean(pricing.currency) &&
+    (isSinglePricingComplete || arePackagePricesComplete);
 
   const deliveryDaysNumber = Number(delivery.deliveryDays);
   const revisionsNumber = Number(delivery.revisions);
@@ -1003,12 +1107,47 @@ export default function StudentGigCreatePage({ currentUser }) {
     hasOnlyMeaningfulListItems(delivery.deliverables) &&
     isExcludedListValid;
 
-  const isDeliveryComplete =
-    delivery.deliveryDays !== '' &&
-    Number.isInteger(deliveryDaysNumber) &&
-    deliveryDaysNumber > 0 &&
-    isRevisionAllowanceValid &&
-    isScopeComplete;
+  const isPackageDeliveryComplete =
+    isMultiPackage &&
+    packages.length === 3 &&
+    packages.every((pkg) => {
+      const days = Number(pkg.deliveryDays);
+      const revisions =
+        pkg.revisions === 'unlimited' ? -1 : Number(pkg.revisions);
+      const included = Array.isArray(pkg.includedItems)
+        ? pkg.includedItems
+        : [];
+      const excluded = Array.isArray(pkg.excludedItems)
+        ? pkg.excludedItems
+        : [];
+      const deliverables = Array.isArray(pkg.deliverables)
+        ? pkg.deliverables
+        : [];
+      const features = Array.isArray(pkg.features)
+        ? pkg.features
+        : [];
+
+      return (
+        Number.isInteger(days) &&
+        days > 0 &&
+        Number.isInteger(revisions) &&
+        revisions >= -1 &&
+        hasOnlyMeaningfulListItems(included) &&
+        (excluded.length === 0 || hasOnlyMeaningfulListItems(excluded)) &&
+        hasOnlyMeaningfulListItems(deliverables) &&
+        hasOnlyMeaningfulListItems(features)
+      );
+    });
+
+  const isDeliveryComplete = isMultiPackage
+    ? isPackageDeliveryComplete
+    : (
+        delivery.deliveryDays !== '' &&
+        Number.isInteger(deliveryDaysNumber) &&
+        deliveryDaysNumber > 0 &&
+        isRevisionAllowanceValid &&
+        isScopeComplete
+      );
 
   const getRequirementValidation = (requirement) => {
     const questionValid = String(requirement.question || '').trim().length > 0;
@@ -1311,8 +1450,31 @@ export default function StudentGigCreatePage({ currentUser }) {
                 firstPackage?.price ??
                 '',
               currency:
-                sourceData.pricing?.currency || 'INR'
+                sourceData.pricing?.currency || 'INR',
+              packageModel:
+                sourceData.pricing?.packageModel ||
+                (managedGig.isTiered ? 'multi' : 'single')
             },
+            packages:
+              Array.isArray(sourceData.packages) && sourceData.packages.length > 0
+                ? sourceData.packages
+                : (Array.isArray(managedGig.packages)
+                    ? managedGig.packages.map((pkg) => ({
+                        tierName: pkg.tierName,
+                        price: pkg.price,
+                        deliveryDays: pkg.deliveryDays,
+                        revisions:
+                          pkg.revisions === -1 ? 'unlimited' : pkg.revisions,
+                        description: pkg.description || '',
+                        scope:
+                          pkg.scope && typeof pkg.scope === 'object'
+                            ? pkg.scope
+                            : {},
+                        features: Array.isArray(pkg.features)
+                          ? pkg.features
+                          : []
+                      }))
+                    : []),
             delivery: {
               ...(sourceData.delivery || {}),
               deliveryDays:
@@ -1529,14 +1691,34 @@ export default function StudentGigCreatePage({ currentUser }) {
       (hasOnlyMeaningfulListItems(delivery.deliverables) ? 5 : 0) +
       (delivery.excludedItems.length > 0 && isExcludedListValid ? 5 : 0);
 
+    const packageDeliveryComplete =
+      isMultiPackage &&
+      packages.length === 3 &&
+      packages.every((pkg) => {
+        const days = Number(pkg.deliveryDays);
+        const revisions =
+          pkg.revisions === 'unlimited' ? -1 : Number(pkg.revisions);
+
+        return (
+          Number.isInteger(days) &&
+          days > 0 &&
+          Number.isInteger(revisions) &&
+          revisions >= -1
+        );
+      });
+
     const pricingDeliveryScore =
       (isPricingComplete ? 7.5 : 0) +
-      (delivery.deliveryDays !== '' &&
-      Number.isInteger(deliveryDaysNumber) &&
-      deliveryDaysNumber > 0
-        ? 4
-        : 0) +
-      (isRevisionAllowanceValid ? 3.5 : 0);
+      (isMultiPackage
+        ? (packageDeliveryComplete ? 4 : 0)
+        : (delivery.deliveryDays !== '' &&
+            Number.isInteger(deliveryDaysNumber) &&
+            delivery.deliveryDays > 0
+          ? 4
+          : 0)) +
+      (isMultiPackage
+        ? (packageDeliveryComplete ? 3.5 : 0)
+        : (isRevisionAllowanceValid ? 3.5 : 0));
 
     const requirementsScore =
       validRequirementCount > 0 && isRequirementsComplete ? 10 : 0;
@@ -1663,16 +1845,36 @@ export default function StudentGigCreatePage({ currentUser }) {
       });
     }
 
-    if (!hasOnlyMeaningfulListItems(delivery.includedItems) ||
-        !hasOnlyMeaningfulListItems(delivery.deliverables)) {
+    const packageScopeNeedsAttention =
+      isMultiPackage &&
+      packages.some((pkg) => {
+        const included = Array.isArray(pkg.includedItems) ? pkg.includedItems : [];
+        const deliverables = Array.isArray(pkg.deliverables) ? pkg.deliverables : [];
+        const features = Array.isArray(pkg.features) ? pkg.features : [];
+
+        return (
+          !included.some((item) => String(item || '').trim()) ||
+          !deliverables.some((item) => String(item || '').trim()) ||
+          !features.some((item) => String(item || '').trim())
+        );
+      });
+
+    if (
+      (isMultiPackage && packageScopeNeedsAttention) ||
+      (!isMultiPackage &&
+        (!hasOnlyMeaningfulListItems(delivery.includedItems) ||
+          !hasOnlyMeaningfulListItems(delivery.deliverables)))
+    ) {
       suggestions.push({
         id: 'scope-required',
         step: 4,
         priority: 90,
         title: 'Clarify scope and deliverables',
-        detail: 'State what is included and the concrete outputs the buyer will receive.'
+        detail: isMultiPackage
+          ? 'Complete the included work, deliverables, and features for every package.'
+          : 'State what is included and the concrete outputs the buyer will receive.'
       });
-    } else if (delivery.excludedItems.length === 0) {
+    } else if (!isMultiPackage && delivery.excludedItems.length === 0) {
       suggestions.push({
         id: 'scope-boundaries',
         step: 4,
@@ -1682,11 +1884,30 @@ export default function StudentGigCreatePage({ currentUser }) {
       });
     }
 
-    if (!isPricingComplete ||
-        delivery.deliveryDays === '' ||
-        !Number.isInteger(deliveryDaysNumber) ||
-        delivery.deliveryDays <= 0 ||
-        !isRevisionAllowanceValid) {
+    const packageCommercialNeedsAttention =
+      isMultiPackage &&
+      packages.some((pkg) => {
+        const days = Number(pkg.deliveryDays);
+        const revisions =
+          pkg.revisions === 'unlimited' ? -1 : Number(pkg.revisions);
+
+        return (
+          !Number.isInteger(days) ||
+          days <= 0 ||
+          !Number.isInteger(revisions) ||
+          revisions < -1
+        );
+      });
+
+    if (
+      !isPricingComplete ||
+      (isMultiPackage
+        ? packageCommercialNeedsAttention
+        : delivery.deliveryDays === '' ||
+          !Number.isInteger(deliveryDaysNumber) ||
+          delivery.deliveryDays <= 0 ||
+          !isRevisionAllowanceValid)
+    ) {
       suggestions.push({
         id: 'pricing-delivery',
         step: 4,
@@ -1763,6 +1984,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     isBasicsComplete,
     isPricingComplete,
     isRevisionAllowanceValid,
+    packages,
+    isMultiPackage,
     isExcludedListValid,
     deliveryDaysNumber,
     isRequirementsComplete,
@@ -1817,57 +2040,117 @@ export default function StudentGigCreatePage({ currentUser }) {
 
     if (!isPricingComplete) {
       const pricingIssues = [];
-      const rawPrice = String(pricing.basePrice).trim();
 
-      if (!rawPrice) {
-        pricingIssues.push('Enter a base price.');
-      } else if (
-        !Number.isFinite(Number(rawPrice)) ||
-        !(Number(rawPrice) > 0)
-      ) {
-        pricingIssues.push('Base price must be greater than 0.');
+      if (pricing.packageModel === 'multi') {
+        packages.forEach((pkg) => {
+          if (
+            String(pkg.price).trim() === '' ||
+            !Number.isFinite(Number(pkg.price)) ||
+            !(Number(pkg.price) > 0)
+          ) {
+            pricingIssues.push(`${pkg.tierName} price must be greater than 0.`);
+          }
+        });
+
+        if (packages.length !== 3) {
+          pricingIssues.push('Basic, Standard, and Premium packages are required.');
+        }
+      } else {
+        const rawPrice = String(pricing.basePrice).trim();
+
+        if (!rawPrice) {
+          pricingIssues.push('Enter a base price.');
+        } else if (
+          !Number.isFinite(Number(rawPrice)) ||
+          !(Number(rawPrice) > 0)
+        ) {
+          pricingIssues.push('Base price must be greater than 0.');
+        }
       }
 
       if (!pricing.currency) pricingIssues.push('Select a currency.');
-      if (pricing.packageModel !== 'single') {
-        pricingIssues.push('Use single-price mode.');
-      }
 
       addBlocker(3, 'Complete your pricing.', pricingIssues.join(' '));
     }
 
     if (!isDeliveryComplete) {
       const deliveryIssues = [];
-      const rawDelivery = String(delivery.deliveryDays).trim();
-      const rawRevisions = String(delivery.revisions).trim();
 
-      if (!rawDelivery) {
-        deliveryIssues.push('Set a delivery time.');
-      } else if (
-        !Number.isInteger(Number(rawDelivery)) ||
-        !(Number(rawDelivery) > 0)
-      ) {
-        deliveryIssues.push('Delivery time must be a positive whole number of days.');
-      }
+      if (pricing.packageModel === 'multi') {
+        packages.forEach((pkg) => {
+          const days = Number(pkg.deliveryDays);
+          const revisions =
+            pkg.revisions === 'unlimited' ? -1 : Number(pkg.revisions);
+          const included = Array.isArray(pkg.includedItems) ? pkg.includedItems : [];
+          const excluded = Array.isArray(pkg.excludedItems) ? pkg.excludedItems : [];
+          const deliverables = Array.isArray(pkg.deliverables) ? pkg.deliverables : [];
+          const features = Array.isArray(pkg.features) ? pkg.features : [];
 
-      if (!rawRevisions) {
-        deliveryIssues.push('Select a revision allowance.');
-      } else if (
-        !isRevisionAllowanceValid
-      ) {
-        deliveryIssues.push('Revision allowance must be 0 or more, or unlimited.');
-      }
+          if (!Number.isInteger(days) || days <= 0) {
+            deliveryIssues.push(`${pkg.tierName} needs a positive delivery time.`);
+          }
 
-      if (!hasOnlyMeaningfulListItems(delivery.includedItems)) {
-        deliveryIssues.push('Add at least one included item and complete all included items.');
-      }
+          if (!Number.isInteger(revisions) || revisions < -1) {
+            deliveryIssues.push(`${pkg.tierName} needs a valid revision allowance.`);
+          }
 
-      if (!isExcludedListValid) {
-        deliveryIssues.push('Complete or remove blank excluded items.');
-      }
+          if (
+            !included.length ||
+            included.some((item) => !String(item || '').trim())
+          ) {
+            deliveryIssues.push(`${pkg.tierName} needs at least one included item.`);
+          }
 
-      if (!hasOnlyMeaningfulListItems(delivery.deliverables)) {
-        deliveryIssues.push('Add at least one deliverable and complete all deliverables.');
+          if (excluded.some((item) => !String(item || '').trim())) {
+            deliveryIssues.push(`${pkg.tierName} has an incomplete excluded item.`);
+          }
+
+          if (
+            !deliverables.length ||
+            deliverables.some((item) => !String(item || '').trim())
+          ) {
+            deliveryIssues.push(`${pkg.tierName} needs at least one deliverable.`);
+          }
+
+          if (
+            !features.length ||
+            features.some((item) => !String(item || '').trim())
+          ) {
+            deliveryIssues.push(`${pkg.tierName} needs at least one feature.`);
+          }
+        });
+      } else {
+        const rawDelivery = String(delivery.deliveryDays).trim();
+        const rawRevisions = String(delivery.revisions).trim();
+
+        if (!rawDelivery) {
+          deliveryIssues.push('Set a delivery time.');
+        } else if (
+          !Number.isInteger(Number(rawDelivery)) ||
+          !(Number(rawDelivery) > 0)
+        ) {
+          deliveryIssues.push('Delivery time must be a positive whole number of days.');
+        }
+
+        if (!rawRevisions) {
+          deliveryIssues.push('Select a revision allowance.');
+        } else if (
+          !isRevisionAllowanceValid
+        ) {
+          deliveryIssues.push('Revision allowance must be 0 or more, or unlimited.');
+        }
+
+        if (!hasOnlyMeaningfulListItems(delivery.includedItems)) {
+          deliveryIssues.push('Add at least one included item and complete all included items.');
+        }
+
+        if (!isExcludedListValid) {
+          deliveryIssues.push('Complete or remove blank excluded items.');
+        }
+
+        if (!hasOnlyMeaningfulListItems(delivery.deliverables)) {
+          deliveryIssues.push('Add at least one deliverable and complete all deliverables.');
+        }
       }
 
       addBlocker(
@@ -2101,33 +2384,187 @@ export default function StudentGigCreatePage({ currentUser }) {
     }));
   };
 
+  const handlePackageChange = (packageIndex, field, value) => {
+    setPackages((previous) =>
+      previous.map((pkg, index) =>
+        index === packageIndex ? { ...pkg, [field]: value } : pkg
+      )
+    );
+  };
+
+  const handlePackageListChange = (packageIndex, field, itemIndex, value) => {
+    setPackages((previous) =>
+      previous.map((pkg, index) => {
+        if (index !== packageIndex) return pkg;
+        const items = Array.isArray(pkg[field]) ? [...pkg[field]] : [];
+        items[itemIndex] = value;
+        return { ...pkg, [field]: items };
+      })
+    );
+  };
+
+  const handlePackageListAdd = (packageIndex, field) => {
+    setPackages((previous) =>
+      previous.map((pkg, index) =>
+        index === packageIndex
+          ? {
+              ...pkg,
+              [field]: [
+                ...(Array.isArray(pkg[field]) ? pkg[field] : []),
+                ''
+              ]
+            }
+          : pkg
+      )
+    );
+  };
+
+  const handlePackageListRemove = (packageIndex, field, itemIndex) => {
+    setPackages((previous) =>
+      previous.map((pkg, index) =>
+        index === packageIndex
+          ? {
+              ...pkg,
+              [field]: (Array.isArray(pkg[field]) ? pkg[field] : []).filter(
+                (_, currentIndex) => currentIndex !== itemIndex
+              )
+            }
+          : pkg
+      )
+    );
+  };
+
+  const validatePackages = () => {
+    if (pricing.packageModel !== 'multi') return true;
+
+    const nextErrors = {};
+
+    packages.forEach((pkg) => {
+      const prefix = `package.${pkg.tierName}`;
+      const price = Number(pkg.price);
+      const days = Number(pkg.deliveryDays);
+      const revisions =
+        pkg.revisions === 'unlimited' ? -1 : Number(pkg.revisions);
+      const included = Array.isArray(pkg.includedItems) ? pkg.includedItems : [];
+      const excluded = Array.isArray(pkg.excludedItems) ? pkg.excludedItems : [];
+      const deliverables = Array.isArray(pkg.deliverables) ? pkg.deliverables : [];
+      const features = Array.isArray(pkg.features) ? pkg.features : [];
+
+      if (!Number.isFinite(price) || price <= 0) {
+        nextErrors[`${prefix}.price`] = 'Enter a positive package price.';
+      }
+      if (!Number.isInteger(days) || days <= 0) {
+        nextErrors[`${prefix}.deliveryDays`] =
+          'Delivery must be a positive whole number of days.';
+      }
+      if (!Number.isInteger(revisions) || revisions < -1) {
+        nextErrors[`${prefix}.revisions`] =
+          'Use 0 or more revisions, or unlimited.';
+      }
+      if (
+        included.length === 0 ||
+        included.some((item) => !String(item || '').trim())
+      ) {
+        nextErrors[`${prefix}.includedItems`] =
+          'Add and complete at least one included item.';
+      }
+      if (excluded.some((item) => !String(item || '').trim())) {
+        nextErrors[`${prefix}.excludedItems`] =
+          'Complete or remove blank excluded items.';
+      }
+      if (
+        deliverables.length === 0 ||
+        deliverables.some((item) => !String(item || '').trim())
+      ) {
+        nextErrors[`${prefix}.deliverables`] =
+          'Add and complete at least one deliverable.';
+      }
+      if (
+        features.length === 0 ||
+        features.some((item) => !String(item || '').trim())
+      ) {
+        nextErrors[`${prefix}.features`] =
+          'Add and complete at least one feature.';
+      }
+    });
+
+    if (packages.length !== 3) {
+      nextErrors.packages = 'Basic, Standard, and Premium are required.';
+    }
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      ...nextErrors
+    }));
+    setTouchedFields((previous) => ({
+      ...previous,
+      packages: true
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const validatePricing = () => {
     const nextErrors = {};
     const rawPrice = String(pricing.basePrice).trim();
 
-    if (!rawPrice) {
-      nextErrors.basePrice = 'Enter a base price for your service.';
-    } else if (!Number.isFinite(Number(rawPrice))) {
-      nextErrors.basePrice = 'Enter a valid numeric price.';
-    } else if (!(Number(rawPrice) > 0)) {
-      nextErrors.basePrice = 'Base price must be greater than 0.';
+    if (pricing.packageModel === 'single') {
+      if (!rawPrice) {
+        nextErrors.basePrice = 'Enter a base price for your service.';
+      } else if (!Number.isFinite(Number(rawPrice))) {
+        nextErrors.basePrice = 'Enter a valid numeric price.';
+      } else if (!(Number(rawPrice) > 0)) {
+        nextErrors.basePrice = 'Base price must be greater than 0.';
+      }
+    } else if (pricing.packageModel === 'multi') {
+      const allowedTiers = new Set(['Basic', 'Standard', 'Premium']);
+      const seenTiers = new Set();
+
+      if (packages.length !== 3) {
+        nextErrors.packages = 'Basic, Standard, and Premium are required.';
+      }
+
+      packages.forEach((pkg) => {
+        const prefix = `package.${pkg.tierName}`;
+        const price = Number(pkg.price);
+
+        if (!allowedTiers.has(pkg.tierName) || seenTiers.has(pkg.tierName)) {
+          nextErrors[`${prefix}.tierName`] =
+            'Basic, Standard, and Premium must each appear once.';
+        }
+        seenTiers.add(pkg.tierName);
+
+        if (!Number.isFinite(price) || price <= 0) {
+          nextErrors[`${prefix}.price`] = 'Enter a positive package price.';
+        }
+      });
+
+      for (const tierName of ['Basic', 'Standard', 'Premium']) {
+        if (!seenTiers.has(tierName)) {
+          nextErrors.packages = 'Basic, Standard, and Premium are required.';
+          break;
+        }
+      }
+    } else {
+      nextErrors.packageModel = 'Select a pricing model.';
     }
 
     if (!pricing.currency) {
       nextErrors.currency = 'Please select a currency.';
     }
 
-    if (pricing.packageModel !== 'single') {
-      nextErrors.packageModel = 'Single-price mode is required for GIG-007.';
-    }
-
     setFieldErrors((previous) => {
       const next = { ...previous };
+
       Object.keys(next).forEach((key) => {
-        if (['basePrice', 'currency', 'packageModel'].includes(key)) {
+        if (
+          ['basePrice', 'currency', 'packageModel', 'packages'].includes(key) ||
+          key.startsWith('package.')
+        ) {
           delete next[key];
         }
       });
+
       return { ...next, ...nextErrors };
     });
 
@@ -2135,7 +2572,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       ...previous,
       basePrice: true,
       currency: true,
-      packageModel: true
+      packageModel: true,
+      packages: pricing.packageModel === 'multi' ? true : previous.packages
     }));
 
     return Object.keys(nextErrors).length === 0;
@@ -2162,6 +2600,10 @@ export default function StudentGigCreatePage({ currentUser }) {
   };
 
   const validateDelivery = () => {
+    if (pricing.packageModel === 'multi') {
+      return validatePackages();
+    }
+
     const nextErrors = {};
     const rawDelivery = String(delivery.deliveryDays).trim();
     const rawRevisions = String(delivery.revisions).trim();
@@ -3626,7 +4068,6 @@ export default function StudentGigCreatePage({ currentUser }) {
   const renderPricing = () => {
     const priceError = touchedFields.basePrice ? fieldErrors.basePrice : null;
     const currencyError = touchedFields.currency ? fieldErrors.currency : null;
-    const packageModelError = touchedFields.packageModel ? fieldErrors.packageModel : null;
 
     return (
       <div className="mt-8 space-y-7">
@@ -3637,163 +4078,219 @@ export default function StudentGigCreatePage({ currentUser }) {
             </p>
 
             <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
-              Set a clear starting price for your service
+              Choose your pricing structure
             </h3>
 
             <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-              Give buyers one straightforward price for the service you are offering.
-              Package tiers will be introduced in a later stage.
+              Keep one straightforward purchase option or offer Basic, Standard,
+              and Premium packages with different commercial terms.
             </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+          <div className="mt-7 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[
+              {
+                value: 'single',
+                title: 'Single price',
+                detail: 'One purchase option for the complete service.'
+              },
+              {
+                value: 'multi',
+                title: 'Basic / Standard / Premium',
+                detail: 'Three options with their own price and package terms.'
+              }
+            ].map((option) => (
               <label
-                htmlFor="gig-base-price"
-                className="text-xs font-black uppercase tracking-wider text-slate-300"
-              >
-                Base price <span className="text-pink-500">*</span>
-              </label>
-
-              <div className="mt-3 flex min-w-0 rounded-xl border border-slate-800 bg-slate-950 focus-within:border-cyan-500/60 overflow-hidden">
-                <span className="inline-flex items-center px-3 border-r border-slate-800 text-sm font-black text-slate-500">
-                  INR
-                </span>
-
-                <input
-                  id="gig-base-price"
-                  name="basePrice"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.01"
-                  step="1"
-                  value={pricing.basePrice}
-                  onChange={(event) => handlePricingChange('basePrice', event.target.value)}
-                  aria-invalid={Boolean(priceError)}
-                  aria-describedby={priceError ? 'gig-base-price-error' : 'gig-base-price-help'}
-                  className={[
-                    'w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none',
-                    priceError ? 'border-red-500/50' : ''
-                  ].join(' ')}
-                  placeholder="Enter your price"
-                />
-              </div>
-
-              <p id="gig-base-price-help" className="text-xs leading-5 text-slate-600 mt-2">
-                Enter a positive amount for the complete service.
-              </p>
-
-              {priceError && (
-                <p
-                  id="gig-base-price-error"
-                  role="alert"
-                  className="text-xs font-semibold text-red-400 mt-2"
-                >
-                  {priceError}
-                </p>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
-              <label
-                htmlFor="gig-currency"
-                className="text-xs font-black uppercase tracking-wider text-slate-300"
-              >
-                Currency <span className="text-pink-500">*</span>
-              </label>
-
-              <select
-                id="gig-currency"
-                name="currency"
-                value={pricing.currency}
-                onChange={(event) => handlePricingChange('currency', event.target.value)}
-                aria-invalid={Boolean(currencyError)}
-                aria-describedby={currencyError ? 'gig-currency-error' : 'gig-currency-help'}
+                key={option.value}
                 className={[
-                  'w-full mt-3 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
-                  currencyError
-                    ? 'border-red-500/50 focus:border-red-400'
-                    : 'border-slate-800 focus:border-cyan-500/60'
+                  'flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition',
+                  pricing.packageModel === option.value
+                    ? 'border-cyan-500/40 bg-cyan-500/10'
+                    : 'border-slate-800 bg-slate-950/60'
                 ].join(' ')}
               >
-                <option value="INR">INR — Indian Rupee</option>
-              </select>
-
-              <p id="gig-currency-help" className="text-xs leading-5 text-slate-600 mt-2">
-                Your current platform currency is INR.
-              </p>
-
-              {currencyError && (
-                <p
-                  id="gig-currency-error"
-                  role="alert"
-                  className="text-xs font-semibold text-red-400 mt-2"
-                >
-                  {currencyError}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl border border-cyan-500/20 bg-cyan-500/10 flex items-center justify-center shrink-0">
-              <Check className="w-4 h-4 text-cyan-300" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-                Package model
-              </p>
-
-              <h3 className="text-lg sm:text-xl font-black text-white mt-1">
-                Single-price service
-              </h3>
-
-              <p className="text-sm leading-6 text-slate-500 mt-2 max-w-2xl">
-                This gig will use one base service price. Basic, Standard, and Premium
-                package configuration will be added in the Packages stage.
-              </p>
-
-              <label
-                htmlFor="gig-package-model"
-                className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 cursor-pointer"
-              >
                 <input
-                  id="gig-package-model"
-                  name="packageModel"
                   type="radio"
-                  value="single"
-                  checked={pricing.packageModel === 'single'}
-                  onChange={(event) => handlePricingChange('packageModel', event.target.value)}
+                  name="packageModel"
+                  value={option.value}
+                  checked={pricing.packageModel === option.value}
+                  onChange={(event) =>
+                    handlePricingChange('packageModel', event.target.value)
+                  }
                   className="mt-1 h-4 w-4 accent-cyan-400"
-                  aria-invalid={Boolean(packageModelError)}
-                  aria-describedby={packageModelError ? 'gig-package-model-error' : undefined}
                 />
-
                 <span className="min-w-0">
                   <span className="block text-sm font-black text-white">
-                    Single price
+                    {option.title}
                   </span>
                   <span className="block text-xs leading-5 text-slate-500 mt-1">
-                    One purchase option for the service.
+                    {option.detail}
                   </span>
                 </span>
               </label>
-
-              {packageModelError && (
-                <p
-                  id="gig-package-model-error"
-                  role="alert"
-                  className="text-xs font-semibold text-red-400 mt-2"
-                >
-                  {packageModelError}
-                </p>
-              )}
-            </div>
+            ))}
           </div>
         </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Currency
+            </p>
+            <label
+              htmlFor="gig-currency"
+              className="block text-xs font-black uppercase tracking-wider text-slate-300 mt-2"
+            >
+              Display currency <span className="text-pink-500">*</span>
+            </label>
+
+            <select
+              id="gig-currency"
+              name="currency"
+              value={pricing.currency}
+              onChange={(event) => handlePricingChange('currency', event.target.value)}
+              aria-invalid={Boolean(currencyError)}
+              className={[
+                'w-full mt-3 rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
+                currencyError
+                  ? 'border-red-500/50 focus:border-red-400'
+                  : 'border-slate-800 focus:border-cyan-500/60'
+              ].join(' ')}
+            >
+              <option value="INR">INR — Indian Rupee</option>
+            </select>
+
+            <p className="text-xs leading-5 text-slate-600 mt-2">
+              Your current platform currency is INR.
+            </p>
+
+            {currencyError && (
+              <p role="alert" className="text-xs font-semibold text-red-400 mt-2">
+                {currencyError}
+              </p>
+            )}
+          </div>
+        </section>
+
+        {pricing.packageModel === 'single' ? (
+          <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+            <label
+              htmlFor="gig-base-price"
+              className="text-xs font-black uppercase tracking-wider text-slate-300"
+            >
+              Base price <span className="text-pink-500">*</span>
+            </label>
+
+            <div className="mt-3 flex min-w-0 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+              <span className="inline-flex items-center px-3 border-r border-slate-800 text-sm font-black text-slate-500">
+                INR
+              </span>
+              <input
+                id="gig-base-price"
+                name="basePrice"
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                step="1"
+                value={pricing.basePrice}
+                onChange={(event) => handlePricingChange('basePrice', event.target.value)}
+                aria-invalid={Boolean(priceError)}
+                className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+                placeholder="Enter your price"
+              />
+            </div>
+
+            {priceError && (
+              <p role="alert" className="text-xs font-semibold text-red-400 mt-2">
+                {priceError}
+              </p>
+            )}
+          </section>
+        ) : (
+          <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+            <div className="max-w-3xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                Package pricing
+              </p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+                Price each package separately
+              </h3>
+              <p className="text-sm leading-6 text-slate-500 mt-2">
+                Basic, Standard, and Premium are all required for a multi-package gig.
+              </p>
+            </div>
+
+            <div className="mt-7 grid grid-cols-1 xl:grid-cols-3 gap-4">
+              {packages.map((pkg, packageIndex) => {
+                const error = touchedFields.packages
+                  ? fieldErrors[`package.${pkg.tierName}.price`]
+                  : null;
+
+                return (
+                  <div
+                    key={pkg.tierName}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-400">
+                      Package {packageIndex + 1}
+                    </p>
+                    <h4 className="mt-1 text-lg font-black text-white">
+                      {pkg.tierName}
+                    </h4>
+
+                    <label className="block mt-5 text-xs font-black uppercase tracking-wider text-slate-300">
+                      Price <span className="text-pink-500">*</span>
+                    </label>
+                    <div className="mt-2 flex rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+                      <span className="inline-flex items-center px-3 border-r border-slate-800 text-sm font-black text-slate-500">
+                        INR
+                      </span>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="1"
+                        value={pkg.price}
+                        onChange={(event) =>
+                          handlePackageChange(
+                            packageIndex,
+                            'price',
+                            event.target.value
+                          )
+                        }
+                        className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+                        placeholder="Enter price"
+                      />
+                    </div>
+
+                    {error && (
+                      <p role="alert" className="mt-2 text-xs font-semibold text-red-400">
+                        {error}
+                      </p>
+                    )}
+
+                    <label className="block mt-5 text-xs font-black uppercase tracking-wider text-slate-300">
+                      Package summary
+                    </label>
+                    <textarea
+                      rows="3"
+                      maxLength="240"
+                      value={pkg.description}
+                      onChange={(event) =>
+                        handlePackageChange(
+                          packageIndex,
+                          'description',
+                          event.target.value
+                        )
+                      }
+                      className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none resize-y"
+                      placeholder="Explain the value of this package."
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {!isPricingComplete && (
           <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
@@ -3807,6 +4304,271 @@ export default function StudentGigCreatePage({ currentUser }) {
   };
 
   const renderDelivery = () => {
+    if (pricing.packageModel === 'multi') {
+      const renderPackageList = (
+        packageIndex,
+        field,
+        label,
+        placeholder,
+        required = false
+      ) => {
+        const pkg = packages[packageIndex];
+        const items = Array.isArray(pkg?.[field]) ? pkg[field] : [];
+        const error = touchedFields.packages
+          ? fieldErrors[`package.${pkg?.tierName}.${field}`]
+          : null;
+
+        return (
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                  {label}{required && <span className="text-pink-500"> *</span>}
+                </label>
+                <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                  {required
+                    ? 'Add at least one clear item.'
+                    : 'Add meaningful boundaries buyers should know.'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handlePackageListAdd(packageIndex, field)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-[11px] font-black text-cyan-300 hover:border-cyan-500/30"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {items.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-slate-800 px-3 py-3 text-xs text-slate-600">
+                  Nothing added yet.
+                </p>
+              ) : (
+                items.map((item, itemIndex) => (
+                  <div
+                    key={`${pkg.tierName}-${field}-${itemIndex}`}
+                    className="flex items-start gap-2"
+                  >
+                    <input
+                      type="text"
+                      maxLength={180}
+                      value={item}
+                      onChange={(event) =>
+                        handlePackageListChange(
+                          packageIndex,
+                          field,
+                          itemIndex,
+                          event.target.value
+                        )
+                      }
+                      placeholder={placeholder}
+                      className="w-full min-w-0 rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-cyan-500/60"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handlePackageListRemove(
+                          packageIndex,
+                          field,
+                          itemIndex
+                        )
+                      }
+                      aria-label={`Remove ${label.toLowerCase()} ${itemIndex + 1}`}
+                      className="shrink-0 rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-slate-500 hover:border-red-500/30 hover:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {error && (
+              <p role="alert" className="mt-2 text-xs font-semibold text-red-400">
+                {error}
+              </p>
+            )}
+          </div>
+        );
+      };
+
+      const packageStepErrors = Object.entries(fieldErrors)
+        .filter(([key]) => key.startsWith('package.') || key === 'packages')
+        .map(([, value]) => value)
+        .filter(Boolean);
+
+      return (
+        <div className="mt-8 space-y-7">
+          <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
+            <div className="max-w-3xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                Package scope & delivery
+              </p>
+              <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+                Define the promise of each package
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Each package needs its own delivery time, revision allowance,
+                included work, exclusions, deliverables, and features.
+              </p>
+            </div>
+          </section>
+
+          {packages.map((pkg, packageIndex) => (
+            <section
+              key={pkg.tierName}
+              className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                    Package {packageIndex + 1}
+                  </p>
+                  <h3 className="mt-1 text-xl font-black text-white">
+                    {pkg.tierName}
+                  </h3>
+                </div>
+
+                <span className="text-xs font-bold text-slate-500">
+                  INR {Number(pkg.price || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                    Delivery time <span className="text-pink-500">*</span>
+                  </label>
+
+                  <div className="mt-2 flex overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={pkg.deliveryDays}
+                      onChange={(event) =>
+                        handlePackageChange(
+                          packageIndex,
+                          'deliveryDays',
+                          event.target.value
+                        )
+                      }
+                      className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+                      placeholder="e.g. 3"
+                    />
+                    <span className="inline-flex items-center border-l border-slate-800 px-3 text-sm font-black text-slate-500">
+                      days
+                    </span>
+                  </div>
+
+                  {touchedFields.packages &&
+                    fieldErrors[`package.${pkg.tierName}.deliveryDays`] && (
+                      <p role="alert" className="mt-2 text-xs font-semibold text-red-400">
+                        {fieldErrors[`package.${pkg.tierName}.deliveryDays`]}
+                      </p>
+                    )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                    Revisions <span className="text-pink-500">*</span>
+                  </label>
+
+                  <select
+                    value={pkg.revisions}
+                    onChange={(event) =>
+                      handlePackageChange(
+                        packageIndex,
+                        'revisions',
+                        event.target.value
+                      )
+                    }
+                    className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none"
+                  >
+                    <option value="">Select revision allowance</option>
+                    <option value="0">0 revisions</option>
+                    <option value="1">1 revision</option>
+                    <option value="2">2 revisions</option>
+                    <option value="3">3 revisions</option>
+                    <option value="4">4 revisions</option>
+                    <option value="5">5 revisions</option>
+                    <option value="unlimited">Unlimited revisions</option>
+                  </select>
+
+                  {touchedFields.packages &&
+                    fieldErrors[`package.${pkg.tierName}.revisions`] && (
+                      <p role="alert" className="mt-2 text-xs font-semibold text-red-400">
+                        {fieldErrors[`package.${pkg.tierName}.revisions`]}
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {renderPackageList(
+                packageIndex,
+                'includedItems',
+                'Included items',
+                'e.g. Responsive homepage implementation',
+                true
+              )}
+
+              {renderPackageList(
+                packageIndex,
+                'excludedItems',
+                'Excluded items',
+                'e.g. Custom backend integrations'
+              )}
+
+              {renderPackageList(
+                packageIndex,
+                'deliverables',
+                'Deliverables',
+                'e.g. Production-ready source code',
+                true
+              )}
+
+              {renderPackageList(
+                packageIndex,
+                'features',
+                'Features',
+                'e.g. Source files included',
+                true
+              )}
+            </section>
+          ))}
+
+          {packageStepErrors.length > 0 && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 sm:px-5"
+            >
+              <p className="text-xs font-black uppercase tracking-wider text-red-300">
+                Complete the highlighted package fields
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-red-200/80">
+                {packageStepErrors.slice(0, 8).map((message, index) => (
+                  <li key={`${message}-${index}`}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!isDeliveryComplete && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
+              <p className="text-xs font-bold text-slate-400">
+                Complete every package before continuing.
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     const deliveryError = touchedFields.deliveryDays ? fieldErrors.deliveryDays : null;
     const revisionsError = touchedFields.revisions ? fieldErrors.revisions : null;
     const includedError = touchedFields.includedItems ? fieldErrors.includedItems : null;
@@ -3958,7 +4720,6 @@ export default function StudentGigCreatePage({ currentUser }) {
               >
                 Delivery time <span className="text-pink-500">*</span>
               </label>
-
               <div className="mt-3 flex min-w-0 items-center overflow-hidden rounded-xl border border-slate-800 bg-slate-950 focus-within:border-cyan-500/60">
                 <input
                   id="gig-delivery-days"
@@ -4003,7 +4764,6 @@ export default function StudentGigCreatePage({ currentUser }) {
               >
                 Revisions <span className="text-pink-500">*</span>
               </label>
-
               <select
                 id="gig-revisions"
                 name="revisions"
@@ -4050,11 +4810,9 @@ export default function StudentGigCreatePage({ currentUser }) {
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
               What's included
             </p>
-
             <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
               Make the service scope explicit
             </h3>
-
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               List the parts of the service the buyer can reasonably expect as part of the
               purchased offer.
@@ -4063,11 +4821,12 @@ export default function StudentGigCreatePage({ currentUser }) {
 
           {renderRepeatableList({
             field: 'includedItems',
-            label: "Included item",
+            label: 'Included item',
             description: 'Use one clear line for each thing your service covers.',
-            placeholder: (index) => (
-              index === 0 ? 'e.g. Homepage implementation' : 'e.g. Responsive mobile styling'
-            ),
+            placeholder: (index) =>
+              index === 0
+                ? 'e.g. Homepage implementation'
+                : 'e.g. Responsive mobile styling',
             required: true,
             error: includedError,
             emptyMessage: 'No included items added yet.',
@@ -4080,14 +4839,12 @@ export default function StudentGigCreatePage({ currentUser }) {
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
               What's not included
             </p>
-
             <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
               Clarify the boundaries of the service
             </h3>
-
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Mention important exclusions so buyers can understand what falls outside the
-              agreed scope. This is optional here and can be expanded for more complex services.
+              agreed scope.
             </p>
           </div>
 
@@ -4108,14 +4865,12 @@ export default function StudentGigCreatePage({ currentUser }) {
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
               Deliverables
             </p>
-
             <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
               Tell buyers exactly what they'll receive
             </h3>
-
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Describe the concrete outputs or files the buyer should receive when the service
-              is complete. Actual file uploads are handled later in the creation flow.
+              is complete.
             </p>
           </div>
 
@@ -4123,9 +4878,10 @@ export default function StudentGigCreatePage({ currentUser }) {
             field: 'deliverables',
             label: 'Deliverable',
             description: 'Use one clear line for each concrete output or file.',
-            placeholder: (index) => (
-              index === 0 ? 'e.g. Production-ready React source code' : 'e.g. Final deployment package'
-            ),
+            placeholder: (index) =>
+              index === 0
+                ? 'e.g. Production-ready React source code'
+                : 'e.g. Final deployment package',
             required: true,
             error: deliverablesError,
             emptyMessage: 'No deliverables added yet.',
@@ -4143,7 +4899,7 @@ export default function StudentGigCreatePage({ currentUser }) {
             </p>
             <ul className="mt-2 space-y-1 text-xs text-red-200/80">
               {stepErrors.map((message) => (
-                <li key={message}>• {message}</li>
+                <li key={message}>{message}</li>
               ))}
             </ul>
           </div>
@@ -5873,6 +6629,7 @@ export default function StudentGigCreatePage({ currentUser }) {
                                 description={description}
                                 pricing={pricing}
                                 delivery={delivery}
+                                packages={packages}
                                 requirements={requirements}
                                 media={media}
                                 faqs={faqs}

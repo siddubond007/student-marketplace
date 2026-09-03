@@ -2019,8 +2019,18 @@ export default function AdminDashboard({ currentUser }) {
 
                     {gig.packages?.length > 0 && (
                       <div className="text-[11px] text-slate-300">
-                        Price: {gig.packages[0].price} • Delivery: {gig.packages[0].deliveryDays} days •
-                        Revisions: {gig.packages[0].revisions < 0 ? 'Unlimited' : gig.packages[0].revisions}
+                        {gig.isTiered ? (
+                          <>
+                            Packages: {gig.packages.filter((pkg) =>
+                              ['Basic', 'Standard', 'Premium'].includes(pkg.tierName)
+                            ).length}
+                          </>
+                        ) : (
+                          <>
+                            Price: {gig.packages[0].price} • Delivery: {gig.packages[0].deliveryDays} days •
+                            Revisions: {gig.packages[0].revisions < 0 ? 'Unlimited' : gig.packages[0].revisions}
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -2069,7 +2079,133 @@ export default function AdminDashboard({ currentUser }) {
                           </div>
                         </div>
 
-                        {gig.draftData?.delivery && (
+                        {gig.isTiered && Array.isArray(gig.packages) ? (
+                          <div>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                                Package Pricing & Scope
+                              </p>
+                              <span className="text-[10px] font-bold text-cyan-300">
+                                {gig.packages.filter((pkg) =>
+                                  ['Basic', 'Standard', 'Premium'].includes(pkg.tierName)
+                                ).length} tiers
+                              </span>
+                            </div>
+
+                            <div className="mt-2 grid grid-cols-1 lg:grid-cols-3 gap-3">
+                              {['Basic', 'Standard', 'Premium'].map((tierName) => {
+                                const pkg = gig.packages.find(
+                                  (item) => item.tierName === tierName
+                                );
+
+                                if (!pkg) {
+                                  return (
+                                    <div
+                                      key={tierName}
+                                      className="rounded-xl border border-red-500/20 bg-red-500/5 p-3"
+                                    >
+                                      <p className="text-sm font-black text-white">{tierName}</p>
+                                      <p className="mt-2 text-xs text-red-300">
+                                        Package data missing.
+                                      </p>
+                                    </div>
+                                  );
+                                }
+
+                                const scope =
+                                  pkg.scope && typeof pkg.scope === 'object'
+                                    ? pkg.scope
+                                    : {};
+
+                                const includedItems = Array.isArray(scope.includedItems)
+                                  ? scope.includedItems.filter(Boolean)
+                                  : [];
+                                const excludedItems = Array.isArray(scope.excludedItems)
+                                  ? scope.excludedItems.filter(Boolean)
+                                  : [];
+                                const deliverables = Array.isArray(scope.deliverables)
+                                  ? scope.deliverables.filter(Boolean)
+                                  : [];
+                                const features = Array.isArray(pkg.features)
+                                  ? pkg.features.filter(Boolean)
+                                  : [];
+
+                                const renderItems = (items, emptyLabel = 'None specified') =>
+                                  items.length > 0 ? (
+                                    <div className="mt-1.5 space-y-1">
+                                      {items.map((item, index) => (
+                                        <p
+                                          key={`${tierName}-${index}-${item}`}
+                                          className="text-[11px] leading-5 text-slate-300"
+                                        >
+                                          • {item}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-1.5 text-[11px] text-slate-600">
+                                      {emptyLabel}
+                                    </p>
+                                  );
+
+                                return (
+                                  <article
+                                    key={tierName}
+                                    className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <p className="text-sm font-black text-white">
+                                          {pkg.tierName}
+                                        </p>
+                                        <p className="mt-1 text-[11px] font-bold text-cyan-300">
+                                          {pkg.price} • {pkg.deliveryDays} days •{' '}
+                                          {pkg.revisions < 0
+                                            ? 'Unlimited revisions'
+                                            : `${pkg.revisions} revision${pkg.revisions === 1 ? '' : 's'}`}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <p className="mt-3 text-xs leading-5 text-slate-400">
+                                      {pkg.description || 'No package description provided.'}
+                                    </p>
+
+                                    <div className="mt-3 space-y-3">
+                                      <div>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                          Included
+                                        </p>
+                                        {renderItems(includedItems)}
+                                      </div>
+
+                                      <div>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                          Excluded
+                                        </p>
+                                        {renderItems(excludedItems)}
+                                      </div>
+
+                                      <div>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                          Deliverables
+                                        </p>
+                                        {renderItems(deliverables)}
+                                      </div>
+
+                                      <div>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                          Features
+                                        </p>
+                                        {renderItems(features)}
+                                      </div>
+                                    </div>
+                                  </article>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : gig.draftData?.delivery ? (
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
                               Scope & Deliverables
@@ -2101,7 +2237,7 @@ export default function AdminDashboard({ currentUser }) {
                               ))}
                             </div>
                           </div>
-                        )}
+                        ) : null}
 
                         {Array.isArray(gig.draftData?.requirements) && gig.draftData.requirements.length > 0 && (
                           <div>
