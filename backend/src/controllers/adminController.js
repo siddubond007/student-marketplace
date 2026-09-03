@@ -1076,6 +1076,172 @@ exports.clearInvestigation = async (req, res) => {
   }
 };
 
+exports.updateGigModerationStatus = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+    const { status, reasonCode, reason } = req.body || {};
+
+    const allowedStatuses = new Set([
+      'PUBLISHED',
+      'NEEDS_CHANGES',
+      'REJECTED'
+    ]);
+
+    if (!allowedStatuses.has(status)) {
+      return res.status(400).json({
+        error: 'Moderation status must be PUBLISHED, NEEDS_CHANGES, or REJECTED.'
+      });
+    }
+
+    const normalizedReasonCode =
+      typeof reasonCode === 'string' ? reasonCode.trim() : '';
+
+    const normalizedReason =
+      typeof reason === 'string' ? reason.trim() : '';
+
+    if (
+      ['NEEDS_CHANGES', 'REJECTED'].includes(status) &&
+      !normalizedReasonCode
+    ) {
+      return res.status(400).json({
+        error: 'A moderation reason code is required for this decision.'
+      });
+    }
+
+    const gig = await prisma.gig.findFirst({
+      where: {
+        id: gigId,
+        status: 'PENDING_REVIEW',
+        isDeleted: false
+      },
+      select: {
+        id: true,
+        sellerId: true,
+        title: true,
+        status: true,
+        moderationFindings: true
+      }
+    });
+
+    if (!gig) {
+      return res.status(404).json({
+        error: 'Pending gig moderation item not found.'
+      });
+    }
+
+    const now = new Date();
+    const updatedGig = await prisma.gig.update({
+      where: { id: gig.id },
+      data: {
+        status,
+        moderationStatus: 'REVIEWED',
+        moderationReasonCode: normalizedReasonCode || null,
+        moderatedById: req.user.id,
+        moderatedAt: now,
+        moderationFindings: gig.moderationFindings || null
+      }
+    });
+
+    const auditAction =
+      status === 'PUBLISHED'
+        ? 'APPROVE_GIG_MODERATION'
+        : status === 'NEEDS_CHANGES'
+          ? 'REQUEST_GIG_CHANGES'
+          : 'REJECT_GIG_MODERATION';
+
+    const auditDetails = [
+      `Gig "${gig.title}" moderation decision: ${status}`,
+      normalizedReasonCode ? `Reason code: ${normalizedReasonCode}` : null,
+      normalizedReason ? `Reason: ${normalizedReason}` : null
+    ].filter(Boolean).join(' | ');
+
+    await createAuditLog(
+      req.user.id,
+      auditAction,
+      gig.id,
+      auditDetails
+    );
+
+    const notificationTitle =
+      status === 'PUBLISHED'
+        ? 'Gig Approved'
+        : status === 'NEEDS_CHANGES'
+          ? 'Gig Needs Changes'
+          : 'Gig Rejected';
+
+    const notificationMessage =
+      status === 'PUBLISHED'
+        ? `Your gig "${gig.title}" has been approved and is now published.`
+        : status === 'NEEDS_CHANGES'
+          ? `Your gig "${gig.title}" needs changes before it can be published. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`
+          : `Your gig "${gig.title}" was rejected during moderation. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`;
+
+    await prisma.notification.create({
+      data: {
+        userId: gig.sellerId,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'GIG_MODERATION'
+      }
+    });
+
+    return res.json({
+      message: `Gig moderation updated to ${status}.`,
+      gig: updatedGig
+    });
+  } catch (err) {
+    console.error('Update Gig Moderation Status Error:', err);
+    return res.status(500).json({
+      error: 'Failed to update gig moderation status.'
+    });
+  }
+};
+
+exports.getGigModerationQueue = async (req, res) => {
+  try {
+    const gigs = await prisma.gig.findMany({
+      where: {
+        status: 'PENDING_REVIEW',
+        isDeleted: false
+      },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            email: true
+          }
+        },
+        categoryRef: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            isRestricted: true
+          }
+        },
+        subcategoryRef: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        packages: {
+          orderBy: { price: 'asc' }
+        }
+      },
+      orderBy: { updatedAt: 'asc' }
+    });
+
+    return res.json(gigs);
+  } catch (err) {
+    console.error('Get Gig Moderation Queue Error:', err);
+    return res.status(500).json({ error: 'Failed to load gig moderation queue.' });
+  }
+};
+
 exports.getAuditLogs = async (req, res) => {
   try {
     const logs = await prisma.auditLog.findMany({

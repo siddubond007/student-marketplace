@@ -10,6 +10,8 @@ router.use(requireAdmin);
 router.get('/users', adminController.getAllUsers);
 router.get('/stats', adminController.getStats);
 router.get('/moderation-logs', adminController.getModerationLogs);
+router.get('/gig-moderation', adminController.getGigModerationQueue);
+router.put('/gig-moderation/:gigId', adminController.updateGigModerationStatus);
 router.get('/audit-logs', adminController.getAuditLogs);
 router.get('/audit-logs/export', adminController.exportAuditLogs);
 router.delete('/users/:userId', adminController.deleteUser);

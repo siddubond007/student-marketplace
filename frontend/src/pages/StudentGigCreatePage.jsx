@@ -589,6 +589,7 @@ export default function StudentGigCreatePage() {
   const [submissionState, setSubmissionState] = useState('idle');
   const [submissionError, setSubmissionError] = useState('');
   const [submissionBlockers, setSubmissionBlockers] = useState([]);
+  const [moderationFeedback, setModerationFeedback] = useState(null);
 
   const managementGigId = searchParams.get('manageId') || '';
   const isManagementEdit = Boolean(managementGigId);
@@ -1358,6 +1359,17 @@ export default function StudentGigCreatePage() {
         hasUnsavedChangesRef.current = false;
         setLastSavedAt(savedDraft.updatedAt || null);
         setSaveState('saved');
+        setModerationFeedback(
+          ['NEEDS_CHANGES', 'REJECTED'].includes(savedDraft.status)
+            ? {
+                status: savedDraft.status,
+                reasonCode: savedDraft.moderationReasonCode || '',
+                findings: Array.isArray(savedDraft.moderationFindings?.findings)
+                  ? savedDraft.moderationFindings.findings
+                  : []
+              }
+            : null
+        );
         if (savedDraft.status === 'PENDING_REVIEW') {
           setSubmissionState('submitted');
         }
@@ -5415,6 +5427,70 @@ export default function StudentGigCreatePage() {
           </div>
         )}
       </section>
+
+      {moderationFeedback && (
+        <section
+          aria-labelledby="moderation-feedback-heading"
+          className="rounded-3xl border border-orange-500/20 bg-orange-500/5 p-5 sm:p-7"
+        >
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
+              Moderation Feedback
+            </p>
+            <h3
+              id="moderation-feedback-heading"
+              className="mt-1 text-lg font-black text-white"
+            >
+              {moderationFeedback.status === 'REJECTED'
+                ? 'Your gig was rejected'
+                : 'Changes are required before approval'}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Review the reason code and automated findings below, make the requested corrections, then submit the gig again for moderation.
+            </p>
+
+            {moderationFeedback.reasonCode && (
+              <div className="mt-4 rounded-2xl border border-orange-500/15 bg-slate-950/50 px-4 py-3">
+                <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                  Reason code
+                </p>
+                <p className="mt-1 text-sm font-black text-orange-200">
+                  {moderationFeedback.reasonCode}
+                </p>
+              </div>
+            )}
+
+            {moderationFeedback.findings.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {moderationFeedback.findings.map((finding, index) => (
+                  <div
+                    key={`${finding.reasonCode || 'finding'}-${index}`}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/50 px-4 py-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-black text-white">
+                        {finding.reasonCode || finding.check || 'Moderation finding'}
+                      </span>
+                      {finding.severity && (
+                        <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          {finding.severity}
+                        </span>
+                      )}
+                    </div>
+                    {finding.details && (
+                      <p className="mt-1 text-xs leading-5 text-slate-400">
+                        {typeof finding.details === 'string'
+                          ? finding.details
+                          : JSON.stringify(finding.details)}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {submissionError && (
         <section

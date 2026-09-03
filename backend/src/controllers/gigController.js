@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const { moderateGig } = require('../services/gigModerationService');
 
 exports.createGig = async (req, res) => {
   try {
@@ -603,6 +604,11 @@ const areDraftsEqual = (left, right) =>
 const draftResponse = (gig) => ({
   id: gig.id,
   status: gig.status,
+  moderationStatus: gig.moderationStatus,
+  moderationReasonCode: gig.moderationReasonCode,
+  moderationFindings: gig.moderationFindings || null,
+  moderatedById: gig.moderatedById,
+  moderatedAt: gig.moderatedAt,
   draftData: gig.draftData || {},
   draftVersion: gig.draftVersion,
   updatedAt: gig.updatedAt
@@ -752,7 +758,7 @@ exports.getGigDraft = async (req, res) => {
       where: {
         id: gigId,
         sellerId: req.user.id,
-        status: { in: ['DRAFT', 'PENDING_REVIEW'] },
+        status: { in: ['DRAFT', 'PENDING_REVIEW', 'NEEDS_CHANGES'] },
         isDeleted: false
       }
     });
@@ -783,7 +789,7 @@ exports.updateGigDraft = async (req, res) => {
       where: {
         id: gigId,
         sellerId: req.user.id,
-        status: 'DRAFT',
+        status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
         isDeleted: false
       }
     });
@@ -842,7 +848,7 @@ exports.updateGigDraft = async (req, res) => {
         where: {
           id: gigId,
           sellerId: req.user.id,
-          status: 'DRAFT',
+          status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
           isDeleted: false,
           draftVersion: existingGig.draftVersion
         },
@@ -915,7 +921,7 @@ exports.updateGigDraft = async (req, res) => {
         where: {
           id: gigId,
           sellerId: req.user.id,
-          status: 'DRAFT',
+          status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
           isDeleted: false
         }
       });
@@ -959,7 +965,7 @@ exports.submitGigDraft = async (req, res) => {
       where: {
         id: gigId,
         sellerId: req.user.id,
-        status: 'DRAFT',
+        status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
         isDeleted: false
       }
     });
@@ -977,16 +983,26 @@ exports.submitGigDraft = async (req, res) => {
       });
     }
 
+    const moderationResult = await moderateGig({
+      draftData: gig.draftData || {},
+      sellerId: gig.sellerId,
+      gigId: gig.id,
+      prisma
+    });
+
     const submittedGig = await prisma.gig.updateMany({
       where: {
         id: gigId,
         sellerId: req.user.id,
-        status: 'DRAFT',
+        status: { in: ['DRAFT', 'NEEDS_CHANGES'] },
         isDeleted: false,
         draftVersion: gig.draftVersion
       },
       data: {
-        status: 'PENDING_REVIEW'
+        status: 'PENDING_REVIEW',
+        moderationStatus: moderationResult.status,
+        moderationReasonCode: moderationResult.findings[0]?.reasonCode || null,
+        moderationFindings: moderationResult
       }
     });
 
@@ -1005,6 +1021,9 @@ exports.submitGigDraft = async (req, res) => {
       submission: {
         id: updatedGig.id,
         status: updatedGig.status,
+        moderationStatus: updatedGig.moderationStatus,
+        moderationReasonCode: updatedGig.moderationReasonCode,
+        moderationFindings: updatedGig.moderationFindings || null,
         updatedAt: updatedGig.updatedAt
       }
     });

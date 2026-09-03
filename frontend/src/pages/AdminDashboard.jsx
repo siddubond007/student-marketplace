@@ -25,6 +25,7 @@ export default function AdminDashboard({ currentUser }) {
     hiddenReviews: 0
   });
   const [moderationLogs, setModerationLogs] = useState([]);
+  const [gigModerationQueue, setGigModerationQueue] = useState([]);
   const [verifications, setVerifications] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -58,10 +59,11 @@ export default function AdminDashboard({ currentUser }) {
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const [usersRes, statsRes, logsRes, verifRes, payoutsRes, disputesRes, reviewsRes, fraudRes, auditRes] = await Promise.all([
+      const [usersRes, statsRes, logsRes, gigModerationRes, verifRes, payoutsRes, disputesRes, reviewsRes, fraudRes, auditRes] = await Promise.all([
         API.get('/admin/users'),
         API.get('/admin/stats'),
         API.get('/admin/moderation-logs'),
+        API.get('/admin/gig-moderation'),
         API.get('/admin/verifications'),
         API.get('/admin/payouts'),
         API.get('/disputes'),
@@ -73,6 +75,7 @@ export default function AdminDashboard({ currentUser }) {
       setUsers(usersRes.data || []);
       setStats(statsRes.data || {});
       setModerationLogs(logsRes.data || []);
+      setGigModerationQueue(gigModerationRes.data || []);
       setVerifications(verifRes.data || []);
       setPayouts(payoutsRes.data || []);
       setDisputes(disputesRes.data || []);
@@ -136,6 +139,43 @@ export default function AdminDashboard({ currentUser }) {
       alert('👑 Master Admin Access Granted!');
     } catch (err) {
       alert('Access Denied: ' + (err.response?.data?.error || 'Invalid Key'));
+    }
+  };
+
+  const handleGigModeration = async (gigId, status, defaultReasonCode = '') => {
+    let reasonCode = defaultReasonCode;
+    let reason = '';
+
+    if (status !== 'PUBLISHED') {
+      reasonCode = window.prompt(
+        'Enter moderation reason code:',
+        defaultReasonCode || 'POLICY_REVIEW'
+      );
+      if (reasonCode === null || !reasonCode.trim()) return;
+
+      reason = window.prompt('Enter moderation notes (optional):', '');
+      if (reason === null) return;
+    }
+
+    try {
+      await API.put(`/admin/gig-moderation/${gigId}`, {
+        status,
+        reasonCode: reasonCode?.trim() || null,
+        reason: reason?.trim() || null
+      });
+
+      if (status === 'PUBLISHED') {
+        confetti();
+        alert('✅ Gig approved and published.');
+      } else if (status === 'NEEDS_CHANGES') {
+        alert('📝 Gig marked as Needs Changes.');
+      } else {
+        alert('❌ Gig rejected.');
+      }
+
+      fetchAdminData();
+    } catch (err) {
+      alert('Failed to update gig moderation: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -624,6 +664,18 @@ export default function AdminDashboard({ currentUser }) {
             className={`px-5 py-2.5 rounded-xl transition ${activeTab === 'moderation' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
           AI Chat Moderation Queue ({moderationLogs.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('gigModeration')}
+          className={`px-5 py-2.5 rounded-xl transition flex items-center gap-2 ${activeTab === 'gigModeration' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+        >
+          Gig Moderation ({gigModerationQueue.length})
+          {gigModerationQueue.length > 0 && (
+            <span className="px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[10px] rounded-full">
+              {gigModerationQueue.length} Pending
+            </span>
+          )}
         </button>
 
         <button
@@ -1848,7 +1900,149 @@ export default function AdminDashboard({ currentUser }) {
         )}
 
 
-{/* 3. AI CHAT MODERATION LOGS */}
+{/* GIG MODERATION QUEUE */}
+      {activeTab === 'gigModeration' && (
+        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-5 shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-800">
+            <div>
+              <h3 className="text-base font-black text-white">Gig Moderation Queue</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Review submitted gigs before they become marketplace-visible.
+              </p>
+            </div>
+            <span className="px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase">
+              {gigModerationQueue.length} Pending
+            </span>
+          </div>
+
+          {gigModerationQueue.length === 0 ? (
+            <div className="p-12 text-center text-slate-500 text-xs">
+              No gigs are waiting for moderation.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {gigModerationQueue.map((gig) => {
+                const moderation = gig.moderationFindings || {};
+                const findings = Array.isArray(moderation.findings)
+                  ? moderation.findings
+                  : [];
+
+                return (
+                  <article
+                    key={gig.id}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 space-y-4"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-sm font-black text-white">{gig.title}</h4>
+                          <span className="px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase">
+                            {gig.status}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 mt-2">
+                          Seller: {gig.seller?.fullName || 'Unknown'} ({gig.seller?.email || 'No email'})
+                        </p>
+
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Category: {gig.categoryRef?.name || gig.category || 'Uncategorised'}
+                          {gig.subcategoryRef?.name ? ` • ${gig.subcategoryRef.name}` : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleGigModeration(gig.id, 'PUBLISHED')}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black transition"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Approve
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleGigModeration(gig.id, 'NEEDS_CHANGES', 'CONTENT_NEEDS_CHANGES')}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 text-[10px] font-black transition"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Needs Changes
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleGigModeration(gig.id, 'REJECTED', 'POLICY_VIOLATION')}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/20 text-[10px] font-black transition"
+                        >
+                          <Ban className="w-3.5 h-3.5" />
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+
+                    {gig.packages?.length > 0 && (
+                      <div className="text-[11px] text-slate-300">
+                        Price: {gig.packages[0].price} • Delivery: {gig.packages[0].deliveryDays} days •
+                        Revisions: {gig.packages[0].revisions < 0 ? 'Unlimited' : gig.packages[0].revisions}
+                      </div>
+                    )}
+
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                          Automated Moderation
+                        </span>
+                        <span className={`px-2 py-1 rounded text-[9px] font-black uppercase ${
+                          moderation.status === 'FLAGGED'
+                            ? 'bg-amber-500/10 text-amber-300'
+                            : 'bg-emerald-500/10 text-emerald-300'
+                        }`}>
+                          {moderation.status || 'NOT_RUN'}
+                        </span>
+                      </div>
+
+                      {findings.length === 0 ? (
+                        <p className="text-xs text-slate-500 mt-3">
+                          No automated findings were recorded.
+                        </p>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          {findings.map((finding, index) => (
+                            <div
+                              key={`${finding.reasonCode}-${index}`}
+                              className="rounded-xl bg-slate-950/70 border border-slate-800 p-3"
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black text-white">
+                                  {finding.reasonCode}
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-black uppercase">
+                                  {finding.severity}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-1">
+                                {finding.message}
+                              </p>
+                              {finding.details && (
+                                <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] text-slate-600 overflow-x-auto">
+                                  {JSON.stringify(finding.details, null, 2)}
+                                </pre>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. AI CHAT MODERATION LOGS */}
       {activeTab === 'moderation' && (
         <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 shadow-2xl">
           <h3 className="text-base font-black text-white pb-3 border-b border-slate-800">AI Contact-Leak Interception Logs</h3>

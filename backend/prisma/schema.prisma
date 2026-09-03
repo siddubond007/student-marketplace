@@ -169,10 +169,15 @@ model Gig {
   description  String
   coverImage   String
   isTiered     Boolean  @default(false)
-  status       String   @default("PUBLISHED")
-  draftData    Json?
-  draftVersion Int      @default(0)
-  createdAt    DateTime @default(now())
+  status                String   @default("PUBLISHED")
+  draftData             Json?
+  draftVersion          Int      @default(0)
+  moderationStatus      String   @default("NOT_REVIEWED")
+  moderationReasonCode  String?
+  moderationFindings    Json?
+  moderatedById         String?
+  moderatedAt           DateTime?
+  createdAt             DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   packages       GigPackage[]
