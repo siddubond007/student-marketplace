@@ -2,6 +2,21 @@ const prisma = require('../config/db');
 const { moderateGig } = require('../services/gigModerationService');
 const { createGigRevision } = require('../services/gigRevisionService');
 
+async function createAuditLog(adminId, actionType, targetId = null, details = null) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        adminId,
+        actionType,
+        targetId,
+        details
+      }
+    });
+  } catch (err) {
+    console.error('Audit Log Error:', err.message);
+  }
+}
+
 exports.createGig = async (req, res) => {
   try {
     const { title, category, categoryId, subcategoryId, description, coverImage, isTiered, packages } = req.body;
@@ -1369,6 +1384,12 @@ exports.getGigForManagement = async (req, res) => {
       });
     }
 
+    const managementDraftData =
+      gig.pendingEditData &&
+      typeof gig.pendingEditData === 'object'
+        ? gig.pendingEditData
+        : gig.draftData || {};
+
     return res.json({
       id: gig.id,
       status: gig.status,
@@ -1378,14 +1399,103 @@ exports.getGigForManagement = async (req, res) => {
       subcategoryId: gig.subcategoryId,
       description: gig.description,
       coverImage: gig.coverImage,
-      draftData: gig.draftData || {},
+      draftData: managementDraftData,
       draftVersion: gig.draftVersion,
       updatedAt: gig.updatedAt,
-      packages: gig.packages
+      packages: gig.packages,
+      pendingEditVersion: gig.pendingEditVersion,
+      pendingEditStatus: gig.pendingEditStatus,
+      pendingEditReasonCode: gig.pendingEditReasonCode,
+      pendingEditFindings: gig.pendingEditFindings || null,
+      pendingEditUpdatedAt: gig.pendingEditUpdatedAt
     });
   } catch (err) {
     console.error('Get Gig Management Error:', err);
     return res.status(500).json({ error: 'Failed to load gig for management.' });
+  }
+};
+
+
+exports.submitGigManagementEdit = async (req, res) => {
+  try {
+    const gigId = req.params.gigId;
+
+    const gig = await assertGigOwner(gigId, req.user.id);
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(gig.status)) {
+      return res.status(409).json({
+        error: 'Only published or paused gigs can submit edits for review.'
+      });
+    }
+
+    const pendingEditData =
+      gig.pendingEditData &&
+      typeof gig.pendingEditData === 'object'
+        ? gig.pendingEditData
+        : null;
+
+    if (!pendingEditData) {
+      return res.status(409).json({
+        error: 'No pending gig edits are available for review.'
+      });
+    }
+
+    const blockers = validateGigSubmission(pendingEditData);
+
+    if (blockers.length > 0) {
+      return res.status(422).json({
+        error: 'Gig changes cannot be submitted until all required blockers are fixed.',
+        blockers
+      });
+    }
+
+    const moderationResult = await moderateGig({
+      draftData: pendingEditData,
+      sellerId: gig.sellerId,
+      gigId: gig.id,
+      prisma
+    });
+
+    const updatedGig = await prisma.gig.update({
+      where: { id: gig.id },
+      data: {
+        pendingEditStatus: 'PENDING_REVIEW',
+        pendingEditReasonCode:
+          moderationResult.findings[0]?.reasonCode || null,
+        pendingEditFindings: moderationResult,
+        pendingEditModeratedById: null,
+        pendingEditModeratedAt: null
+      }
+    });
+
+    await createAuditLog(
+      req.user.id,
+      'SUBMIT_GIG_EDIT_FOR_REVIEW',
+      gig.id,
+      `Gig edit submitted for moderation from ${gig.status}.`
+    );
+
+    return res.json({
+      message: 'Gig changes submitted for review successfully.',
+      submission: {
+        id: updatedGig.id,
+        status: updatedGig.status,
+        pendingEditStatus: updatedGig.pendingEditStatus,
+        pendingEditVersion: updatedGig.pendingEditVersion,
+        pendingEditReasonCode: updatedGig.pendingEditReasonCode,
+        pendingEditFindings: updatedGig.pendingEditFindings || null,
+        updatedAt: updatedGig.updatedAt
+      }
+    });
+  } catch (err) {
+    console.error('Submit Gig Management Edit Error:', err);
+    return res.status(500).json({
+      error: 'Failed to submit gig changes for review.'
+    });
   }
 };
 
@@ -1538,72 +1648,47 @@ exports.updateGigForManagement = async (req, res) => {
       });
     }
 
-    const { categoryId, subcategoryId } =
-      await resolveDraftTaxonomyIds(draftData, {
-        categoryId: existingGig.categoryId,
-        subcategoryId: existingGig.subcategoryId
+    if (existingGig.pendingEditStatus === 'PENDING_REVIEW') {
+      return res.status(409).json({
+        error: 'This gig already has changes pending moderation.'
       });
+    }
 
-    const title =
-      typeof draftData?.basics?.title === 'string'
-        ? draftData.basics.title
-        : existingGig.title;
+    const pendingEditVersion =
+      Number(existingGig.pendingEditVersion || 0) + 1;
 
-    const category =
-      typeof draftData?.basics?.categoryId === 'string'
-        ? draftData.basics.categoryId
-        : existingGig.category;
-
-    const description =
-      typeof draftData.description === 'string'
-        ? draftData.description
-        : existingGig.description;
-
-    const coverImage =
-      typeof draftData?.media?.cover?.url === 'string'
-        ? draftData.media.cover.url
-        : existingGig.coverImage;
-
-    const updatedGig = await prisma.$transaction(async (tx) => {
-      const gig = await tx.gig.update({
-        where: { id: existingGig.id },
-        data: {
-          title,
-          category,
-          categoryId,
-          subcategoryId,
-          description,
-          coverImage,
-          isTiered: draftData?.pricing?.packageModel === 'multi',
-          draftData,
-          draftVersion: existingGig.draftVersion + 1
-        }
-      });
-
-      await syncGigPackages(tx, existingGig.id, draftData);
-
-      await createGigRevision(
-        tx,
-        gig.id,
-        req.user.id,
-        'CONTENT_UPDATED'
-      );
-
-      return gig;
+    const updatedGig = await prisma.gig.update({
+      where: { id: existingGig.id },
+      data: {
+        pendingEditData: draftData,
+        pendingEditVersion,
+        pendingEditStatus: 'DRAFT',
+        pendingEditReasonCode: null,
+        pendingEditFindings: null,
+        pendingEditModeratedById: null,
+        pendingEditModeratedAt: null,
+        pendingEditUpdatedAt: new Date()
+      }
     });
 
     return res.json({
-      message: 'Gig updated successfully.',
+      message: 'Gig edit draft saved successfully.',
       gig: {
         id: updatedGig.id,
         status: updatedGig.status,
-        draftData: updatedGig.draftData || {},
-        draftVersion: updatedGig.draftVersion,
+        pendingEditData: updatedGig.pendingEditData || {},
+        pendingEditVersion: updatedGig.pendingEditVersion,
+        pendingEditStatus: updatedGig.pendingEditStatus,
         updatedAt: updatedGig.updatedAt
       }
     });
   } catch (err) {
     console.error('Update Gig Management Error:', err);
-    return res.status(500).json({ error: 'Failed to update gig.' });
+    return res.status(500).json({ error: 'Failed to save gig edit draft.' });
   }
 };
+
+exports.syncGigPackages = syncGigPackages;
+exports.resolveDraftTaxonomyIds = resolveDraftTaxonomyIds;
+
+exports.getDraftPackagePayload = getDraftPackagePayload;

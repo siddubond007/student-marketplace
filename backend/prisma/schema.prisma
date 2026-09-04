@@ -178,6 +178,15 @@ model Gig {
   moderationFindings    Json?
   moderatedById         String?
   moderatedAt           DateTime?
+
+  pendingEditData          Json?
+  pendingEditVersion       Int      @default(0)
+  pendingEditStatus        String?
+  pendingEditReasonCode    String?
+  pendingEditFindings      Json?
+  pendingEditModeratedById String?
+  pendingEditModeratedAt   DateTime?
+  pendingEditUpdatedAt     DateTime?
   createdAt             DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -1,4 +1,9 @@
 const prisma = require('../config/db');
+const {
+  syncGigPackages,
+  resolveDraftTaxonomyIds,
+  getDraftPackagePayload
+} = require('./gigController');
 
 async function recalculateUserReputation(userId) {
   const reviewStats = await prisma.review.aggregate({
@@ -1111,14 +1116,27 @@ exports.updateGigModerationStatus = async (req, res) => {
     const gig = await prisma.gig.findFirst({
       where: {
         id: gigId,
-        status: 'PENDING_REVIEW',
-        isDeleted: false
+        isDeleted: false,
+        OR: [
+          { status: 'PENDING_REVIEW' },
+          { pendingEditStatus: 'PENDING_REVIEW' }
+        ]
       },
       select: {
         id: true,
         sellerId: true,
         title: true,
+        category: true,
+        categoryId: true,
+        subcategoryId: true,
+        description: true,
+        coverImage: true,
+        isTiered: true,
         status: true,
+        draftData: true,
+        pendingEditData: true,
+        pendingEditVersion: true,
+        pendingEditStatus: true,
         moderationFindings: true
       }
     });
@@ -1129,28 +1147,126 @@ exports.updateGigModerationStatus = async (req, res) => {
       });
     }
 
+    const isPendingEdit = gig.pendingEditStatus === 'PENDING_REVIEW';
     const now = new Date();
-    const updatedGig = await prisma.gig.update({
-      where: { id: gig.id },
-      data: {
-        status,
-        moderationStatus: 'REVIEWED',
-        moderationReasonCode: normalizedReasonCode || null,
-        moderatedById: req.user.id,
-        moderatedAt: now,
-        moderationFindings: gig.moderationFindings || null
+
+    const updatedGig = await prisma.$transaction(async (tx) => {
+      if (!isPendingEdit) {
+        return tx.gig.update({
+          where: { id: gig.id },
+          data: {
+            status,
+            moderationStatus: 'REVIEWED',
+            moderationReasonCode: normalizedReasonCode || null,
+            moderatedById: req.user.id,
+            moderatedAt: now,
+            moderationFindings: gig.moderationFindings || null
+          }
+        });
       }
+
+      if (status !== 'PUBLISHED') {
+        return tx.gig.update({
+          where: { id: gig.id },
+          data: {
+            pendingEditStatus: status === 'NEEDS_CHANGES'
+              ? 'NEEDS_CHANGES'
+              : 'REJECTED',
+            pendingEditReasonCode: normalizedReasonCode || null,
+            pendingEditModeratedById: req.user.id,
+            pendingEditModeratedAt: now
+          }
+        });
+      }
+
+      const pendingEdit = gig.pendingEditData;
+
+      if (!pendingEdit || typeof pendingEdit !== 'object') {
+        throw new Error('Pending gig edit data is missing.');
+      }
+
+      const { categoryId, subcategoryId } =
+        await resolveDraftTaxonomyIds(pendingEdit, {
+          categoryId: gig.categoryId,
+          subcategoryId: gig.subcategoryId
+        });
+
+      const title =
+        typeof pendingEdit?.basics?.title === 'string'
+          ? pendingEdit.basics.title
+          : gig.title;
+
+      const category =
+        typeof pendingEdit?.basics?.categoryId === 'string'
+          ? pendingEdit.basics.categoryId
+          : gig.category;
+
+      const description =
+        typeof pendingEdit.description === 'string'
+          ? pendingEdit.description
+          : gig.description;
+
+      const coverImage =
+        typeof pendingEdit?.media?.cover?.url === 'string'
+          ? pendingEdit.media.cover.url
+          : gig.coverImage;
+
+      const isTiered =
+        pendingEdit?.pricing?.packageModel === 'multi';
+
+      const promotedGig = await tx.gig.update({
+        where: { id: gig.id },
+        data: {
+          title,
+          category,
+          categoryId,
+          subcategoryId,
+          description,
+          coverImage,
+          isTiered,
+          draftData: pendingEdit,
+          draftVersion: Math.max(
+            Number(gig.pendingEditVersion) || 0,
+            1
+          ),
+          moderationStatus: 'REVIEWED',
+          moderationReasonCode: null,
+          moderatedById: req.user.id,
+          moderatedAt: now,
+          moderationFindings: gig.moderationFindings || null,
+
+          pendingEditData: null,
+          pendingEditStatus: null,
+          pendingEditReasonCode: null,
+          pendingEditFindings: null,
+          pendingEditModeratedById: null,
+          pendingEditModeratedAt: null,
+          pendingEditUpdatedAt: null
+        }
+      });
+
+      await syncGigPackages(tx, gig.id, pendingEdit);
+
+      await createGigRevision(
+        tx,
+        gig.id,
+        req.user.id,
+        'EDIT_APPROVED'
+      );
+
+      return promotedGig;
     });
 
     const auditAction =
       status === 'PUBLISHED'
-        ? 'APPROVE_GIG_MODERATION'
+        ? (isPendingEdit ? 'APPROVE_GIG_EDIT' : 'APPROVE_GIG_MODERATION')
         : status === 'NEEDS_CHANGES'
-          ? 'REQUEST_GIG_CHANGES'
-          : 'REJECT_GIG_MODERATION';
+          ? (isPendingEdit ? 'REQUEST_GIG_EDIT_CHANGES' : 'REQUEST_GIG_CHANGES')
+          : (isPendingEdit ? 'REJECT_GIG_EDIT' : 'REJECT_GIG_MODERATION');
 
     const auditDetails = [
       `Gig "${gig.title}" moderation decision: ${status}`,
+      isPendingEdit ? 'Pending published edit' : 'Initial publication review',
       normalizedReasonCode ? `Reason code: ${normalizedReasonCode}` : null,
       normalizedReason ? `Reason: ${normalizedReason}` : null
     ].filter(Boolean).join(' | ');
@@ -1164,17 +1280,19 @@ exports.updateGigModerationStatus = async (req, res) => {
 
     const notificationTitle =
       status === 'PUBLISHED'
-        ? 'Gig Approved'
+        ? (isPendingEdit ? 'Gig Changes Approved' : 'Gig Approved')
         : status === 'NEEDS_CHANGES'
-          ? 'Gig Needs Changes'
-          : 'Gig Rejected';
+          ? (isPendingEdit ? 'Gig Changes Need Updates' : 'Gig Needs Changes')
+          : (isPendingEdit ? 'Gig Changes Rejected' : 'Gig Rejected');
 
     const notificationMessage =
       status === 'PUBLISHED'
-        ? `Your gig "${gig.title}" has been approved and is now published.`
+        ? (isPendingEdit
+            ? `Your changes to gig "${gig.title}" have been approved and are now live.`
+            : `Your gig "${gig.title}" has been approved and is now published.`)
         : status === 'NEEDS_CHANGES'
-          ? `Your gig "${gig.title}" needs changes before it can be published. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`
-          : `Your gig "${gig.title}" was rejected during moderation. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`;
+          ? `Your changes to gig "${gig.title}" need updates before they can go live. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`
+          : `Your changes to gig "${gig.title}" were rejected during moderation. Reason code: ${normalizedReasonCode}.${normalizedReason ? ` ${normalizedReason}` : ''}`;
 
     await prisma.notification.create({
       data: {
@@ -1201,8 +1319,11 @@ exports.getGigModerationQueue = async (req, res) => {
   try {
     const gigs = await prisma.gig.findMany({
       where: {
-        status: 'PENDING_REVIEW',
-        isDeleted: false
+        isDeleted: false,
+        OR: [
+          { status: 'PENDING_REVIEW' },
+          { pendingEditStatus: 'PENDING_REVIEW' }
+        ]
       },
       include: {
         seller: {
@@ -1235,7 +1356,36 @@ exports.getGigModerationQueue = async (req, res) => {
       orderBy: { updatedAt: 'asc' }
     });
 
-    return res.json(gigs);
+    return res.json(
+      gigs.map((gig) => {
+        const isPendingEdit = gig.pendingEditStatus === 'PENDING_REVIEW';
+
+        if (!isPendingEdit) {
+          return gig;
+        }
+
+        const pending = gig.pendingEditData || {};
+        const pendingPackages = getDraftPackagePayload(pending);
+
+        return {
+          ...gig,
+          isPendingEdit: true,
+          draftData: pending,
+          title: pending?.basics?.title || gig.title,
+          category: pending?.basics?.categoryId || gig.category,
+          description:
+            typeof pending.description === 'string'
+              ? pending.description
+              : gig.description,
+          coverImage:
+            typeof pending?.media?.cover?.url === 'string'
+              ? pending.media.cover.url
+              : gig.coverImage,
+          isTiered: pending?.pricing?.packageModel === 'multi',
+          packages: pendingPackages
+        };
+      })
+    );
   } catch (err) {
     console.error('Get Gig Moderation Queue Error:', err);
     return res.status(500).json({ error: 'Failed to load gig moderation queue.' });

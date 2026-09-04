@@ -14,6 +14,7 @@ router.post('/:gigId/duplicate', requireAuth, gigController.duplicateGig);
 router.get('/:gigId/revisions', requireAuth, gigController.getGigRevisions);
 router.get('/:gigId/manage', requireAuth, gigController.getGigForManagement);
 router.put('/:gigId/manage', requireAuth, gigController.updateGigForManagement);
+router.post('/:gigId/manage/submit', requireAuth, gigController.submitGigManagementEdit);
 router.post('/:gigId/analytics', optionalAuth, gigController.recordGigAnalytics);
 router.post('/:gigId/favorite', requireAuth, gigController.toggleGigFavorite);
 router.get('/:gigId/analytics', requireAuth, gigController.getGigAnalytics);
