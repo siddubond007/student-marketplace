@@ -1,3 +1,145 @@
+
+const getPendingPackageSnapshot = (pendingEditData) => {
+  const pricing = pendingEditData?.pricing || {};
+  const delivery = pendingEditData?.delivery || {};
+
+  const normalizeList = (value) =>
+    Array.isArray(value)
+      ? value.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+
+  const normalizePackage = (pkg, fallbackTierName) => {
+    const scope =
+      pkg?.scope && typeof pkg.scope === 'object'
+        ? pkg.scope
+        : {};
+
+    return {
+      id: typeof pkg?.id === 'string' ? pkg.id : null,
+      tierName:
+        typeof pkg?.tierName === 'string' && pkg.tierName.trim()
+          ? pkg.tierName.trim()
+          : fallbackTierName,
+      price: Number(pkg?.price),
+      deliveryDays: Number(pkg?.deliveryDays),
+      revisions:
+        pkg?.revisions === 'unlimited'
+          ? -1
+          : Number(pkg?.revisions),
+      description:
+        typeof pkg?.description === 'string'
+          ? pkg.description.trim()
+          : '',
+      scope: {
+        includedItems: normalizeList(scope.includedItems),
+        excludedItems: normalizeList(scope.excludedItems),
+        deliverables: normalizeList(scope.deliverables)
+      },
+      features: normalizeList(pkg?.features)
+    };
+  };
+
+  if (pricing.packageModel !== 'multi') {
+    return [{
+      tierName: 'Single',
+      price: Number(pricing.basePrice),
+      deliveryDays: Number(delivery.deliveryDays),
+      revisions:
+        delivery.revisions === 'unlimited'
+          ? -1
+          : Number(delivery.revisions),
+      description: 'Standard student delivery',
+      scope: {
+        includedItems: normalizeList(delivery.includedItems),
+        excludedItems: normalizeList(delivery.excludedItems),
+        deliverables: normalizeList(delivery.deliverables)
+      },
+      features: []
+    }];
+  }
+
+  if (!Array.isArray(pendingEditData?.packages)) {
+    return [];
+  }
+
+  return pendingEditData.packages
+    .filter((pkg) => pkg && typeof pkg === 'object')
+    .map((pkg) => normalizePackage(pkg, String(pkg.tierName || 'Package')));
+};
+
+const createGigPendingEditRevision = async (
+  tx,
+  gigId,
+  actorId,
+  changeType
+) => {
+  const gig = await tx.gig.findUnique({
+    where: { id: gigId }
+  });
+
+  if (!gig) {
+    throw new Error('Gig not found while creating pending edit revision snapshot.');
+  }
+
+  const pendingEditData =
+    gig.pendingEditData &&
+    typeof gig.pendingEditData === 'object'
+      ? gig.pendingEditData
+      : null;
+
+  if (!pendingEditData) {
+    throw new Error('Pending gig edit data is missing while creating revision snapshot.');
+  }
+
+  const latestRevision = await tx.gigRevision.findFirst({
+    where: { gigId },
+    orderBy: { version: 'desc' },
+    select: { version: true }
+  });
+
+  const snapshot = {
+    id: gig.id,
+    sellerId: gig.sellerId,
+    title:
+      typeof pendingEditData?.basics?.title === 'string'
+        ? pendingEditData.basics.title
+        : gig.title,
+    category:
+      typeof pendingEditData?.basics?.categoryId === 'string'
+        ? pendingEditData.basics.categoryId
+        : gig.category,
+    categoryId: gig.categoryId,
+    subcategoryId: gig.subcategoryId,
+    description:
+      typeof pendingEditData.description === 'string'
+        ? pendingEditData.description
+        : gig.description,
+    coverImage:
+      typeof pendingEditData?.media?.cover?.url === 'string'
+        ? pendingEditData.media.cover.url
+        : gig.coverImage,
+    isTiered:
+      pendingEditData?.pricing?.packageModel === 'multi',
+    status: gig.status,
+    draftData: pendingEditData,
+    draftVersion: gig.pendingEditVersion,
+    moderationStatus: 'PENDING_REVIEW',
+    moderationReasonCode: gig.pendingEditReasonCode,
+    moderationFindings: gig.pendingEditFindings || null,
+    packages: getPendingPackageSnapshot(pendingEditData)
+  };
+
+  return tx.gigRevision.create({
+    data: {
+      gigId: gig.id,
+      actorId: actorId || null,
+      version: (latestRevision?.version || 0) + 1,
+      changeType,
+      snapshot
+    }
+  });
+};
+
 const createGigRevision = async (tx, gigId, actorId, changeType) => {
   const gig = await tx.gig.findUnique({
     where: { id: gigId },
@@ -57,4 +199,7 @@ const createGigRevision = async (tx, gigId, actorId, changeType) => {
   });
 };
 
-module.exports = { createGigRevision };
+module.exports = {
+  createGigRevision,
+  createGigPendingEditRevision
+};

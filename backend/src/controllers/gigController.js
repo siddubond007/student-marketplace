@@ -1,6 +1,9 @@
 const prisma = require('../config/db');
 const { moderateGig } = require('../services/gigModerationService');
-const { createGigRevision } = require('../services/gigRevisionService');
+const {
+  createGigRevision,
+  createGigPendingEditRevision
+} = require('../services/gigRevisionService');
 
 async function createAuditLog(adminId, actionType, targetId = null, details = null) {
   try {
@@ -1460,16 +1463,27 @@ exports.submitGigManagementEdit = async (req, res) => {
       prisma
     });
 
-    const updatedGig = await prisma.gig.update({
-      where: { id: gig.id },
-      data: {
-        pendingEditStatus: 'PENDING_REVIEW',
-        pendingEditReasonCode:
-          moderationResult.findings[0]?.reasonCode || null,
-        pendingEditFindings: moderationResult,
-        pendingEditModeratedById: null,
-        pendingEditModeratedAt: null
-      }
+    const { updatedGig, revision } = await prisma.$transaction(async (tx) => {
+      const updatedGig = await tx.gig.update({
+        where: { id: gig.id },
+        data: {
+          pendingEditStatus: 'PENDING_REVIEW',
+          pendingEditReasonCode:
+            moderationResult.findings[0]?.reasonCode || null,
+          pendingEditFindings: moderationResult,
+          pendingEditModeratedById: null,
+          pendingEditModeratedAt: null
+        }
+      });
+
+      const revision = await createGigPendingEditRevision(
+        tx,
+        gig.id,
+        req.user.id,
+        'EDIT_SUBMITTED'
+      );
+
+      return { updatedGig, revision };
     });
 
     await createAuditLog(
@@ -1488,6 +1502,8 @@ exports.submitGigManagementEdit = async (req, res) => {
         pendingEditVersion: updatedGig.pendingEditVersion,
         pendingEditReasonCode: updatedGig.pendingEditReasonCode,
         pendingEditFindings: updatedGig.pendingEditFindings || null,
+        revisionId: revision.id,
+        revisionVersion: revision.version,
         updatedAt: updatedGig.updatedAt
       }
     });

@@ -4,6 +4,7 @@ const {
   resolveDraftTaxonomyIds,
   getDraftPackagePayload
 } = require('./gigController');
+const { createGigRevision } = require('../services/gigRevisionService');
 
 async function recalculateUserReputation(userId) {
   const reviewStats = await prisma.review.aggregate({

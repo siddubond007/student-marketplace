@@ -1973,7 +1973,7 @@ export default function AdminDashboard({ currentUser }) {
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="text-sm font-black text-white">{gig.title}</h4>
                           <span className="px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase">
-                            {gig.status}
+                            {gig.isPendingEdit ? 'EDIT PENDING REVIEW' : gig.status}
                           </span>
                         </div>
 
