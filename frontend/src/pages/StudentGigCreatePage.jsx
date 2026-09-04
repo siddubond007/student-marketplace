@@ -616,6 +616,9 @@ export default function StudentGigCreatePage({ currentUser }) {
 
   const managementGigId = searchParams.get('manageId') || '';
   const isManagementEdit = Boolean(managementGigId);
+  const [pendingEditStatus, setPendingEditStatus] = useState(null);
+  const isManagementEditLocked =
+    isManagementEdit && pendingEditStatus === 'PENDING_REVIEW';
 
   const draftIdRef = useRef(searchParams.get('draftId') || '');
   const draftVersionRef = useRef(0);
@@ -1409,6 +1412,7 @@ export default function StudentGigCreatePage({ currentUser }) {
 
           draftIdRef.current = managedGig.id;
           draftVersionRef.current = Number(managedGig.draftVersion) || 0;
+          setPendingEditStatus(managedGig.pendingEditStatus || null);
 
           const sourceData =
             managedGig.draftData &&
@@ -1509,6 +1513,12 @@ export default function StudentGigCreatePage({ currentUser }) {
           hasUnsavedChangesRef.current = false;
           setLastSavedAt(managedGig.updatedAt || null);
           setSaveState('saved');
+
+          if (managedGig.pendingEditStatus === 'PENDING_REVIEW') {
+            setSubmissionState('submitted');
+          } else {
+            setSubmissionState('idle');
+          }
         })
         .catch(() => {
           if (!cancelled) setSaveState('error');
@@ -3581,11 +3591,18 @@ export default function StudentGigCreatePage({ currentUser }) {
         throw new Error('Unable to save the gig draft before submission.');
       }
 
-      const response = await API.post(
-        `/gigs/drafts/${draftIdRef.current}/submit`
-      );
+      const response = isManagementEdit
+        ? await API.post(`/gigs/${managementGigId}/manage/submit`)
+        : await API.post(`/gigs/drafts/${draftIdRef.current}/submit`);
 
-      if (response.data?.submission?.status !== 'PENDING_REVIEW') {
+      const submissionStatus = response.data?.submission?.status;
+      const pendingEditStatus = response.data?.submission?.pendingEditStatus;
+
+      if (
+        isManagementEdit
+          ? pendingEditStatus !== 'PENDING_REVIEW' || !managementGigId
+          : submissionStatus !== 'PENDING_REVIEW'
+      ) {
         throw new Error('Submission did not enter review status.');
       }
 
@@ -6357,12 +6374,14 @@ export default function StudentGigCreatePage({ currentUser }) {
                 id="submission-success-heading"
                 className="text-lg font-black text-white"
               >
-                Gig submitted for review
+                {isManagementEdit
+                  ? 'Changes submitted for review'
+                  : 'Gig submitted for review'}
               </h3>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Your gig passed the current submission validation and is now
-                pending marketplace review. It will not appear as a published
-                marketplace listing until it is approved.
+                {isManagementEdit
+                  ? 'Your changes passed the current submission validation and are now pending marketplace review. The current live version will remain unchanged until the changes are approved.'
+                  : 'Your gig passed the current submission validation and is now pending marketplace review. It will not appear as a published marketplace listing until it is approved.'}
               </p>
               <button
                 type="button"
@@ -6441,7 +6460,11 @@ export default function StudentGigCreatePage({ currentUser }) {
                   <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                      {isManagementEdit ? 'Editing Service' : 'Ready to edit'}
+                      {isManagementEdit
+                        ? isManagementEditLocked
+                          ? 'Changes Pending Review'
+                          : 'Editing Service'
+                        : 'Ready to edit'}
                     </span>
                   </div>
 
@@ -6461,7 +6484,11 @@ export default function StudentGigCreatePage({ currentUser }) {
                     <button
                       type="button"
                       onClick={handleSaveDraft}
-                      disabled={saveState === 'saving' || submissionState === 'submitted'}
+                      disabled={
+                        saveState === 'saving' ||
+                        submissionState === 'submitted' ||
+                        isManagementEditLocked
+                      }
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition disabled:cursor-not-allowed disabled:opacity-60"
                       aria-label="Save gig draft"
                     >
@@ -6538,7 +6565,7 @@ export default function StudentGigCreatePage({ currentUser }) {
                       key={step.id}
                       type="button"
                       onClick={() => goToStep(step.id)}
-                      disabled={!isReachable}
+                      disabled={!isReachable || isManagementEditLocked}
                       aria-current={isCurrent ? 'step' : undefined}
                       aria-label={`${step.label}${isComplete ? ', completed' : isCurrent ? ', current step' : ', upcoming'}`}
                       className={[
@@ -6666,7 +6693,8 @@ export default function StudentGigCreatePage({ currentUser }) {
                       <button
                         type="button"
                         onClick={handleBack}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition"
+                        disabled={isManagementEditLocked}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-700 bg-slate-950/50 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <ArrowLeft className="w-4 h-4" />
                         Back
@@ -6677,7 +6705,8 @@ export default function StudentGigCreatePage({ currentUser }) {
                       <button
                         type="button"
                         onClick={handleNext}
-                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/15"
+                        disabled={isManagementEditLocked}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Continue
                         <ChevronRight className="w-4 h-4" />
@@ -6685,8 +6714,7 @@ export default function StudentGigCreatePage({ currentUser }) {
                     )}
 
                     {currentStep === steps.length &&
-                      submissionState !== 'submitted' &&
-                      !isManagementEdit && (
+                      submissionState !== 'submitted' && (
                       <button
                         type="button"
                         onClick={handleSubmitGig}
@@ -6700,7 +6728,9 @@ export default function StudentGigCreatePage({ currentUser }) {
                         <Send className="w-4 h-4" />
                         {submissionState === 'submitting'
                           ? 'Submitting…'
-                          : 'Submit for Review'}
+                          : isManagementEdit
+                            ? 'Submit Changes for Review'
+                            : 'Submit for Review'}
                       </button>
                     )}
                   </div>
