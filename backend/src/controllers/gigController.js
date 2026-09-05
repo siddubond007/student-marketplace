@@ -447,6 +447,26 @@ const validateGigSubmission = (draftData) => {
   const media = draftData?.media || {};
   const gallery = Array.isArray(media.gallery) ? media.gallery : [];
 
+  const portfolioLinks = Array.isArray(media.portfolioLinks)
+    ? media.portfolioLinks
+    : [];
+
+  portfolioLinks.forEach((link, index) => {
+    try {
+      const parsed = new URL(String(link || '').trim());
+      if (!/^(https?:)$/i.test(parsed.protocol) || !parsed.hostname) {
+        throw new Error('unsupported protocol');
+      }
+    } catch {
+      addBlocker(
+        6,
+        `media.portfolioLinks.${index}`,
+        'Fix your portfolio links.',
+        'Each portfolio link must be a valid http:// or https:// URL.'
+      );
+    }
+  });
+
   const discovery =
     draftData?.discovery && typeof draftData.discovery === 'object'
       ? draftData.discovery

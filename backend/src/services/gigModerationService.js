@@ -66,6 +66,9 @@ const collectText = (draftData) => {
     galleryUrls: (Array.isArray(draftData?.media?.gallery) ? draftData.media.gallery : [])
       .map((item) => String(item?.url || '').trim())
       .filter(Boolean),
+    portfolioLinks: (Array.isArray(draftData?.media?.portfolioLinks) ? draftData.media.portfolioLinks : [])
+      .map((url) => String(url || '').trim())
+      .filter(Boolean),
     currency: normalizeText(pricing.currency),
     basePrice: pricing.basePrice
   };
@@ -280,7 +283,11 @@ const findDuplicateFinding = (currentDraftData, existingGigs) => {
 };
 
 const checkUrls = (parts) => {
-  const urls = [parts.coverUrl, ...parts.galleryUrls].filter(Boolean);
+  const urls = [
+    parts.coverUrl,
+    ...parts.galleryUrls,
+    ...parts.portfolioLinks
+  ].filter(Boolean);
   const suspiciousUrls = urls.filter((url) => {
     try {
       const parsed = new URL(url);

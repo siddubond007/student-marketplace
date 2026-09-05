@@ -698,8 +698,10 @@ export default function StudentGigCreatePage({ currentUser }) {
   const [faqs, setFaqs] = useState([]);
   const [media, setMedia] = useState({
     cover: null,
-    gallery: []
+    gallery: [],
+    portfolioLinks: []
   });
+  const [portfolioLinkInputError, setPortfolioLinkInputError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [pendingCoverFile, setPendingCoverFile] = useState(null);
   const [draggedGalleryId, setDraggedGalleryId] = useState(null);
@@ -825,7 +827,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     })),
     media: {
       cover: serializeDraftMediaItem(media.cover),
-      gallery: media.gallery.map(serializeDraftMediaItem).filter(Boolean)
+      gallery: media.gallery.map(serializeDraftMediaItem).filter(Boolean),
+      portfolioLinks: [...media.portfolioLinks]
     },
     faqs: faqs.map((faq) => ({
       id: faq.id,
@@ -979,6 +982,11 @@ export default function StudentGigCreatePage({ currentUser }) {
       cover: restoreMediaItem(data.media?.cover),
       gallery: Array.isArray(data.media?.gallery)
         ? data.media.gallery.map(restoreMediaItem).filter(Boolean)
+        : [],
+      portfolioLinks: Array.isArray(data.media?.portfolioLinks)
+        ? data.media.portfolioLinks
+            .map((item) => String(item || '').trim())
+            .filter(Boolean)
         : []
     });
 
@@ -3715,9 +3723,67 @@ export default function StudentGigCreatePage({ currentUser }) {
     setDraggedGalleryId(null);
   };
 
+  const isValidPortfolioLink = (value) => {
+    try {
+      const parsed = new URL(String(value || '').trim());
+      return /^(https?:)$/i.test(parsed.protocol) && Boolean(parsed.hostname);
+    } catch {
+      return false;
+    }
+  };
+
+  const addPortfolioLink = (rawValue) => {
+    const value = String(rawValue || '').trim();
+
+    if (!value) {
+      setPortfolioLinkInputError('Enter a portfolio URL before adding a link.');
+      return false;
+    }
+
+    if (!isValidPortfolioLink(value)) {
+      setPortfolioLinkInputError(
+        'Enter a valid portfolio URL using http:// or https://.'
+      );
+      return false;
+    }
+
+    setPortfolioLinkInputError('');
+
+    setMedia((previous) => {
+      const current = Array.isArray(previous.portfolioLinks)
+        ? previous.portfolioLinks
+        : [];
+      if (current.some((item) => item.toLowerCase() === value.toLowerCase())) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        portfolioLinks: [...current, value]
+      };
+    });
+
+    return true;
+  };
+
+  const removePortfolioLink = (linkToRemove) => {
+    setMedia((previous) => ({
+      ...previous,
+      portfolioLinks: (previous.portfolioLinks || []).filter(
+        (item) => item !== linkToRemove
+      )
+    }));
+  };
+
   const validateMedia = () => {
     const nextMediaErrors = {};
     const galleryItems = {};
+    const portfolioLinks = Array.isArray(media.portfolioLinks)
+      ? media.portfolioLinks
+      : [];
+    const invalidPortfolioLinks = portfolioLinks.filter(
+      (link) => !isValidPortfolioLink(link)
+    );
 
     if (!media.cover) {
       nextMediaErrors.cover =
@@ -3739,14 +3805,22 @@ export default function StudentGigCreatePage({ currentUser }) {
         galleryItems;
     }
 
+    if (invalidPortfolioLinks.length > 0) {
+      nextMediaErrors.portfolioLinks =
+        'Remove or correct invalid portfolio links. Use full http:// or https:// URLs.';
+    }
+
     if (
       nextMediaErrors.cover ||
-      nextMediaErrors.galleryItems
+      nextMediaErrors.galleryItems ||
+      nextMediaErrors.portfolioLinks
     ) {
       nextMediaErrors.step =
         nextMediaErrors.cover
           ? 'Add a valid cover image before continuing.'
-          : 'Fix or remove the highlighted gallery images before continuing.';
+          : nextMediaErrors.galleryItems
+            ? 'Fix or remove the highlighted gallery images before continuing.'
+            : 'Fix or remove the highlighted portfolio links before continuing.';
     }
 
     setFieldErrors((previous) => ({
@@ -3761,7 +3835,8 @@ export default function StudentGigCreatePage({ currentUser }) {
 
     return (
       !nextMediaErrors.cover &&
-      !nextMediaErrors.galleryItems
+      !nextMediaErrors.galleryItems &&
+      !nextMediaErrors.portfolioLinks
     );
   };
 
@@ -6631,6 +6706,108 @@ export default function StudentGigCreatePage({ currentUser }) {
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 Gallery images are recommended, so you can continue without adding one.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Portfolio links
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Add relevant external work
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Optional links to relevant external work, case studies, repositories, or portfolio pages.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <input
+              id="gig-portfolio-link"
+              type="url"
+              placeholder="https://example.com/your-work"
+              aria-invalid={Boolean(portfolioLinkInputError)}
+              aria-describedby={
+                portfolioLinkInputError ? 'gig-portfolio-link-error' : undefined
+              }
+              className={`min-h-11 flex-1 rounded-xl border bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:ring-2 ${
+                portfolioLinkInputError
+                  ? 'border-red-500/50 focus:border-red-400/70 focus:ring-red-400/10'
+                  : 'border-slate-800 focus:border-cyan-500/50 focus:ring-cyan-400/10'
+              }`}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const added = addPortfolioLink(event.currentTarget.value);
+                  if (added) {
+                    event.currentTarget.value = '';
+                  }
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={(event) => {
+                const input = event.currentTarget.previousElementSibling;
+                const added = addPortfolioLink(input?.value);
+                if (added && input) {
+                  input.value = '';
+                }
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-500 px-5 py-3 text-xs font-black text-slate-950 shadow-lg shadow-cyan-500/10 transition hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            >
+              Add link
+            </button>
+          </div>
+
+          {portfolioLinkInputError ? (
+            <p
+              id="gig-portfolio-link-error"
+              role="alert"
+              className="mt-3 text-xs font-semibold text-red-400"
+            >
+              {portfolioLinkInputError}
+            </p>
+          ) : null}
+
+          {touchedFields.media && mediaErrors.portfolioLinks ? (
+            <p role="alert" className="mt-3 text-xs font-semibold text-red-400">
+              {mediaErrors.portfolioLinks}
+            </p>
+          ) : null}
+
+          {media.portfolioLinks.length > 0 ? (
+            <div className="mt-5 space-y-2">
+              {media.portfolioLinks.map((link) => (
+                <div
+                  key={link}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/55 px-3 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-slate-200" title={link}>
+                      {link}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePortfolioLink(link)}
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-[10px] font-black text-red-300 transition hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-5">
+              <p className="text-sm font-semibold text-slate-500">
+                No portfolio links added yet.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Portfolio links are optional, so you can continue without adding one.
               </p>
             </div>
           )}

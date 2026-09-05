@@ -116,6 +116,12 @@ export default function GigBuyerPreview({
       ? safeMedia.cover
       : null;
 
+  const portfolioLinks = Array.isArray(safeMedia.portfolioLinks)
+    ? safeMedia.portfolioLinks
+        .map((link) => String(link || '').trim())
+        .filter(Boolean)
+    : [];
+
   const validRequirements = Array.isArray(requirements)
     ? requirements.filter(meaningfulRequirement)
     : [];
@@ -761,6 +767,27 @@ export default function GigBuyerPreview({
                   />
                 </div>
               </figure>
+            ))}
+          </div>
+        </PreviewSection>
+      ) : null}
+
+      {portfolioLinks.length > 0 ? (
+        <PreviewSection eyebrow="Trust evidence" title="Portfolio links">
+          <div className="space-y-2">
+            {portfolioLinks.map((link) => (
+              <a
+                key={link}
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm font-bold text-cyan-300 transition hover:border-cyan-500/30 hover:text-white"
+              >
+                <span className="min-w-0 truncate">{link}</span>
+                <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  Open
+                </span>
+              </a>
             ))}
           </div>
         </PreviewSection>
