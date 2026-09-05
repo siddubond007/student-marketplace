@@ -549,6 +549,61 @@ export default function GigDetailsPage({ currentUser }) {
                   ) : null}
                 </div>
 
+                {Array.isArray(gig.extras) && gig.extras.length > 0 ? (
+                  <div className="mt-5 border-t border-slate-800 pt-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-400">
+                          Optional extras
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Add-ons available for an additional charge.
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-slate-500">
+                        {gig.extras.length} add-on{gig.extras.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {gig.extras.map((extra, index) => {
+                        const extraPrice = Number(extra?.price);
+                        const extraTitle = String(extra?.title || '').trim();
+                        const extraScope =
+                          extra?.scope && typeof extra.scope === 'object'
+                            ? String(extra.scope.description || '').trim()
+                            : '';
+
+                        return (
+                          <article
+                            key={extra?.id || `extra-${index}`}
+                            className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-white">
+                                  {extraTitle || 'Optional extra'}
+                                </p>
+                                {extraScope ? (
+                                  <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                                    {extraScope}
+                                  </p>
+                                ) : null}
+                              </div>
+
+                              <p className="shrink-0 text-base font-black text-amber-300">
+                                {Number.isFinite(extraPrice) && extraPrice > 0
+                                  ? `+₹${extraPrice.toLocaleString('en-IN')}`
+                                  : 'Price not set'}
+                              </p>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-5 pt-5 border-t border-slate-800">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-500">Selected</span>

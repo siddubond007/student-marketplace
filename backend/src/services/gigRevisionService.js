@@ -67,6 +67,36 @@ const getPendingPackageSnapshot = (pendingEditData) => {
     .map((pkg) => normalizePackage(pkg, String(pkg.tierName || 'Package')));
 };
 
+const getPendingExtraSnapshot = (pendingEditData) => {
+  if (!Array.isArray(pendingEditData?.extras)) {
+    return [];
+  }
+
+  return pendingEditData.extras
+    .filter((extra) => extra && typeof extra === 'object')
+    .map((extra) => {
+      const scope =
+        extra?.scope && typeof extra.scope === 'object'
+          ? extra.scope
+          : {};
+
+      return {
+        id: typeof extra?.id === 'string' ? extra.id : null,
+        title:
+          typeof extra?.title === 'string'
+            ? extra.title.trim()
+            : '',
+        price: Number(extra?.price),
+        scope: {
+          description:
+            typeof scope.description === 'string'
+              ? scope.description.trim()
+              : ''
+        }
+      };
+    });
+};
+
 const createGigPendingEditRevision = async (
   tx,
   gigId,
@@ -126,7 +156,8 @@ const createGigPendingEditRevision = async (
     moderationStatus: 'PENDING_REVIEW',
     moderationReasonCode: gig.pendingEditReasonCode,
     moderationFindings: gig.pendingEditFindings || null,
-    packages: getPendingPackageSnapshot(pendingEditData)
+    packages: getPendingPackageSnapshot(pendingEditData),
+    extras: getPendingExtraSnapshot(pendingEditData)
   };
 
   return tx.gigRevision.create({
@@ -146,6 +177,9 @@ const createGigRevision = async (tx, gigId, actorId, changeType) => {
     include: {
       packages: {
         orderBy: { price: 'asc' }
+      },
+      extras: {
+        orderBy: { id: 'asc' }
       }
     }
   });
@@ -185,6 +219,12 @@ const createGigRevision = async (tx, gigId, actorId, changeType) => {
       description: pkg.description,
       scope: pkg.scope || null,
       features: pkg.features || null
+    })),
+    extras: gig.extras.map((extra) => ({
+      id: extra.id,
+      title: extra.title,
+      price: extra.price,
+      scope: extra.scope || null
     }))
   };
 

@@ -34,6 +34,7 @@ const collectText = (draftData) => {
   const delivery = draftData?.delivery || {};
   const requirements = Array.isArray(draftData?.requirements) ? draftData.requirements : [];
   const faqs = Array.isArray(draftData?.faqs) ? draftData.faqs : [];
+  const extras = Array.isArray(draftData?.extras) ? draftData.extras : [];
   const included = Array.isArray(delivery.includedItems) ? delivery.includedItems : [];
   const excluded = Array.isArray(delivery.excludedItems) ? delivery.excludedItems : [];
   const deliverables = Array.isArray(delivery.deliverables) ? delivery.deliverables : [];
@@ -57,6 +58,10 @@ const collectText = (draftData) => {
       normalizeText(item?.question),
       normalizeText(item?.answer)
     ]).filter(Boolean),
+    extras: extras.flatMap((item) => [
+      normalizeText(item?.title),
+      normalizeText(item?.scope?.description)
+    ]).filter(Boolean),
     coverUrl: String(draftData?.media?.cover?.url || '').trim(),
     galleryUrls: (Array.isArray(draftData?.media?.gallery) ? draftData.media.gallery : [])
       .map((item) => String(item?.url || '').trim())
@@ -78,7 +83,8 @@ const flattenComparableText = (parts) =>
     ...parts.excluded,
     ...parts.deliverables,
     ...parts.requirements,
-    ...parts.faqs
+    ...parts.faqs,
+    ...parts.extras
   ]
     .filter(Boolean)
     .join(' ');
@@ -201,6 +207,33 @@ const checkPricing = (draftData) => {
       message: 'Gig pricing contains an unusually large numeric value.'
     });
   }
+
+  const extras = Array.isArray(draftData?.extras)
+    ? draftData.extras
+    : [];
+
+  extras.forEach((extra, index) => {
+    const price = Number(extra?.price);
+
+    if (!Number.isFinite(price) || price <= 0) {
+      findings.push({
+        check: 'EXTRA_PRICING',
+        reasonCode: 'EXTRA_INVALID_PRICE',
+        severity: 'HIGH',
+        message: `Extra ${index + 1} has an invalid price.`
+      });
+      return;
+    }
+
+    if (price > Number.MAX_SAFE_INTEGER) {
+      findings.push({
+        check: 'EXTRA_PRICING',
+        reasonCode: 'EXTRA_UNREALISTIC_PRICE_VALUE',
+        severity: 'MEDIUM',
+        message: `Extra ${index + 1} contains an unusually large numeric price.`
+      });
+    }
+  });
 
   return findings;
 };

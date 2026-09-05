@@ -688,6 +688,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     return items.length ? items : fallback;
   };
 
+  const [extras, setExtras] = useState([]);
+
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
   const [faqs, setFaqs] = useState([]);
   const [media, setMedia] = useState({
@@ -791,6 +793,14 @@ export default function StudentGigCreatePage({ currentUser }) {
       },
       features: [...(pkg.features || [])]
     })),
+    extras: extras.map((extra) => ({
+      id: extra.id,
+      title: extra.title,
+      price: extra.price,
+      scope: {
+        description: extra.scope?.description || ''
+      }
+    })),
     requirements: requirements.map((requirement) => ({
       id: requirement.id,
       question: requirement.question,
@@ -862,6 +872,22 @@ export default function StudentGigCreatePage({ currentUser }) {
           features: normalizePackageItems(source?.features)
         };
       })
+    );
+
+    setExtras(
+      Array.isArray(data.extras)
+        ? data.extras.map((extra, index) => ({
+            id: extra?.id || `extra-${Date.now()}-${index}`,
+            title: typeof extra?.title === 'string' ? extra.title : '',
+            price: extra?.price ?? '',
+            scope: {
+              description:
+                typeof extra?.scope?.description === 'string'
+                  ? extra.scope.description
+                  : ''
+            }
+          }))
+        : []
     );
 
     setDelivery({
@@ -1061,6 +1087,36 @@ export default function StudentGigCreatePage({ currentUser }) {
 
   const isDescriptionComplete = descriptionCharacterCount >= 50;
 
+  const getExtraValidationErrors = () => {
+    const errors = {};
+
+    extras.forEach((extra, index) => {
+      const prefix = `extra.${extra?.id || index}`;
+      const title = String(extra?.title || '').trim();
+      const rawPrice = String(extra?.price ?? '').trim();
+      const price = Number(rawPrice);
+      const scopeDescription = String(
+        extra?.scope?.description || ''
+      ).trim();
+
+      if (!title) {
+        errors[`${prefix}.title`] = 'Add a title for this extra.';
+      }
+
+      if (!rawPrice || !Number.isFinite(price) || price <= 0) {
+        errors[`${prefix}.price`] =
+          'Extra price must be greater than 0.';
+      }
+
+      if (!scopeDescription) {
+        errors[`${prefix}.scope`] =
+          'Describe what this extra adds to the service.';
+      }
+    });
+
+    return errors;
+  };
+
   const basePriceNumber = Number(pricing.basePrice);
   const isMultiPackage = pricing.packageModel === 'multi';
 
@@ -1087,6 +1143,9 @@ export default function StudentGigCreatePage({ currentUser }) {
   const isPricingComplete =
     Boolean(pricing.currency) &&
     (isSinglePricingComplete || arePackagePricesComplete);
+
+  const extraValidationErrors = getExtraValidationErrors();
+  const areExtrasComplete = Object.keys(extraValidationErrors).length === 0;
 
   const deliveryDaysNumber = Number(delivery.deliveryDays);
   const revisionsNumber = Number(delivery.revisions);
@@ -1275,7 +1334,10 @@ export default function StudentGigCreatePage({ currentUser }) {
     isDeliveryComplete,
     isRequirementsComplete,
     media,
-    isFaqsComplete
+    isFaqsComplete,
+    extras,
+    areExtrasComplete,
+    extraValidationErrors
   ]);
 
   const queueDraftSave = (snapshot, { immediate = false } = {}) => {
@@ -1477,6 +1539,25 @@ export default function StudentGigCreatePage({ currentUser }) {
                         features: Array.isArray(pkg.features)
                           ? pkg.features
                           : []
+                      }))
+                    : []),
+            extras:
+              Array.isArray(sourceData.extras)
+                ? sourceData.extras
+                : (Array.isArray(managedGig.extras)
+                    ? managedGig.extras.map((extra) => ({
+                        id: extra.id,
+                        title: extra.title || '',
+                        price: extra.price ?? '',
+                        scope:
+                          extra.scope && typeof extra.scope === 'object'
+                            ? {
+                                description:
+                                  typeof extra.scope.description === 'string'
+                                    ? extra.scope.description
+                                    : ''
+                              }
+                            : { description: '' }
                       }))
                     : []),
             delivery: {
@@ -2083,6 +2164,28 @@ export default function StudentGigCreatePage({ currentUser }) {
       addBlocker(3, 'Complete your pricing.', pricingIssues.join(' '));
     }
 
+    if (!areExtrasComplete) {
+      const extraIssues = extras.flatMap((extra, index) => {
+        const prefix = `extra.${extra?.id || index}`;
+        const issues = [];
+        const errors = extraValidationErrors;
+
+        Object.keys(errors)
+          .filter((key) => key.startsWith(`${prefix}.`))
+          .forEach((key) => {
+            issues.push(errors[key]);
+          });
+
+        return issues;
+      });
+
+      addBlocker(
+        3,
+        'Complete your optional extras.',
+        extraIssues.join(' ')
+      );
+    }
+
     if (!isDeliveryComplete) {
       const deliveryIssues = [];
 
@@ -2244,7 +2347,10 @@ export default function StudentGigCreatePage({ currentUser }) {
     isTitleLengthValid,
     isRevisionAllowanceValid,
     isExcludedListValid,
-    isFaqsComplete
+    isFaqsComplete,
+    extras,
+    areExtrasComplete,
+    extraValidationErrors
   ]);
 
   const validateBasics = () => {
@@ -2444,6 +2550,79 @@ export default function StudentGigCreatePage({ currentUser }) {
     );
   };
 
+  const handleExtraChange = (extraIndex, field, value) => {
+    setExtras((previous) =>
+      previous.map((extra, index) =>
+        index === extraIndex
+          ? { ...extra, [field]: value }
+          : extra
+      )
+    );
+  };
+
+  const handleExtraScopeChange = (extraIndex, value) => {
+    setExtras((previous) =>
+      previous.map((extra, index) =>
+        index === extraIndex
+          ? {
+              ...extra,
+              scope: {
+                ...(extra.scope || {}),
+                description: value
+              }
+            }
+          : extra
+      )
+    );
+  };
+
+  const handleExtraAdd = () => {
+    setExtras((previous) => [
+      ...previous,
+      {
+        id: `extra-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title: '',
+        price: '',
+        scope: {
+          description: ''
+        }
+      }
+    ]);
+  };
+
+  const handleExtraRemove = (extraIndex) => {
+    setExtras((previous) =>
+      previous.filter((_, index) => index !== extraIndex)
+    );
+  };
+
+
+  const validateExtras = () => {
+    const nextErrors = getExtraValidationErrors();
+
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith('extra.')) {
+          delete next[key];
+        }
+      });
+
+      return {
+        ...next,
+        ...nextErrors
+      };
+    });
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      extras: true
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const validatePackages = () => {
     if (pricing.packageModel !== 'multi') return true;
 
@@ -2563,13 +2742,18 @@ export default function StudentGigCreatePage({ currentUser }) {
       nextErrors.currency = 'Please select a currency.';
     }
 
+    const extraErrors = getExtraValidationErrors();
+
+    Object.assign(nextErrors, extraErrors);
+
     setFieldErrors((previous) => {
       const next = { ...previous };
 
       Object.keys(next).forEach((key) => {
         if (
           ['basePrice', 'currency', 'packageModel', 'packages'].includes(key) ||
-          key.startsWith('package.')
+          key.startsWith('package.') ||
+          key.startsWith('extra.')
         ) {
           delete next[key];
         }
@@ -2583,7 +2767,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       basePrice: true,
       currency: true,
       packageModel: true,
-      packages: pricing.packageModel === 'multi' ? true : previous.packages
+      packages: pricing.packageModel === 'multi' ? true : previous.packages,
+      extras: extras.length > 0 ? true : previous.extras
     }));
 
     return Object.keys(nextErrors).length === 0;
@@ -4308,6 +4493,200 @@ export default function StudentGigCreatePage({ currentUser }) {
             </div>
           </section>
         )}
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                Optional extras
+              </p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+                Offer paid add-ons
+              </h3>
+              <p className="text-sm leading-6 text-slate-500 mt-2">
+                Give buyers optional additions they can ask for beyond the base service.
+                Extras are optional, but each one needs a clear price and scope.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExtraAdd}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-2.5 text-xs font-black text-cyan-300 transition hover:border-cyan-400/50 hover:bg-cyan-500/15"
+            >
+              <Plus className="h-4 w-4" />
+              Add extra
+            </button>
+          </div>
+
+          {extras.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-800 bg-slate-950/45 px-4 py-6 text-center">
+              <p className="text-sm font-bold text-slate-400">
+                No extras added.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Keep this empty when you do not offer optional paid additions.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              {extras.map((extra, extraIndex) => {
+                const prefix = `extra.${extra?.id || extraIndex}`;
+                const titleError = touchedFields.extras
+                  ? fieldErrors[`${prefix}.title`]
+                  : null;
+                const priceError = touchedFields.extras
+                  ? fieldErrors[`${prefix}.price`]
+                  : null;
+                const scopeError = touchedFields.extras
+                  ? fieldErrors[`${prefix}.scope`]
+                  : null;
+
+                return (
+                  <article
+                    key={extra.id || `extra-${extraIndex}`}
+                    className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-400">
+                          Extra {extraIndex + 1}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          Optional paid addition
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleExtraRemove(extraIndex)}
+                        aria-label={`Remove extra ${extraIndex + 1}`}
+                        className="shrink-0 rounded-xl border border-slate-800 bg-slate-900 p-2.5 text-slate-500 transition hover:border-red-500/30 hover:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={`gig-extra-title-${extraIndex}`}
+                          className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                          Extra title
+                        </label>
+                        <input
+                          id={`gig-extra-title-${extraIndex}`}
+                          type="text"
+                          maxLength={120}
+                          value={extra.title}
+                          onChange={(event) =>
+                            handleExtraChange(
+                              extraIndex,
+                              'title',
+                              event.target.value
+                            )
+                          }
+                          aria-invalid={Boolean(titleError)}
+                          className={[
+                            'w-full rounded-xl border bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none transition',
+                            titleError
+                              ? 'border-red-500/50 focus:border-red-400'
+                              : 'border-slate-800 focus:border-cyan-500/60'
+                          ].join(' ')}
+                          placeholder="e.g. Express delivery"
+                        />
+                        {titleError && (
+                          <p role="alert" className="text-xs font-semibold text-red-400">
+                            {titleError}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={`gig-extra-price-${extraIndex}`}
+                          className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                        >
+                          Extra price
+                        </label>
+                        <div
+                          className={[
+                            'flex overflow-hidden rounded-xl border bg-slate-950 transition',
+                            priceError
+                              ? 'border-red-500/50'
+                              : 'border-slate-800 focus-within:border-cyan-500/60'
+                          ].join(' ')}
+                        >
+                          <span className="inline-flex items-center border-r border-slate-800 px-3 text-sm font-black text-slate-500">
+                            INR
+                          </span>
+                          <input
+                            id={`gig-extra-price-${extraIndex}`}
+                            type="number"
+                            inputMode="decimal"
+                            min="0.01"
+                            step="1"
+                            value={extra.price}
+                            onChange={(event) =>
+                              handleExtraChange(
+                                extraIndex,
+                                'price',
+                                event.target.value
+                              )
+                            }
+                            aria-invalid={Boolean(priceError)}
+                            className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+                            placeholder="Enter price"
+                          />
+                        </div>
+                        {priceError && (
+                          <p role="alert" className="text-xs font-semibold text-red-400">
+                            {priceError}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <label
+                        htmlFor={`gig-extra-scope-${extraIndex}`}
+                        className="block text-xs font-black uppercase tracking-wider text-slate-300"
+                      >
+                        Scope
+                      </label>
+                      <textarea
+                        id={`gig-extra-scope-${extraIndex}`}
+                        rows="3"
+                        maxLength="240"
+                        value={extra.scope?.description || ''}
+                        onChange={(event) =>
+                          handleExtraScopeChange(
+                            extraIndex,
+                            event.target.value
+                          )
+                        }
+                        aria-invalid={Boolean(scopeError)}
+                        className={[
+                          'w-full rounded-xl border bg-slate-950 px-3 py-3 text-sm font-semibold text-white outline-none resize-y transition',
+                          scopeError
+                            ? 'border-red-500/50 focus:border-red-400'
+                            : 'border-slate-800 focus:border-cyan-500/60'
+                        ].join(' ')}
+                        placeholder="Explain exactly what the buyer gets with this add-on."
+                      />
+                      {scopeError && (
+                        <p role="alert" className="text-xs font-semibold text-red-400">
+                          {scopeError}
+                        </p>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         {!isPricingComplete && (
           <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-3">
@@ -6657,6 +7036,7 @@ export default function StudentGigCreatePage({ currentUser }) {
                                 pricing={pricing}
                                 delivery={delivery}
                                 packages={packages}
+                                extras={extras}
                                 requirements={requirements}
                                 media={media}
                                 faqs={faqs}

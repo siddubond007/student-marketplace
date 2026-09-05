@@ -1,6 +1,7 @@
 const prisma = require('../config/db');
 const {
   syncGigPackages,
+  syncGigExtras,
   resolveDraftTaxonomyIds,
   getDraftPackagePayload
 } = require('./gigController');
@@ -1247,6 +1248,7 @@ exports.updateGigModerationStatus = async (req, res) => {
       });
 
       await syncGigPackages(tx, gig.id, pendingEdit);
+      await syncGigExtras(tx, gig.id, pendingEdit);
 
       await createGigRevision(
         tx,
@@ -1362,7 +1364,16 @@ exports.getGigModerationQueue = async (req, res) => {
         const isPendingEdit = gig.pendingEditStatus === 'PENDING_REVIEW';
 
         if (!isPendingEdit) {
-          return gig;
+          const activePackageNames = gig.isTiered
+            ? new Set(['Basic', 'Standard', 'Premium'])
+            : new Set(['Single']);
+
+          return {
+            ...gig,
+            packages: gig.packages.filter((pkg) =>
+              activePackageNames.has(pkg.tierName)
+            )
+          };
         }
 
         const pending = gig.pendingEditData || {};

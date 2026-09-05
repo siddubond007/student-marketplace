@@ -191,6 +191,7 @@ model Gig {
   updatedAt    DateTime @updatedAt
 
   packages       GigPackage[]
+  extras          GigExtra[]
   orders         Order[]
   analyticsEvents GigAnalyticsEvent[]
   favorites      GigFavorite[]
@@ -265,6 +266,17 @@ model GigPackage {
   scope          Json?
   features       Json?
   orders         Order[]
+
+  @@index([gigId])
+}
+
+model GigExtra {
+  id        String   @id @default(uuid())
+  gigId     String
+  gig       Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  title     String
+  price     Float
+  scope     Json?
 
   @@index([gigId])
 }

@@ -3,8 +3,11 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const cloudinary = require('../config/cloudinary');
 const { requireAuth } = require('../middlewares/authMiddleware');
+
+const cloudinaryAgent = new https.Agent({ family: 4 });
 
 // Temporary disk storage before streaming to Cloudinary
 const tempDir = path.join(__dirname, '../../uploads_temp');
@@ -44,7 +47,8 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
     if (req.body && req.body.base64Data) {
       const uploadRes = await cloudinary.uploader.upload(req.body.base64Data, {
         folder: userCloudinaryFolder,
-        resource_type: 'auto'
+        resource_type: 'auto',
+        agent: cloudinaryAgent
       });
       console.log(`✅ Saved to Cloudinary: ${uploadRes.secure_url}`);
       return res.json({
@@ -63,7 +67,8 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
 
     const uploadRes = await cloudinary.uploader.upload(req.file.path, {
       folder: userCloudinaryFolder,
-      resource_type: 'auto'
+      resource_type: 'auto',
+      agent: cloudinaryAgent
     });
 
     // Clean up temporary local disk file immediately after Cloudinary upload

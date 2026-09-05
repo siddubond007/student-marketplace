@@ -65,6 +65,9 @@ exports.getGigById = async (req, res) => {
           },
           orderBy: { price: 'asc' }
         },
+        extras: {
+          orderBy: { id: 'asc' }
+        },
         seller: {
           select: {
             id: true,
@@ -354,7 +357,20 @@ exports.getMyGigs = async (req, res) => {
       orderBy: { updatedAt: 'desc' }
     });
 
-    return res.json(gigs);
+    const result = gigs.map((gig) => {
+      const activePackageNames = gig.isTiered
+        ? new Set(['Basic', 'Standard', 'Premium'])
+        : new Set(['Single']);
+
+      return {
+        ...gig,
+        packages: gig.packages.filter((pkg) =>
+          activePackageNames.has(pkg.tierName)
+        )
+      };
+    });
+
+    return res.json(result);
   } catch (err) {
     console.error('Get My Gigs Error:', err);
     return res.status(500).json({ error: 'Failed to load your gigs.' });
@@ -376,6 +392,9 @@ exports.getGigs = async (req, res) => {
             }
           },
           orderBy: { price: 'asc' }
+        },
+        extras: {
+          orderBy: { id: 'asc' }
         },
         seller: {
           select: { id: true, fullName: true, age: true, profile: true }
@@ -653,6 +672,53 @@ const validateGigSubmission = (draftData) => {
     );
   }
 
+  const extras = Array.isArray(draftData?.extras)
+    ? draftData.extras
+    : [];
+
+  extras.forEach((extra, index) => {
+    const prefix = `extras.${extra?.id || index}`;
+    const title = String(extra?.title || '').trim();
+    const rawExtraPrice = String(extra?.price ?? '').trim();
+    const extraPrice = Number(rawExtraPrice);
+    const scopeDescription =
+      extra?.scope &&
+      typeof extra.scope === 'object'
+        ? String(extra.scope.description || '').trim()
+        : '';
+
+    if (!title) {
+      addBlocker(
+        3,
+        `${prefix}.title`,
+        'Complete your optional extras.',
+        'Every extra needs a meaningful title.'
+      );
+    }
+
+    if (
+      !rawExtraPrice ||
+      !Number.isFinite(extraPrice) ||
+      !(extraPrice > 0)
+    ) {
+      addBlocker(
+        3,
+        `${prefix}.price`,
+        'Complete your optional extras.',
+        'Extra price must be greater than 0.'
+      );
+    }
+
+    if (!scopeDescription) {
+      addBlocker(
+        3,
+        `${prefix}.scope`,
+        'Complete your optional extras.',
+        'Every extra needs a meaningful scope.'
+      );
+    }
+  });
+
   if (requirements.length === 0) {
     addBlocker(
       5,
@@ -782,6 +848,87 @@ const normalizePackageDraft = (pkg, fallbackTierName) => {
   };
 };
 
+const normalizeExtraDraft = (extra) => {
+  const scope =
+    extra?.scope && typeof extra.scope === 'object'
+      ? extra.scope
+      : {};
+
+  return {
+    id: typeof extra?.id === 'string' ? extra.id : null,
+    title:
+      typeof extra?.title === 'string'
+        ? extra.title.trim()
+        : '',
+    price: Number(extra?.price),
+    scope: {
+      description:
+        typeof scope.description === 'string'
+          ? scope.description.trim()
+          : ''
+    }
+  };
+};
+
+const getDraftExtraPayload = (draftData) => {
+  if (!Array.isArray(draftData?.extras)) return [];
+
+  return draftData.extras
+    .filter((extra) => extra && typeof extra === 'object')
+    .map(normalizeExtraDraft);
+};
+
+const syncGigExtras = async (tx, gigId, draftData) => {
+  const desiredExtras = getDraftExtraPayload(draftData);
+  const existingExtras = await tx.gigExtra.findMany({
+    where: { gigId },
+    orderBy: { id: 'asc' }
+  });
+
+  const existingById = new Map(
+    existingExtras.map((extra) => [extra.id, extra])
+  );
+
+  for (const desired of desiredExtras) {
+    const data = {
+      title: desired.title,
+      price: Number.isFinite(desired.price) ? desired.price : 0,
+      scope: desired.scope
+    };
+
+    if (desired.id && existingById.has(desired.id)) {
+      await tx.gigExtra.update({
+        where: { id: desired.id },
+        data
+      });
+      existingById.delete(desired.id);
+    } else {
+      await tx.gigExtra.create({
+        data: {
+          gigId,
+          ...data
+        }
+      });
+    }
+  }
+
+  const staleIds = [...existingById.keys()];
+
+  if (staleIds.length > 0) {
+    await tx.gigExtra.deleteMany({
+      where: {
+        gigId,
+        id: { in: staleIds }
+      }
+    });
+  }
+
+  return tx.gigExtra.findMany({
+    where: { gigId },
+    orderBy: { id: 'asc' }
+  });
+};
+
 const getDraftPackagePayload = (draftData) => {
   const pricing = draftData?.pricing || {};
   const delivery = draftData?.delivery || {};
@@ -889,7 +1036,8 @@ const syncGigPackages = async (tx, gigId, draftData) => {
   const removableStalePackages = existingPackages.filter(
     (pkg) =>
       !desiredTierNames.has(pkg.tierName) &&
-      pkg.orders === undefined
+      Array.isArray(pkg.orders) &&
+      pkg.orders.length === 0
   );
 
   if (removableStalePackages.length > 0) {
@@ -1033,6 +1181,7 @@ exports.createGigDraft = async (req, res) => {
       });
 
       await syncGigPackages(tx, createdGig.id, draftData);
+      await syncGigExtras(tx, createdGig.id, draftData);
       await createGigRevision(tx, createdGig.id, req.user.id, 'CREATED');
       return createdGig;
     });
@@ -1172,6 +1321,7 @@ exports.updateGigDraft = async (req, res) => {
 
       if (gigUpdate.count === 1) {
         await syncGigPackages(tx, gigId, draftData);
+        await syncGigExtras(tx, gigId, draftData);
       }
 
       return gigUpdate;
@@ -1282,6 +1432,9 @@ exports.submitGigDraft = async (req, res) => {
         throw new Error('Gig not found after submission.');
       }
 
+      await syncGigPackages(tx, currentGig.id, currentGig.draftData || {});
+      await syncGigExtras(tx, currentGig.id, currentGig.draftData || {});
+
       await createGigRevision(
         tx,
         currentGig.id,
@@ -1326,6 +1479,9 @@ const assertGigOwner = async (gigId, sellerId) => {
     include: {
       packages: {
         orderBy: { price: 'asc' }
+      },
+      extras: {
+        orderBy: { id: 'asc' }
       }
     }
   });
@@ -1406,6 +1562,7 @@ exports.getGigForManagement = async (req, res) => {
       draftVersion: gig.draftVersion,
       updatedAt: gig.updatedAt,
       packages: gig.packages,
+    extras: gig.extras,
       pendingEditVersion: gig.pendingEditVersion,
       pendingEditStatus: gig.pendingEditStatus,
       pendingEditReasonCode: gig.pendingEditReasonCode,
@@ -1608,11 +1765,21 @@ exports.duplicateGig = async (req, res) => {
             scope: pkg.scope || null,
             features: pkg.features || null
           }))
+        },
+        extras: {
+          create: sourceGig.extras.map((extra) => ({
+            title: extra.title,
+            price: extra.price,
+            scope: extra.scope || null
+          }))
         }
       },
       include: {
         packages: {
           orderBy: { price: 'asc' }
+        },
+        extras: {
+          orderBy: { id: 'asc' }
         }
       }
     });
@@ -1634,7 +1801,8 @@ exports.duplicateGig = async (req, res) => {
         draftVersion: duplicated.draftVersion,
         updatedAt: duplicated.updatedAt,
         createdAt: duplicated.createdAt,
-        packages: duplicated.packages
+        packages: duplicated.packages,
+        extras: duplicated.extras
       }
     });
   } catch (err) {
@@ -1705,6 +1873,7 @@ exports.updateGigForManagement = async (req, res) => {
 };
 
 exports.syncGigPackages = syncGigPackages;
+exports.syncGigExtras = syncGigExtras;
 exports.resolveDraftTaxonomyIds = resolveDraftTaxonomyIds;
 
 exports.getDraftPackagePayload = getDraftPackagePayload;

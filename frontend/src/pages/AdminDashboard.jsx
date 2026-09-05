@@ -2239,6 +2239,51 @@ export default function AdminDashboard({ currentUser }) {
                           </div>
                         ) : null}
 
+                        {Array.isArray(gig.draftData?.extras) && gig.draftData.extras.length > 0 && (
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
+                              Optional Extras
+                            </p>
+
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {gig.draftData.extras
+                                .filter((extra) => extra && typeof extra === 'object')
+                                .map((extra, index) => {
+                                  const extraTitle = String(extra.title || '').trim();
+                                  const extraPrice = Number(extra.price);
+                                  const extraScope =
+                                    extra.scope && typeof extra.scope === 'object'
+                                      ? String(extra.scope.description || '').trim()
+                                      : '';
+
+                                  return (
+                                    <div
+                                      key={extra.id || `extra-${index}`}
+                                      className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"
+                                    >
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-black text-white">
+                                            {extraTitle || 'Untitled extra'}
+                                          </p>
+                                          <p className="mt-1 text-[11px] text-slate-400 leading-5">
+                                            {extraScope || 'No scope specified.'}
+                                          </p>
+                                        </div>
+
+                                        <p className="shrink-0 text-[11px] font-black text-amber-300">
+                                          {Number.isFinite(extraPrice) && extraPrice > 0
+                                            ? `+${gig.draftData?.pricing?.currency || 'INR'} ${extraPrice.toLocaleString('en-IN')}`
+                                            : 'Invalid price'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+
                         {Array.isArray(gig.draftData?.requirements) && gig.draftData.requirements.length > 0 && (
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">
@@ -2385,9 +2430,18 @@ export default function AdminDashboard({ currentUser }) {
                                   ? revision.snapshot
                                   : {};
 
-                              const snapshotPackage = Array.isArray(snapshot.packages)
-                                ? snapshot.packages[0]
-                                : null;
+                              const snapshotPackages = Array.isArray(snapshot.packages)
+                                ? snapshot.packages
+                                : [];
+
+                              const activeSnapshotPackageNames = snapshot.isTiered
+                                ? ['Basic', 'Standard', 'Premium']
+                                : ['Single'];
+
+                              const snapshotPackage =
+                                snapshotPackages.find((pkg) =>
+                                  activeSnapshotPackageNames.includes(pkg?.tierName)
+                                ) || null;
 
                               return (
                                 <details

@@ -59,6 +59,7 @@ export default function GigBuyerPreview({
   pricing,
   delivery,
   packages = [],
+  extras = [],
   requirements,
   media,
   faqs,
@@ -74,6 +75,9 @@ export default function GigBuyerPreview({
   const safeDelivery = delivery || {};
   const safePackages = Array.isArray(packages)
     ? packages.filter((pkg) => pkg && typeof pkg === 'object')
+    : [];
+  const safeExtras = Array.isArray(extras)
+    ? extras.filter((extra) => extra && typeof extra === 'object')
     : [];
   const isMultiPackage =
     safePricing.packageModel === 'multi' && safePackages.length > 0;
@@ -449,6 +453,47 @@ export default function GigBuyerPreview({
                       </ul>
                     </div>
                   ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </PreviewSection>
+      ) : null}
+
+      {safeExtras.length > 0 ? (
+        <PreviewSection eyebrow="Optional extras" title="Add more to the service">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {safeExtras.map((extra, index) => {
+              const extraPrice = Number(extra.price);
+              const extraTitle = String(extra.title || '').trim();
+              const extraScope =
+                extra.scope && typeof extra.scope === 'object'
+                  ? String(extra.scope.description || '').trim()
+                  : '';
+
+              return (
+                <article
+                  key={extra.id || `extra-${index}`}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/55 p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-base font-black text-white">
+                        {extraTitle || 'Optional extra'}
+                      </p>
+                      {extraScope ? (
+                        <p className="mt-2 text-xs leading-5 text-slate-400">
+                          {extraScope}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <p className="shrink-0 text-lg font-black text-amber-300">
+                      {Number.isFinite(extraPrice) && extraPrice > 0
+                        ? `+${safePricing.currency || 'INR'} ${extraPrice.toLocaleString('en-IN')}`
+                        : 'Price not set'}
+                    </p>
+                  </div>
                 </article>
               );
             })}
