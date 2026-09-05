@@ -24,6 +24,10 @@ import {
 } from 'lucide-react';
 import { GIG_CATEGORY_OPTIONS, GIG_SUBCATEGORY_OPTIONS, GIG_SERVICE_TYPE_OPTIONS } from '../data/gigTaxonomyData.js';
 import { ALL_SKILLS_DATABASE } from '../data/skillsData.js';
+import {
+  GIG_DISCOVERY_LANGUAGES,
+  GIG_DISCOVERY_TARGET_AUDIENCES
+} from '../data/gigDiscoveryData.js';
 import RichTextEditor from '../components/RichTextEditor.jsx';
 import GigBuyerPreview from '../components/GigBuyerPreview.jsx';
 import ImageCropModal from '../components/ImageCropModal.jsx';
@@ -731,6 +735,12 @@ export default function StudentGigCreatePage({ currentUser }) {
 
   const [categorySpecificFields, setCategorySpecificFields] = useState({});
 
+  const [discovery, setDiscovery] = useState({
+    keywords: [],
+    languages: [],
+    targetAudience: []
+  });
+
   const [skillQuery, setSkillQuery] = useState('');
   const deferredSkillQuery = useDeferredValue(skillQuery);
   const [visibleSkillCount, setVisibleSkillCount] = useState(24);
@@ -767,6 +777,11 @@ export default function StudentGigCreatePage({ currentUser }) {
       skills: [...basics.skills]
     },
     categorySpecificFields: { ...categorySpecificFields },
+    discovery: {
+      keywords: [...discovery.keywords],
+      languages: [...discovery.languages],
+      targetAudience: [...discovery.targetAudience]
+    },
     description,
     pricing: {
       basePrice: pricing.basePrice,
@@ -837,6 +852,17 @@ export default function StudentGigCreatePage({ currentUser }) {
         ? { ...data.categorySpecificFields }
         : {}
     );
+    setDiscovery({
+      keywords: Array.isArray(data.discovery?.keywords)
+        ? data.discovery.keywords.filter((item) => typeof item === 'string')
+        : [],
+      languages: Array.isArray(data.discovery?.languages)
+        ? data.discovery.languages.filter((item) => GIG_DISCOVERY_LANGUAGES.includes(item))
+        : [],
+      targetAudience: Array.isArray(data.discovery?.targetAudience)
+        ? data.discovery.targetAudience.filter((item) => GIG_DISCOVERY_TARGET_AUDIENCES.includes(item))
+        : []
+    });
     setDescription(typeof data.description === 'string' ? data.description : '');
     setPricing({
       basePrice: data.pricing?.basePrice ?? '',
@@ -1061,6 +1087,41 @@ export default function StudentGigCreatePage({ currentUser }) {
     setBasics((previous) => ({
       ...previous,
       skills: previous.skills.filter((skill) => skill !== skillToRemove)
+    }));
+  };
+
+  const toggleDiscoveryValue = (field, value) => {
+    setDiscovery((previous) => {
+      const current = Array.isArray(previous[field]) ? previous[field] : [];
+      return {
+        ...previous,
+        [field]: current.includes(value)
+          ? current.filter((item) => item !== value)
+          : [...current, value]
+      };
+    });
+  };
+
+  const addDiscoveryKeyword = (rawValue) => {
+    const value = String(rawValue || '').trim().replace(/\s+/g, ' ');
+    if (!value || value.length > 40) return false;
+
+    setDiscovery((previous) => {
+      const exists = previous.keywords.some(
+        (keyword) => keyword.toLowerCase() === value.toLowerCase()
+      );
+
+      if (exists || previous.keywords.length >= 10) return previous;
+      return { ...previous, keywords: [...previous.keywords, value] };
+    });
+
+    return true;
+  };
+
+  const removeDiscoveryKeyword = (keywordToRemove) => {
+    setDiscovery((previous) => ({
+      ...previous,
+      keywords: previous.keywords.filter((keyword) => keyword !== keywordToRemove)
     }));
   };
 
@@ -1325,6 +1386,24 @@ export default function StudentGigCreatePage({ currentUser }) {
       next.delete(8);
     }
 
+    const discoveryValid =
+      Array.isArray(discovery.keywords) &&
+      discovery.keywords.length <= 10 &&
+      discovery.keywords.every((keyword) => {
+        const value = String(keyword || '').trim();
+        return value.length >= 1 && value.length <= 40;
+      }) &&
+      Array.isArray(discovery.languages) &&
+      discovery.languages.every((language) => GIG_DISCOVERY_LANGUAGES.includes(language)) &&
+      Array.isArray(discovery.targetAudience) &&
+      discovery.targetAudience.every((audience) => GIG_DISCOVERY_TARGET_AUDIENCES.includes(audience));
+
+    if (discoveryValid) {
+      next.add(7);
+    } else {
+      next.delete(7);
+    }
+
     return next;
   }, [
     completedSteps,
@@ -1335,6 +1414,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     isRequirementsComplete,
     media,
     isFaqsComplete,
+    discovery,
     extras,
     areExtrasComplete,
     extraValidationErrors
@@ -3714,6 +3794,45 @@ export default function StudentGigCreatePage({ currentUser }) {
     }));
   };
 
+  const validateDiscovery = () => {
+    const nextErrors = {};
+
+    if (!Array.isArray(discovery.keywords)) {
+      nextErrors.keywords = 'Discovery keywords are invalid.';
+    } else if (discovery.keywords.length > 10) {
+      nextErrors.keywords = 'Use up to 10 discovery keywords.';
+    } else if (discovery.keywords.some((keyword) => {
+      const value = String(keyword || '').trim();
+      return !value || value.length > 40;
+    })) {
+      nextErrors.keywords = 'Each discovery keyword must contain 1–40 characters.';
+    }
+
+    if (!Array.isArray(discovery.languages) || discovery.languages.some(
+      (language) => !GIG_DISCOVERY_LANGUAGES.includes(language)
+    )) {
+      nextErrors.languages = 'Choose languages from the available options.';
+    }
+
+    if (!Array.isArray(discovery.targetAudience) || discovery.targetAudience.some(
+      (audience) => !GIG_DISCOVERY_TARGET_AUDIENCES.includes(audience)
+    )) {
+      nextErrors.targetAudience = 'Choose target audiences from the available options.';
+    }
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      discovery: nextErrors
+    }));
+
+    setTouchedFields((previous) => ({
+      ...previous,
+      discovery: true
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const handleNext = () => {
     if (currentStep >= steps.length) return;
 
@@ -3738,6 +3857,10 @@ export default function StudentGigCreatePage({ currentUser }) {
     }
 
     if (currentStep === 6 && !validateMedia()) {
+      return;
+    }
+
+    if (currentStep === 7 && !validateDiscovery()) {
       return;
     }
 
@@ -5712,6 +5835,190 @@ export default function StudentGigCreatePage({ currentUser }) {
     );
   };
 
+  const renderDiscovery = () => {
+    const discoveryErrors = fieldErrors.discovery || {};
+    const categoryDerivedValues = [
+      { label: 'Category', value: selectedCategory?.name },
+      { label: 'Subcategory', value: selectedSubcategory?.name },
+      {
+        label: 'Service type',
+        value:
+          serviceTypes.find((serviceType) => serviceType.id === basics.serviceType)?.name ||
+          basics.serviceType
+      }
+    ].filter((item) => String(item.value || '').trim());
+
+    const meaningfulCategoryFields = categorySpecificFieldDefinitions
+      .map((field) => ({
+        label: field.label,
+        value: categorySpecificFields[field.key]
+      }))
+      .filter((item) => {
+        if (Array.isArray(item.value)) return item.value.length > 0;
+        return String(item.value ?? '').trim().length > 0;
+      });
+
+    return (
+      <div className="mt-8 space-y-6">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">Search keywords</p>
+            <h3 className="mt-2 text-xl sm:text-2xl font-black text-white">Add words buyers may search for</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Add up to 10 focused search terms. These complement your existing Basics skills without duplicating them.
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <input
+              id="gig-discovery-keyword"
+              type="text"
+              maxLength={40}
+              className={`min-w-0 flex-1 rounded-2xl border bg-slate-950 px-4 py-3 text-sm text-white outline-none transition ${
+                discoveryErrors.keywords ? 'border-red-500/60' : 'border-slate-800 focus:border-cyan-500/60'
+              }`}
+              placeholder="e.g. React dashboard, Figma prototype, Excel automation"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ',') {
+                  event.preventDefault();
+                  const added = addDiscoveryKeyword(event.currentTarget.value);
+                  if (added) event.currentTarget.value = '';
+                }
+              }}
+              aria-invalid={Boolean(discoveryErrors.keywords)}
+            />
+            <button
+              type="button"
+              onClick={(event) => {
+                const input = event.currentTarget.previousElementSibling;
+                if (input && addDiscoveryKeyword(input.value)) input.value = '';
+              }}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-xs font-black text-slate-200 transition hover:border-cyan-500/40 hover:text-cyan-200"
+            >
+              <Plus className="h-4 w-4" /> Add keyword
+            </button>
+          </div>
+
+          {discovery.keywords.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {discovery.keywords.map((keyword) => (
+                <span key={keyword} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-200">
+                  {keyword}
+                  <button type="button" onClick={() => removeDiscoveryKeyword(keyword)} aria-label={`Remove ${keyword}`} className="rounded-md p-0.5 text-cyan-400 hover:bg-cyan-500/10 hover:text-white">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {discoveryErrors.keywords && <p className="mt-3 text-xs font-semibold text-red-300">{discoveryErrors.keywords}</p>}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">Languages</p>
+            <h3 className="mt-2 text-xl font-black text-white">Choose the languages this service supports</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Use the controlled language list so discovery filters stay consistent.</p>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {GIG_DISCOVERY_LANGUAGES.map((language) => {
+              const selected = discovery.languages.includes(language);
+              return (
+                <button
+                  key={language}
+                  type="button"
+                  onClick={() => toggleDiscoveryValue('languages', language)}
+                  aria-pressed={selected}
+                  className={`min-h-11 rounded-xl border px-3 py-2.5 text-xs font-bold text-left transition ${
+                    selected
+                      ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200'
+                      : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-cyan-500/20 hover:text-white'
+                  }`}
+                >
+                  {selected && <span className="mr-1.5">✓</span>}{language}
+                </button>
+              );
+            })}
+          </div>
+          {discoveryErrors.languages && <p className="mt-3 text-xs font-semibold text-red-300">{discoveryErrors.languages}</p>}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">Target audience</p>
+            <h3 className="mt-2 text-xl font-black text-white">Who is this service best suited for?</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Optional audience signals can make a gig easier to discover without restricting who can buy it.</p>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {GIG_DISCOVERY_TARGET_AUDIENCES.map((audience) => {
+              const selected = discovery.targetAudience.includes(audience);
+              return (
+                <button
+                  key={audience}
+                  type="button"
+                  onClick={() => toggleDiscoveryValue('targetAudience', audience)}
+                  aria-pressed={selected}
+                  className={`min-h-11 rounded-xl border px-3 py-2.5 text-xs font-bold text-left transition ${
+                    selected
+                      ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200'
+                      : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-cyan-500/20 hover:text-white'
+                  }`}
+                >
+                  {selected && <span className="mr-1.5">✓</span>}{audience}
+                </button>
+              );
+            })}
+          </div>
+          {discoveryErrors.targetAudience && <p className="mt-3 text-xs font-semibold text-red-300">{discoveryErrors.targetAudience}</p>}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">Existing search signals</p>
+            <h3 className="mt-2 text-xl font-black text-white">Your existing skills and category metadata</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">These values are derived from earlier steps and are shown here for discovery context. They are not duplicated into a second stored tags field.</p>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">Skills / tags from Basics</p>
+            {basics.skills.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {basics.skills.map((skill) => (
+                  <span key={skill} className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-200">{skill}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-slate-600">No Basics skills have been selected yet.</p>
+            )}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {categoryDerivedValues.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+                <p className="mt-2 text-sm font-bold text-white">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {meaningfulCategoryFields.length > 0 && (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {meaningfulCategoryFields.map((item) => (
+                <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">{item.label}</p>
+                  <p className="mt-2 text-sm font-bold text-slate-200 break-words">
+                    {Array.isArray(item.value) ? item.value.join(', ') : String(item.value)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  };
+
   const renderFaqs = () => {
     const faqErrors = fieldErrors.faqs || {};
     const showErrors = Boolean(touchedFields.faqs);
@@ -7026,7 +7333,9 @@ export default function StudentGigCreatePage({ currentUser }) {
                           ? renderRequirements()
                           : currentStep === 6
                             ? renderMedia()
-                            : currentStep === 8
+                            : currentStep === 7
+                              ? renderDiscovery()
+                              : currentStep === 8
                               ? renderFaqs()
                               : currentStep === 9
                             ? (
@@ -7040,6 +7349,7 @@ export default function StudentGigCreatePage({ currentUser }) {
                                 requirements={requirements}
                                 media={media}
                                 faqs={faqs}
+                                discovery={discovery}
                                 categorySpecificFields={categorySpecificFieldDefinitions.map((field) => ({
                                   ...field,
                                   value: categorySpecificFields[field.key]

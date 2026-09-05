@@ -447,6 +447,90 @@ const validateGigSubmission = (draftData) => {
   const media = draftData?.media || {};
   const gallery = Array.isArray(media.gallery) ? media.gallery : [];
 
+  const discovery =
+    draftData?.discovery && typeof draftData.discovery === 'object'
+      ? draftData.discovery
+      : {};
+  const discoveryLanguages = new Set([
+    'English',
+    'Hindi',
+    'Telugu',
+    'Tamil',
+    'Kannada',
+    'Malayalam',
+    'Marathi',
+    'Bengali',
+    'Gujarati',
+    'Punjabi',
+    'Urdu',
+    'Other'
+  ]);
+  const discoveryAudiences = new Set([
+    'School students',
+    'College & university students',
+    'Job seekers',
+    'Working professionals',
+    'Startups & founders',
+    'Small businesses',
+    'Creators & influencers',
+    'Researchers & academics',
+    'Educators & teachers',
+    'Developers & technical teams',
+    'General consumers'
+  ]);
+
+  const keywords = Array.isArray(discovery.keywords)
+    ? discovery.keywords
+    : [];
+  if (keywords.length > 10) {
+    addBlocker(
+      7,
+      'discovery.keywords',
+      'Fix your discovery metadata.',
+      'Use up to 10 discovery keywords.'
+    );
+  } else {
+    keywords.forEach((keyword, index) => {
+      const value = String(keyword || '').trim();
+      if (!value || value.length > 40) {
+        addBlocker(
+          7,
+          `discovery.keywords.${index}`,
+          'Fix your discovery metadata.',
+          'Each discovery keyword must contain 1–40 characters.'
+        );
+      }
+    });
+  }
+
+  const languages = Array.isArray(discovery.languages)
+    ? discovery.languages
+    : [];
+  languages.forEach((language, index) => {
+    if (!discoveryLanguages.has(language)) {
+      addBlocker(
+        7,
+        `discovery.languages.${index}`,
+        'Fix your discovery metadata.',
+        'Choose languages from the available controlled options.'
+      );
+    }
+  });
+
+  const targetAudience = Array.isArray(discovery.targetAudience)
+    ? discovery.targetAudience
+    : [];
+  targetAudience.forEach((audience, index) => {
+    if (!discoveryAudiences.has(audience)) {
+      addBlocker(
+        7,
+        `discovery.targetAudience.${index}`,
+        'Fix your discovery metadata.',
+        'Choose target audiences from the available controlled options.'
+      );
+    }
+  });
+
   const title = String(basics.title || '').trim();
   if (title.length < 3 || title.length > 120) {
     addBlocker(

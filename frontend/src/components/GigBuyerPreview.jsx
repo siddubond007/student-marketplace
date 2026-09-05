@@ -64,6 +64,7 @@ export default function GigBuyerPreview({
   media,
   faqs,
   categorySpecificFields = [],
+  discovery = {},
   categoryName,
   subcategoryName,
   serviceTypeName,
@@ -92,6 +93,10 @@ export default function GigBuyerPreview({
   const profilePortfolio = Array.isArray(profile.portfolioItems)
     ? profile.portfolioItems.filter((item) => item && typeof item === 'object')
     : [];
+
+  const discoveryKeywords = meaningfulItems(discovery.keywords);
+  const discoveryLanguages = meaningfulItems(discovery.languages);
+  const discoveryAudiences = meaningfulItems(discovery.targetAudience);
 
   const includedItems = meaningfulItems(safeDelivery.includedItems);
   const excludedItems = meaningfulItems(safeDelivery.excludedItems);
@@ -534,6 +539,61 @@ export default function GigBuyerPreview({
               );
             })}
           </dl>
+        </PreviewSection>
+      ) : null}
+
+      {(discoveryKeywords.length > 0 ||
+        discoveryLanguages.length > 0 ||
+        discoveryAudiences.length > 0) ? (
+        <PreviewSection eyebrow="Discovery" title="Findability signals">
+          <div className="space-y-5">
+            {discoveryKeywords.length > 0 ? (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                  Keywords
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {discoveryKeywords.map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {discoveryLanguages.length > 0 ? (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                  Languages
+                </p>
+                <p className="mt-2 break-words text-sm font-bold leading-6 text-slate-200">
+                  {discoveryLanguages.join(', ')}
+                </p>
+              </div>
+            ) : null}
+
+            {discoveryAudiences.length > 0 ? (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                  Target audience
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {discoveryAudiences.map((audience) => (
+                    <span
+                      key={audience}
+                      className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-indigo-200"
+                    >
+                      {audience}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </PreviewSection>
       ) : null}
 
