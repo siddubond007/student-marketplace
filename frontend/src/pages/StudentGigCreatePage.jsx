@@ -699,7 +699,8 @@ export default function StudentGigCreatePage({ currentUser }) {
   const [media, setMedia] = useState({
     cover: null,
     gallery: [],
-    portfolioLinks: []
+    portfolioLinks: [],
+    liveDemoUrl: ''
   });
   const [portfolioLinkInputError, setPortfolioLinkInputError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState(null);
@@ -828,7 +829,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     media: {
       cover: serializeDraftMediaItem(media.cover),
       gallery: media.gallery.map(serializeDraftMediaItem).filter(Boolean),
-      portfolioLinks: [...media.portfolioLinks]
+      portfolioLinks: [...media.portfolioLinks],
+      liveDemoUrl: String(media.liveDemoUrl || '').trim()
     },
     faqs: faqs.map((faq) => ({
       id: faq.id,
@@ -987,7 +989,11 @@ export default function StudentGigCreatePage({ currentUser }) {
         ? data.media.portfolioLinks
             .map((item) => String(item || '').trim())
             .filter(Boolean)
-        : []
+        : [],
+      liveDemoUrl:
+        typeof data.media?.liveDemoUrl === 'string'
+          ? data.media.liveDemoUrl.trim()
+          : ''
     });
 
     const restoredStep = Number(data.currentStep);
@@ -3775,6 +3781,35 @@ export default function StudentGigCreatePage({ currentUser }) {
     }));
   };
 
+  const updateLiveDemoUrl = (rawValue) => {
+    const value = String(rawValue || '').trim();
+
+    setMedia((previous) => ({
+      ...previous,
+      liveDemoUrl: value
+    }));
+
+    setFieldErrors((previous) => {
+      const mediaErrors = { ...(previous.media || {}) };
+
+      if (!value || isValidPortfolioLink(value)) {
+        delete mediaErrors.liveDemoUrl;
+      } else {
+        mediaErrors.liveDemoUrl =
+          'Enter a valid live demo URL using http:// or https://.';
+      }
+
+      if (!mediaErrors.liveDemoUrl && mediaErrors.step?.includes('live demo')) {
+        delete mediaErrors.step;
+      }
+
+      return {
+        ...previous,
+        media: mediaErrors
+      };
+    });
+  };
+
   const validateMedia = () => {
     const nextMediaErrors = {};
     const galleryItems = {};
@@ -3784,6 +3819,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     const invalidPortfolioLinks = portfolioLinks.filter(
       (link) => !isValidPortfolioLink(link)
     );
+    const liveDemoUrl = String(media.liveDemoUrl || '').trim();
+    const invalidLiveDemoUrl = Boolean(liveDemoUrl) && !isValidPortfolioLink(liveDemoUrl);
 
     if (!media.cover) {
       nextMediaErrors.cover =
@@ -3810,17 +3847,25 @@ export default function StudentGigCreatePage({ currentUser }) {
         'Remove or correct invalid portfolio links. Use full http:// or https:// URLs.';
     }
 
+    if (invalidLiveDemoUrl) {
+      nextMediaErrors.liveDemoUrl =
+        'Enter a valid live demo URL using http:// or https://.';
+    }
+
     if (
       nextMediaErrors.cover ||
       nextMediaErrors.galleryItems ||
-      nextMediaErrors.portfolioLinks
+      nextMediaErrors.portfolioLinks ||
+      nextMediaErrors.liveDemoUrl
     ) {
       nextMediaErrors.step =
         nextMediaErrors.cover
           ? 'Add a valid cover image before continuing.'
           : nextMediaErrors.galleryItems
             ? 'Fix or remove the highlighted gallery images before continuing.'
-            : 'Fix or remove the highlighted portfolio links before continuing.';
+            : nextMediaErrors.portfolioLinks
+              ? 'Fix or remove the highlighted portfolio links before continuing.'
+              : 'Fix or remove the live demo URL before continuing.';
     }
 
     setFieldErrors((previous) => ({
@@ -3836,7 +3881,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     return (
       !nextMediaErrors.cover &&
       !nextMediaErrors.galleryItems &&
-      !nextMediaErrors.portfolioLinks
+      !nextMediaErrors.portfolioLinks &&
+      !nextMediaErrors.liveDemoUrl
     );
   };
 
@@ -6811,6 +6857,63 @@ export default function StudentGigCreatePage({ currentUser }) {
               </p>
             </div>
           )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Live demo
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Let buyers try the service
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Optional demo URL for applicable services. Use a public page where buyers can preview the kind of experience or result they can expect.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <label
+              htmlFor="gig-live-demo-url"
+              className="block text-xs font-black uppercase tracking-wider text-slate-300"
+            >
+              Live demo URL
+            </label>
+            <div className="mt-3">
+              <input
+                id="gig-live-demo-url"
+                type="url"
+                value={media.liveDemoUrl}
+                onChange={(event) => updateLiveDemoUrl(event.target.value)}
+                placeholder="https://example.com/demo"
+                aria-invalid={Boolean(mediaErrors.liveDemoUrl)}
+                aria-describedby={
+                  mediaErrors.liveDemoUrl
+                    ? 'gig-live-demo-url-error'
+                    : 'gig-live-demo-url-help'
+                }
+                className={`min-h-11 w-full rounded-xl border bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:ring-2 ${
+                  mediaErrors.liveDemoUrl
+                    ? 'border-red-500/50 focus:border-red-400/70 focus:ring-red-400/10'
+                    : 'border-slate-800 focus:border-cyan-500/50 focus:ring-cyan-400/10'
+                }`}
+              />
+            </div>
+
+            <p id="gig-live-demo-url-help" className="mt-2 text-xs leading-5 text-slate-600">
+              Full http:// or https:// URLs only. Leave empty when a live demo does not apply.
+            </p>
+
+            {mediaErrors.liveDemoUrl ? (
+              <p
+                id="gig-live-demo-url-error"
+                role="alert"
+                className="mt-3 text-xs font-semibold text-red-400"
+              >
+                {mediaErrors.liveDemoUrl}
+              </p>
+            ) : null}
+          </div>
         </section>
 
         {cropImageSrc && (

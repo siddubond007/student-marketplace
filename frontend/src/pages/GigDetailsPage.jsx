@@ -239,6 +239,19 @@ export default function GigDetailsPage({ currentUser }) {
   const profile = seller?.profile;
   const reviewCount = seller?.totalReviews || 0;
   const rating = Number(seller?.averageRating || 0);
+  const liveDemoUrl = (() => {
+    const value = String(gig?.draftData?.media?.liveDemoUrl || '').trim();
+    if (!value) return '';
+
+    try {
+      const parsed = new URL(value);
+      return /^(https?:)$/i.test(parsed.protocol) && parsed.hostname
+        ? value
+        : '';
+    } catch {
+      return '';
+    }
+  })();
 
   return (
     <div className="space-y-6 pb-16">
@@ -362,6 +375,32 @@ export default function GigDetailsPage({ currentUser }) {
               </Link>
             </div>
           </section>
+
+          {liveDemoUrl ? (
+            <section className="glass-panel rounded-3xl border border-cyan-500/20 p-6">
+              <div className="max-w-3xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                  Interactive demo
+                </p>
+                <h2 className="mt-1 text-xl font-black text-white">
+                  Live demo
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Explore a live example of the service before placing an order.
+                </p>
+
+                <a
+                  href={liveDemoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-black text-slate-950 hover:bg-cyan-400 transition"
+                >
+                  Open live demo
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </section>
+          ) : null}
         </section>
 
         <aside className="space-y-6">

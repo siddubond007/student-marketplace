@@ -122,6 +122,18 @@ export default function GigBuyerPreview({
         .filter(Boolean)
     : [];
 
+  const liveDemoUrl = String(safeMedia.liveDemoUrl || '').trim();
+  const hasValidLiveDemo =
+    liveDemoUrl.length > 0 &&
+    (() => {
+      try {
+        const parsed = new URL(liveDemoUrl);
+        return /^(https?:)$/i.test(parsed.protocol) && Boolean(parsed.hostname);
+      } catch {
+        return false;
+      }
+    })();
+
   const validRequirements = Array.isArray(requirements)
     ? requirements.filter(meaningfulRequirement)
     : [];
@@ -789,6 +801,24 @@ export default function GigBuyerPreview({
                 </span>
               </a>
             ))}
+          </div>
+        </PreviewSection>
+      ) : null}
+
+      {hasValidLiveDemo ? (
+        <PreviewSection eyebrow="Interactive demo" title="Live demo">
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 sm:p-5">
+            <p className="text-sm leading-6 text-slate-400">
+              Buyers can open the live demo to explore an example of the service experience.
+            </p>
+            <a
+              href={liveDemoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-xs font-black text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            >
+              Open live demo
+            </a>
           </div>
         </PreviewSection>
       ) : null}

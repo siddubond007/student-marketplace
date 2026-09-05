@@ -69,6 +69,7 @@ const collectText = (draftData) => {
     portfolioLinks: (Array.isArray(draftData?.media?.portfolioLinks) ? draftData.media.portfolioLinks : [])
       .map((url) => String(url || '').trim())
       .filter(Boolean),
+    liveDemoUrl: String(draftData?.media?.liveDemoUrl || '').trim(),
     currency: normalizeText(pricing.currency),
     basePrice: pricing.basePrice
   };
@@ -286,7 +287,8 @@ const checkUrls = (parts) => {
   const urls = [
     parts.coverUrl,
     ...parts.galleryUrls,
-    ...parts.portfolioLinks
+    ...parts.portfolioLinks,
+    parts.liveDemoUrl
   ].filter(Boolean);
   const suspiciousUrls = urls.filter((url) => {
     try {

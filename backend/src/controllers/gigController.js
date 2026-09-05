@@ -467,6 +467,23 @@ const validateGigSubmission = (draftData) => {
     }
   });
 
+  const liveDemoUrl = String(media.liveDemoUrl || '').trim();
+  if (liveDemoUrl) {
+    try {
+      const parsed = new URL(liveDemoUrl);
+      if (!/^(https?:)$/i.test(parsed.protocol) || !parsed.hostname) {
+        throw new Error('unsupported protocol');
+      }
+    } catch {
+      addBlocker(
+        6,
+        'media.liveDemoUrl',
+        'Fix your live demo URL.',
+        'The live demo URL must be a valid http:// or https:// URL.'
+      );
+    }
+  }
+
   const discovery =
     draftData?.discovery && typeof draftData.discovery === 'object'
       ? draftData.discovery
