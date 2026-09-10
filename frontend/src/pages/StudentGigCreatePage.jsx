@@ -652,7 +652,8 @@ export default function StudentGigCreatePage({ currentUser }) {
     excludedItems: [],
     deliverables: [''],
     acceptingOrders: true,
-    unavailableUntil: ''
+    unavailableUntil: '',
+    activeOrderLimit: ''
   });
 
   const [packages, setPackages] = useState(() => [
@@ -802,7 +803,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       excludedItems: [...delivery.excludedItems],
       deliverables: [...delivery.deliverables],
       acceptingOrders: Boolean(delivery.acceptingOrders),
-      unavailableUntil: String(delivery.unavailableUntil || '').trim()
+      unavailableUntil: String(delivery.unavailableUntil || '').trim(),
+      activeOrderLimit: String(delivery.activeOrderLimit ?? '').trim()
     },
     packages: packages.map((pkg) => ({
       tierName: pkg.tierName,
@@ -961,7 +963,12 @@ export default function StudentGigCreatePage({ currentUser }) {
       unavailableUntil:
         typeof data.delivery?.unavailableUntil === 'string'
           ? data.delivery.unavailableUntil
-          : ''
+          : '',
+      activeOrderLimit:
+        data.delivery?.activeOrderLimit === null ||
+        typeof data.delivery?.activeOrderLimit === 'undefined'
+          ? ''
+          : String(data.delivery.activeOrderLimit)
     });
 
     setRequirements(
@@ -1699,7 +1706,12 @@ export default function StudentGigCreatePage({ currentUser }) {
               unavailableUntil:
                 typeof sourceData.delivery?.unavailableUntil === 'string'
                   ? sourceData.delivery.unavailableUntil
-                  : ''
+                  : '',
+              activeOrderLimit:
+                sourceData.delivery?.activeOrderLimit === null ||
+                typeof sourceData.delivery?.activeOrderLimit === 'undefined'
+                  ? ''
+                  : String(sourceData.delivery.activeOrderLimit)
             },
             media: {
               ...(sourceData.media || {}),
@@ -2939,6 +2951,15 @@ export default function StudentGigCreatePage({ currentUser }) {
   const validateDelivery = () => {
     const nextErrors = {};
     const rawUnavailableUntil = String(delivery.unavailableUntil || '').trim();
+    const rawActiveOrderLimit = String(delivery.activeOrderLimit || '').trim();
+
+    if (rawActiveOrderLimit) {
+      if (!/^\d+$/.test(rawActiveOrderLimit) || !Number.isSafeInteger(Number(rawActiveOrderLimit))) {
+        nextErrors.activeOrderLimit = 'Active order limit must be a positive whole number.';
+      } else if (Number(rawActiveOrderLimit) <= 0) {
+        nextErrors.activeOrderLimit = 'Active order limit must be greater than 0.';
+      }
+    }
 
     if (!delivery.acceptingOrders && rawUnavailableUntil) {
       const parsedUnavailableUntil = new Date(`${rawUnavailableUntil}T00:00:00Z`);
@@ -3037,7 +3058,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       'includedItems',
       'excludedItems',
       'deliverables',
-      'unavailableUntil'
+      'unavailableUntil',
+      'activeOrderLimit'
     ].forEach((key) => delete next[key]);
       return { ...next, ...nextErrors };
     });
@@ -3049,7 +3071,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       includedItems: true,
       excludedItems: true,
       deliverables: true,
-      unavailableUntil: true
+      unavailableUntil: true,
+      activeOrderLimit: true
     }));
 
     return Object.keys(nextErrors).length === 0;
@@ -5104,6 +5127,10 @@ export default function StudentGigCreatePage({ currentUser }) {
     const availabilityError =
       touchedFields.unavailableUntil ? fieldErrors.unavailableUntil : null;
 
+    const activeOrderLimitError = touchedFields.activeOrderLimit
+      ? fieldErrors.activeOrderLimit
+      : null;
+
     const renderAvailability = () => (
       <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
         <div className="max-w-3xl">
@@ -5188,6 +5215,83 @@ export default function StudentGigCreatePage({ currentUser }) {
                 </p>
               )}
             </div>
+          )}
+        </div>
+      </section>
+    );
+
+    const renderOrderCapacity = () => (
+      <section className="rounded-3xl border border-violet-500/20 bg-violet-500/5 p-5 sm:p-7">
+        <div className="max-w-3xl">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-300">
+            Order capacity
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+            Protect your delivery capacity
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Optionally limit how many active orders this gig can have at once. Completed
+            and cancelled orders do not count toward the limit.
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+          <label
+            htmlFor="gig-active-order-limit"
+            className="text-xs font-black uppercase tracking-wider text-slate-300"
+          >
+            Active order limit
+          </label>
+
+          <div
+            className={[
+              'mt-3 flex min-w-0 items-center overflow-hidden rounded-xl border bg-slate-950 focus-within:border-violet-500/60',
+              activeOrderLimitError
+                ? 'border-red-500/50 focus-within:border-red-400'
+                : 'border-slate-800'
+            ].join(' ')}
+          >
+            <input
+              id="gig-active-order-limit"
+              name="activeOrderLimit"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              value={delivery.activeOrderLimit}
+              onChange={(event) =>
+                handleDeliveryChange('activeOrderLimit', event.target.value)
+              }
+              aria-invalid={Boolean(activeOrderLimitError)}
+              aria-describedby={
+                activeOrderLimitError
+                  ? 'gig-active-order-limit-error'
+                  : 'gig-active-order-limit-help'
+              }
+              className="w-full min-w-0 bg-transparent px-3 py-3 text-sm font-bold text-white outline-none"
+              placeholder="e.g. 3"
+            />
+            <span className="shrink-0 border-l border-slate-800 px-3 text-sm font-black text-slate-500">
+              active orders
+            </span>
+          </div>
+
+          <p
+            id="gig-active-order-limit-help"
+            className="mt-2 text-xs leading-5 text-slate-600"
+          >
+            Optional. Leave blank to accept unlimited active orders. The limit protects
+            your workload while you finish existing projects.
+          </p>
+
+          {activeOrderLimitError && (
+            <p
+              id="gig-active-order-limit-error"
+              role="alert"
+              className="mt-2 text-xs font-semibold text-red-400"
+            >
+              {activeOrderLimitError}
+            </p>
           )}
         </div>
       </section>
@@ -5294,6 +5398,7 @@ export default function StudentGigCreatePage({ currentUser }) {
       return (
         <div className="mt-8 space-y-7">
           {renderAvailability()}
+          {renderOrderCapacity()}
 
           <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
             <div className="max-w-3xl">
@@ -5580,6 +5685,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     const stepErrors = [
       deliveryError,
       revisionsError,
+      activeOrderLimitError,
       includedError,
       excludedError,
       deliverablesError
@@ -5588,6 +5694,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     return (
       <div className="mt-8 space-y-7">
         {renderAvailability()}
+        {renderOrderCapacity()}
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
           <div className="max-w-3xl">

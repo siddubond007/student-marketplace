@@ -2,6 +2,10 @@ const prisma = require('../config/db');
 const Razorpay = require('razorpay');
 const { releaseTransfer } = require('../services/escrowService');
 const { isGigAcceptingOrders } = require('../services/gigAvailabilityService');
+const {
+  ACTIVE_ORDER_STATUSES,
+  getGigOrderCapacity
+} = require('../services/gigOrderCapacityService');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_for_dev',
@@ -208,6 +212,37 @@ exports.createGigOrder = async (req, res) => {
     });
 
     const order = await prisma.$transaction(async (tx) => {
+      const lockedGigRows = await tx.$queryRaw`
+        SELECT id, "draftData"
+        FROM "Gig"
+        WHERE id = ${gig.id}
+          AND status = 'PUBLISHED'
+          AND "isDeleted" = false
+        FOR UPDATE
+      `;
+
+      if (!lockedGigRows || lockedGigRows.length === 0) {
+        throw new Error('GIG_NOT_AVAILABLE');
+      }
+
+      const lockedGig = lockedGigRows[0];
+      const activeOrderLimit = getGigOrderCapacity(lockedGig.draftData);
+
+      if (activeOrderLimit !== null) {
+        const activeOrderCount = await tx.order.count({
+          where: {
+            gigId: gig.id,
+            status: {
+              in: ACTIVE_ORDER_STATUSES
+            }
+          }
+        });
+
+        if (activeOrderCount >= activeOrderLimit) {
+          throw new Error('GIG_ACTIVE_ORDER_CAP_REACHED');
+        }
+      }
+
       const existingPending = await tx.order.findFirst({
         where: {
           clientId: req.user.id,
@@ -289,6 +324,18 @@ exports.createGigOrder = async (req, res) => {
     if (err.message === 'PENDING_GIG_PURCHASE_EXISTS') {
       return res.status(409).json({
         error: 'A payment attempt is already pending for this gig package.'
+      });
+    }
+
+    if (err.message === 'GIG_ACTIVE_ORDER_CAP_REACHED') {
+      return res.status(409).json({
+        error: 'This gig has reached its active-order capacity and is not accepting new orders right now.'
+      });
+    }
+
+    if (err.message === 'GIG_NOT_AVAILABLE') {
+      return res.status(409).json({
+        error: 'This gig is no longer available for new orders.'
       });
     }
 

@@ -8,6 +8,9 @@ const {
   getGigAvailability,
   validateGigAvailability
 } = require('../services/gigAvailabilityService');
+const {
+  validateGigOrderCapacity
+} = require('../services/gigOrderCapacityService');
 
 async function createAuditLog(adminId, actionType, targetId = null, details = null) {
   try {
@@ -453,6 +456,16 @@ const validateGigSubmission = (draftData) => {
       availabilityError.field,
       'Complete your availability settings.',
       availabilityError.detail
+    );
+  }
+
+  const orderCapacityError = validateGigOrderCapacity(draftData);
+  if (orderCapacityError) {
+    addBlocker(
+      4,
+      orderCapacityError.field,
+      'Complete your active-order capacity settings.',
+      orderCapacityError.detail
     );
   }
 
