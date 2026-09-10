@@ -633,6 +633,8 @@ export default function StudentGigCreatePage({ currentUser }) {
   const latestSnapshotRef = useRef('');
   const pendingSnapshotRef = useRef(null);
   const savePromiseRef = useRef(Promise.resolve());
+  const availabilitySaveSequenceRef = useRef(0);
+  const availabilitySavePromiseRef = useRef(Promise.resolve());
   const initialSnapshotEstablishedRef = useRef(false);
   const draftHydratedRef = useRef(!searchParams.get('draftId'));
   const hasUnsavedChangesRef = useRef(false);
@@ -648,7 +650,9 @@ export default function StudentGigCreatePage({ currentUser }) {
     revisions: '',
     includedItems: [''],
     excludedItems: [],
-    deliverables: ['']
+    deliverables: [''],
+    acceptingOrders: true,
+    unavailableUntil: ''
   });
 
   const [packages, setPackages] = useState(() => [
@@ -796,7 +800,9 @@ export default function StudentGigCreatePage({ currentUser }) {
       revisions: delivery.revisions,
       includedItems: [...delivery.includedItems],
       excludedItems: [...delivery.excludedItems],
-      deliverables: [...delivery.deliverables]
+      deliverables: [...delivery.deliverables],
+      acceptingOrders: Boolean(delivery.acceptingOrders),
+      unavailableUntil: String(delivery.unavailableUntil || '').trim()
     },
     packages: packages.map((pkg) => ({
       tierName: pkg.tierName,
@@ -838,6 +844,19 @@ export default function StudentGigCreatePage({ currentUser }) {
       answer: faq.answer
     }))
   });
+
+  const serializeManagementDraft = () => {
+    const draft = serializeGigDraft();
+    const managementDelivery = { ...(draft.delivery || {}) };
+
+    delete managementDelivery.acceptingOrders;
+    delete managementDelivery.unavailableUntil;
+
+    return {
+      ...draft,
+      delivery: managementDelivery
+    };
+  };
 
   const restoreGigDraft = (draft) => {
     const data = draft?.draftData;
@@ -934,7 +953,15 @@ export default function StudentGigCreatePage({ currentUser }) {
       deliverables:
         Array.isArray(data.delivery?.deliverables) && data.delivery.deliverables.length
           ? data.delivery.deliverables
-          : ['']
+          : [''],
+      acceptingOrders:
+        typeof data.delivery?.acceptingOrders === 'boolean'
+          ? data.delivery.acceptingOrders
+          : true,
+      unavailableUntil:
+        typeof data.delivery?.unavailableUntil === 'string'
+          ? data.delivery.unavailableUntil
+          : ''
     });
 
     setRequirements(
@@ -1664,7 +1691,15 @@ export default function StudentGigCreatePage({ currentUser }) {
                 sourceData.delivery?.revisions ??
                 (firstPackage?.revisions === -1
                   ? 'unlimited'
-                  : firstPackage?.revisions ?? '')
+                  : firstPackage?.revisions ?? ''),
+              acceptingOrders:
+                typeof sourceData.delivery?.acceptingOrders === 'boolean'
+                  ? sourceData.delivery.acceptingOrders
+                  : true,
+              unavailableUntil:
+                typeof sourceData.delivery?.unavailableUntil === 'string'
+                  ? sourceData.delivery.unavailableUntil
+                  : ''
             },
             media: {
               ...(sourceData.media || {}),
@@ -1683,7 +1718,18 @@ export default function StudentGigCreatePage({ currentUser }) {
           };
 
           restoreGigDraft({ draftData: hydratedData });
-          latestSavedSnapshotRef.current = JSON.stringify(hydratedData);
+          const managementSavedData = {
+            ...hydratedData,
+            delivery: (() => {
+                const managementDelivery = { ...(hydratedData.delivery || {}) };
+
+                delete managementDelivery.acceptingOrders;
+                delete managementDelivery.unavailableUntil;
+
+                return managementDelivery;
+              })()
+          };
+          latestSavedSnapshotRef.current = JSON.stringify(managementSavedData);
           latestSnapshotRef.current = latestSavedSnapshotRef.current;
           hasUnsavedChangesRef.current = false;
           setLastSavedAt(managedGig.updatedAt || null);
@@ -1760,7 +1806,9 @@ export default function StudentGigCreatePage({ currentUser }) {
     };
   }, [searchParams, managementGigId, isManagementEdit]);
 
-  const draftSnapshot = JSON.stringify(serializeGigDraft());
+  const draftSnapshot = JSON.stringify(
+    isManagementEdit ? serializeManagementDraft() : serializeGigDraft()
+  );
 
   useEffect(() => {
     if (!draftHydratedRef.current) return;
@@ -2889,11 +2937,44 @@ export default function StudentGigCreatePage({ currentUser }) {
   };
 
   const validateDelivery = () => {
-    if (pricing.packageModel === 'multi') {
-      return validatePackages();
+    const nextErrors = {};
+    const rawUnavailableUntil = String(delivery.unavailableUntil || '').trim();
+
+    if (!delivery.acceptingOrders && rawUnavailableUntil) {
+      const parsedUnavailableUntil = new Date(`${rawUnavailableUntil}T00:00:00Z`);
+      const isCalendarDateValid =
+        /^\d{4}-\d{2}-\d{2}$/.test(rawUnavailableUntil) &&
+        !Number.isNaN(parsedUnavailableUntil.getTime()) &&
+        parsedUnavailableUntil.toISOString().slice(0, 10) === rawUnavailableUntil;
+
+      if (!isCalendarDateValid) {
+        nextErrors.unavailableUntil = 'Choose a valid unavailable-until date.';
+      } else {
+        const todayDateString = new Date().toISOString().split('T')[0];
+        if (rawUnavailableUntil < todayDateString) {
+          nextErrors.unavailableUntil = 'Unavailable-until date cannot be in the past.';
+        }
+      }
     }
 
-    const nextErrors = {};
+    if (pricing.packageModel === 'multi') {
+      const packagesValid = validatePackages();
+
+      if (Object.keys(nextErrors).length > 0) {
+        setFieldErrors((previous) => ({
+          ...previous,
+          ...nextErrors
+        }));
+
+        setTouchedFields((previous) => ({
+          ...previous,
+          unavailableUntil: true
+        }));
+      }
+
+      return packagesValid && Object.keys(nextErrors).length === 0;
+    }
+
     const rawDelivery = String(delivery.deliveryDays).trim();
     const rawRevisions = String(delivery.revisions).trim();
     const includedItems = Array.isArray(delivery.includedItems) ? delivery.includedItems : [];
@@ -2950,8 +3031,14 @@ export default function StudentGigCreatePage({ currentUser }) {
 
     setFieldErrors((previous) => {
       const next = { ...previous };
-      ['deliveryDays', 'revisions', 'includedItems', 'excludedItems', 'deliverables']
-        .forEach((key) => delete next[key]);
+      [
+      'deliveryDays',
+      'revisions',
+      'includedItems',
+      'excludedItems',
+      'deliverables',
+      'unavailableUntil'
+    ].forEach((key) => delete next[key]);
       return { ...next, ...nextErrors };
     });
 
@@ -2961,17 +3048,84 @@ export default function StudentGigCreatePage({ currentUser }) {
       revisions: true,
       includedItems: true,
       excludedItems: true,
-      deliverables: true
+      deliverables: true,
+      unavailableUntil: true
     }));
 
     return Object.keys(nextErrors).length === 0;
   };
 
+  const saveManagementAvailability = (acceptingOrders, unavailableUntil) => {
+    if (!isManagementEdit || !managementGigId) {
+      return Promise.resolve();
+    }
+
+    const sequence = ++availabilitySaveSequenceRef.current;
+    setSaveState('saving');
+
+    const saveOperation = async () => {
+      try {
+        const response = await API.put(
+          `/gigs/${managementGigId}/availability`,
+          {
+            acceptingOrders: Boolean(acceptingOrders),
+            unavailableUntil: String(unavailableUntil || '').trim()
+          }
+        );
+
+        if (sequence !== availabilitySaveSequenceRef.current) {
+          return;
+        }
+
+        const updatedGig = response.data?.gig;
+        setLastSavedAt(updatedGig?.updatedAt || new Date().toISOString());
+        setSaveState('saved');
+      } catch {
+        if (sequence !== availabilitySaveSequenceRef.current) {
+          return;
+        }
+
+        setSaveState('error');
+      }
+    };
+
+    availabilitySavePromiseRef.current = availabilitySavePromiseRef.current
+      .catch(() => undefined)
+      .then(saveOperation);
+
+    return availabilitySavePromiseRef.current;
+  };
+
   const handleDeliveryChange = (field, value) => {
+    const nextAcceptingOrders =
+      field === 'acceptingOrders'
+        ? Boolean(value)
+        : Boolean(delivery.acceptingOrders);
+
+    const nextUnavailableUntil =
+      field === 'acceptingOrders' && value
+        ? ''
+        : field === 'unavailableUntil'
+          ? String(value || '').trim()
+          : String(delivery.unavailableUntil || '').trim();
+
     setDelivery((previous) => ({
       ...previous,
-      [field]: value
+      [field]: value,
+      ...(field === 'acceptingOrders' && value
+        ? { unavailableUntil: '' }
+        : {})
     }));
+
+    if (
+      isManagementEdit &&
+      (field === 'acceptingOrders' || field === 'unavailableUntil')
+    ) {
+      saveManagementAvailability(
+        nextAcceptingOrders,
+        nextUnavailableUntil
+      );
+    }
 
     setFieldErrors((previous) => {
       if (!previous[field]) return previous;
@@ -3503,7 +3657,7 @@ export default function StudentGigCreatePage({ currentUser }) {
             resourceType: uploaded.resourceType || '',
             format: uploaded.format || ''
           };
-        } catch (error) {
+        } catch {
           return {
             ...item,
             validationError:
@@ -4517,6 +4671,7 @@ export default function StudentGigCreatePage({ currentUser }) {
 
     return (
       <div className="mt-8 space-y-7">
+
         <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
           <div className="max-w-3xl">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
@@ -4944,6 +5099,100 @@ export default function StudentGigCreatePage({ currentUser }) {
   };
 
   const renderDelivery = () => {
+    const todayDateString = new Date().toISOString().split('T')[0];
+
+    const availabilityError =
+      touchedFields.unavailableUntil ? fieldErrors.unavailableUntil : null;
+
+    const renderAvailability = () => (
+      <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
+        <div className="max-w-3xl">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+            Availability
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+            Control when buyers can place new orders
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Turn this off when you are not currently taking new work. You can
+            optionally provide a date when you expect to accept orders again.
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={Boolean(delivery.acceptingOrders)}
+              onChange={(event) =>
+                handleDeliveryChange('acceptingOrders', event.target.checked)
+              }
+              className="mt-1 h-4 w-4 shrink-0 accent-cyan-500"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-black text-white">
+                Accepting new orders
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500">
+                When enabled, buyers can purchase an available package.
+              </span>
+            </span>
+          </label>
+
+          {!delivery.acceptingOrders && (
+            <div className="mt-5 border-t border-slate-800 pt-5">
+              <label
+                htmlFor="gig-unavailable-until"
+                className="text-xs font-black uppercase tracking-wider text-slate-300"
+              >
+                Unavailable until
+              </label>
+
+              <input
+                id="gig-unavailable-until"
+                name="unavailableUntil"
+                type="date"
+                min={todayDateString}
+                value={delivery.unavailableUntil}
+                onChange={(event) =>
+                  handleDeliveryChange('unavailableUntil', event.target.value)
+                }
+                aria-invalid={Boolean(availabilityError)}
+                aria-describedby={
+                  availabilityError
+                    ? 'gig-unavailable-until-error'
+                    : 'gig-unavailable-until-help'
+                }
+                className={[
+                  'mt-3 w-full rounded-xl border bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none transition',
+                  availabilityError
+                    ? 'border-red-500/50 focus:border-red-400'
+                    : 'border-slate-800 focus:border-cyan-500/60'
+                ].join(' ')}
+              />
+
+              <p
+                id="gig-unavailable-until-help"
+                className="mt-2 text-xs leading-5 text-slate-600"
+              >
+                Optional. Leave blank when you do not have a specific return date.
+              </p>
+
+              {availabilityError && (
+                <p
+                  id="gig-unavailable-until-error"
+                  role="alert"
+                  className="mt-2 text-xs font-semibold text-red-400"
+                >
+                  {availabilityError}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+
     if (pricing.packageModel === 'multi') {
       const renderPackageList = (
         packageIndex,
@@ -5044,6 +5293,8 @@ export default function StudentGigCreatePage({ currentUser }) {
 
       return (
         <div className="mt-8 space-y-7">
+          {renderAvailability()}
+
           <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
             <div className="max-w-3xl">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
@@ -5336,6 +5587,8 @@ export default function StudentGigCreatePage({ currentUser }) {
 
     return (
       <div className="mt-8 space-y-7">
+        {renderAvailability()}
+
         <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
           <div className="max-w-3xl">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">

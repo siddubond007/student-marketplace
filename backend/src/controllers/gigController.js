@@ -4,6 +4,10 @@ const {
   createGigRevision,
   createGigPendingEditRevision
 } = require('../services/gigRevisionService');
+const {
+  getGigAvailability,
+  validateGigAvailability
+} = require('../services/gigAvailabilityService');
 
 async function createAuditLog(adminId, actionType, targetId = null, details = null) {
   try {
@@ -441,6 +445,17 @@ const validateGigSubmission = (draftData) => {
   const basics = draftData?.basics || {};
   const pricing = draftData?.pricing || {};
   const delivery = draftData?.delivery || {};
+
+  const availabilityError = validateGigAvailability(draftData);
+  if (availabilityError) {
+    addBlocker(
+      4,
+      availabilityError.field,
+      'Complete your availability settings.',
+      availabilityError.detail
+    );
+  }
+
   const requirements = Array.isArray(draftData?.requirements)
     ? draftData.requirements
     : [];
@@ -1667,7 +1682,13 @@ exports.getGigForManagement = async (req, res) => {
     const managementDraftData =
       gig.pendingEditData &&
       typeof gig.pendingEditData === 'object'
-        ? gig.pendingEditData
+        ? {
+            ...gig.pendingEditData,
+            delivery: {
+              ...(gig.pendingEditData.delivery || {}),
+              ...getGigAvailability(gig.draftData)
+            }
+          }
         : gig.draftData || {};
 
     return res.json({
@@ -1789,6 +1810,77 @@ exports.submitGigManagementEdit = async (req, res) => {
     console.error('Submit Gig Management Edit Error:', err);
     return res.status(500).json({
       error: 'Failed to submit gig changes for review.'
+    });
+  }
+};
+
+exports.updateGigAvailability = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+    const { acceptingOrders, unavailableUntil } = req.body || {};
+
+    if (typeof acceptingOrders !== 'boolean') {
+      return res.status(400).json({
+        error: 'acceptingOrders must be a boolean.'
+      });
+    }
+
+    const gig = await assertGigOwner(gigId, req.user.id);
+
+    if (!gig) {
+      return res.status(404).json({ error: 'Gig not found.' });
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(gig.status)) {
+      return res.status(409).json({
+        error: 'Only published or paused gigs can update availability.'
+      });
+    }
+
+    const normalizedUnavailableUntil =
+      typeof unavailableUntil === 'string'
+        ? unavailableUntil.trim()
+        : '';
+
+    const nextDraftData = {
+      ...(gig.draftData || {}),
+      delivery: {
+        ...(gig.draftData?.delivery || {}),
+        acceptingOrders,
+        unavailableUntil: normalizedUnavailableUntil
+      }
+    };
+
+    const availabilityError = validateGigAvailability(nextDraftData);
+
+    if (availabilityError) {
+      return res.status(422).json({
+        error: availabilityError.message,
+        field: availabilityError.field,
+        detail: availabilityError.detail
+      });
+    }
+
+    const updatedGig = await prisma.gig.update({
+      where: { id: gig.id },
+      data: {
+        draftData: nextDraftData
+      }
+    });
+
+    return res.json({
+      message: 'Gig availability updated successfully.',
+      gig: {
+        id: updatedGig.id,
+        status: updatedGig.status,
+        draftData: updatedGig.draftData || {},
+        updatedAt: updatedGig.updatedAt
+      }
+    });
+  } catch (err) {
+    console.error('Update Gig Availability Error:', err);
+    return res.status(500).json({
+      error: 'Failed to update gig availability.'
     });
   }
 };

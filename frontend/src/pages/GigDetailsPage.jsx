@@ -235,6 +235,41 @@ export default function GigDetailsPage({ currentUser }) {
   const selectedPackage =
     packages.find((item) => item.id === selectedPackageId) || packages[0] || null;
 
+  const gigDelivery =
+    gig?.draftData?.delivery &&
+    typeof gig.draftData.delivery === 'object'
+      ? gig.draftData.delivery
+      : {};
+
+  const acceptingOrders =
+    typeof gigDelivery.acceptingOrders === 'boolean'
+      ? gigDelivery.acceptingOrders
+      : true;
+
+  const unavailableUntil =
+    typeof gigDelivery.unavailableUntil === 'string'
+      ? gigDelivery.unavailableUntil.trim()
+      : '';
+
+  const unavailableUntilLabel = unavailableUntil
+    ? (() => {
+        const parsed = new Date(`${unavailableUntil}T00:00:00Z`);
+        return Number.isNaN(parsed.getTime())
+          ? ''
+          : parsed.toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              timeZone: 'UTC'
+            });
+      })()
+    : '';
+
+  const todayDateString = new Date().toISOString().split('T')[0];
+  const effectiveAcceptingOrders =
+    acceptingOrders ||
+    (unavailableUntil && unavailableUntil <= todayDateString);
+
   const seller = gig.seller;
   const profile = seller?.profile;
   const reviewCount = seller?.totalReviews || 0;
@@ -405,6 +440,26 @@ export default function GigDetailsPage({ currentUser }) {
 
         <aside className="space-y-6">
           <section className="glass-panel rounded-3xl border border-slate-800 p-6 sticky top-6">
+            {!effectiveAcceptingOrders && (
+              <div className="mb-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-300">
+                  Currently unavailable
+                </p>
+                <p className="mt-2 text-sm font-black text-white">
+                  This freelancer is not accepting new orders right now.
+                </p>
+                {unavailableUntilLabel ? (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Expected to accept orders again from {unavailableUntilLabel}.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    No return date has been provided.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
@@ -666,11 +721,15 @@ export default function GigDetailsPage({ currentUser }) {
 
                 <button
                   type="button"
-                  disabled={!currentUser || !selectedPackage}
+                  disabled={!currentUser || !selectedPackage || !effectiveAcceptingOrders}
                   onClick={purchaseGig}
                   className="w-full mt-5 px-4 py-3 neon-airflow-btn text-white rounded-xl text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {currentUser ? 'Continue to Purchase' : 'Sign in to Purchase'}
+                  {!effectiveAcceptingOrders
+                    ? 'Currently Unavailable'
+                    : currentUser
+                      ? 'Continue to Purchase'
+                      : 'Sign in to Purchase'}
                 </button>
 
                 {!currentUser && (

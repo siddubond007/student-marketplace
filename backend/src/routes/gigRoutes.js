@@ -10,6 +10,7 @@ router.post('/drafts', requireAuth, gigController.createGigDraft);
 router.put('/drafts/:gigId', requireAuth, gigController.updateGigDraft);
 router.post('/drafts/:gigId/submit', requireAuth, gigController.submitGigDraft);
 router.put('/:gigId/lifecycle', requireAuth, gigController.updateGigLifecycle);
+router.put('/:gigId/availability', requireAuth, gigController.updateGigAvailability);
 router.post('/:gigId/duplicate', requireAuth, gigController.duplicateGig);
 router.get('/:gigId/revisions', requireAuth, gigController.getGigRevisions);
 router.get('/:gigId/manage', requireAuth, gigController.getGigForManagement);

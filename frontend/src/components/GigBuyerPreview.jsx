@@ -170,6 +170,30 @@ export default function GigBuyerPreview({
         ? `${safeDelivery.revisions} revision${Number(safeDelivery.revisions) === 1 ? '' : 's'}`
         : 'Revision allowance not set';
 
+  const acceptingOrders =
+    typeof safeDelivery.acceptingOrders === 'boolean'
+      ? safeDelivery.acceptingOrders
+      : true;
+  const unavailableUntil = String(safeDelivery.unavailableUntil || '').trim();
+  const todayDateString = new Date().toISOString().split('T')[0];
+  const effectiveAcceptingOrders =
+    acceptingOrders ||
+    (unavailableUntil && unavailableUntil <= todayDateString);
+
+  const unavailableUntilLabel = unavailableUntil
+    ? (() => {
+        const parsed = new Date(`${unavailableUntil}T00:00:00Z`);
+        return Number.isNaN(parsed.getTime())
+          ? unavailableUntil
+          : parsed.toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              timeZone: 'UTC'
+            });
+      })()
+    : '';
+
   return (
     <div className="mt-8 space-y-6">
       <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/5 px-4 py-3 sm:px-5">
@@ -339,6 +363,33 @@ export default function GigBuyerPreview({
                 {revisionsLabel}
               </p>
             </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+              Availability
+            </p>
+
+            {effectiveAcceptingOrders ? (
+              <p className="mt-2 text-sm font-black text-emerald-300">
+                Accepting new orders
+              </p>
+            ) : (
+              <>
+                <p className="mt-2 text-sm font-black text-amber-300">
+                  Not currently accepting new orders
+                </p>
+                {unavailableUntilLabel ? (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Expected to accept orders again from {unavailableUntilLabel}.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    No return date has been provided.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

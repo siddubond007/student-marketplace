@@ -98,6 +98,56 @@ export default function StudentGigsPage({ currentUser }) {
     [gigs, currentUser?.id]
   );
 
+  const toggleGigAvailability = async (gig) => {
+    const key = `${gig.id}:availability`;
+    const currentAcceptingOrders =
+      typeof gig.draftData?.delivery?.acceptingOrders === 'boolean'
+        ? gig.draftData.delivery.acceptingOrders
+        : true;
+    const nextAcceptingOrders = !currentAcceptingOrders;
+    const unavailableUntil =
+      nextAcceptingOrders
+        ? ''
+        : String(gig.draftData?.delivery?.unavailableUntil || '').trim();
+
+    setActionError('');
+    setActionState((previous) => ({ ...previous, [key]: true }));
+
+    try {
+      const response = await API.put(`/gigs/${gig.id}/availability`, {
+        acceptingOrders: nextAcceptingOrders,
+        unavailableUntil
+      });
+
+      const updatedGig = response.data?.gig;
+
+      if (updatedGig?.id) {
+        setGigs((previous) =>
+          previous.map((item) =>
+            item.id === updatedGig.id
+              ? {
+                  ...item,
+                  draftData: updatedGig.draftData,
+                  updatedAt: updatedGig.updatedAt
+                }
+              : item
+          )
+        );
+      }
+    } catch (error) {
+      setActionError(
+        error?.response?.data?.error ||
+          'Availability update failed. Please try again.'
+      );
+    } finally {
+      setActionState((previous) => {
+        const next = { ...previous };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+
   const runGigAction = async (gig, action) => {
     const key = `${gig.id}:${action}`;
     setActionError('');
@@ -237,6 +287,20 @@ export default function StudentGigsPage({ currentUser }) {
               const packageCount = gig.packages?.length || 0;
               const orderCount = gig.orders?.length || 0;
               const analytics = analyticsByGig[gig.id];
+              const availability = gig.draftData?.delivery || {};
+              const acceptingOrders =
+                typeof availability.acceptingOrders === "boolean"
+                  ? availability.acceptingOrders
+                  : true;
+              const unavailableUntil =
+                typeof availability.unavailableUntil === "string"
+                  ? availability.unavailableUntil.trim()
+                  : "";
+              const todayDateString = new Date().toISOString().split("T")[0];
+              const effectiveAcceptingOrders =
+                acceptingOrders ||
+                (unavailableUntil && unavailableUntil <= todayDateString);
+
               const lifecycle = GIG_LIFECYCLE_META[gig.status] || {
                 label: 'Unknown',
                 description: 'Lifecycle status is unavailable.',
@@ -295,6 +359,53 @@ export default function StudentGigsPage({ currentUser }) {
                         <p className="text-base font-black text-white mt-1">
                           {firstPackage?.deliveryDays ?? '-'} days
                         </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-cyan-400">
+                            Order availability
+                          </p>
+                          <p className="mt-1 text-sm font-black text-white">
+                            {effectiveAcceptingOrders ? 'Accepting new orders' : 'Not accepting new orders'}
+                          </p>
+                          {!effectiveAcceptingOrders && unavailableUntil && (
+                            <p className="mt-1 text-[11px] text-slate-500">
+                              Until {new Date(`${unavailableUntil}T00:00:00Z`).toLocaleDateString('en-IN')}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={effectiveAcceptingOrders}
+                          aria-label={
+                            effectiveAcceptingOrders
+                              ? 'Turn off new orders'
+                              : 'Turn on new orders'
+                          }
+                          disabled={Boolean(actionState[`${gig.id}:availability`])}
+                          onClick={() => toggleGigAvailability(gig)}
+                          className={[
+                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition',
+                            'disabled:cursor-not-allowed disabled:opacity-50',
+                            effectiveAcceptingOrders
+                              ? 'border-emerald-400/40 bg-emerald-500/20'
+                              : 'border-slate-700 bg-slate-900'
+                          ].join(' ')}
+                        >
+                          <span
+                            className={[
+                              'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                              effectiveAcceptingOrders
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            ].join(' ')}
+                          />
+                        </button>
                       </div>
                     </div>
 

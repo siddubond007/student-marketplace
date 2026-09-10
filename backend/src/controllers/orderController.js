@@ -1,6 +1,7 @@
 const prisma = require('../config/db');
 const Razorpay = require('razorpay');
 const { releaseTransfer } = require('../services/escrowService');
+const { isGigAcceptingOrders } = require('../services/gigAvailabilityService');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_for_dev',
@@ -148,6 +149,12 @@ exports.createGigOrder = async (req, res) => {
 
     if (!gig || gig.packages.length === 0) {
       return res.status(404).json({ error: 'Gig package not found or unavailable.' });
+    }
+
+    if (!isGigAcceptingOrders(gig.draftData)) {
+      return res.status(409).json({
+        error: 'This gig is not currently accepting new orders.'
+      });
     }
 
     if (gig.sellerId === req.user.id) {

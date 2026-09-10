@@ -6,6 +6,7 @@ const {
   getDraftPackagePayload
 } = require('./gigController');
 const { createGigRevision } = require('../services/gigRevisionService');
+const { getGigAvailability } = require('../services/gigAvailabilityService');
 
 async function recalculateUserReputation(userId) {
   const reviewStats = await prisma.review.aggregate({
@@ -1187,6 +1188,15 @@ exports.updateGigModerationStatus = async (req, res) => {
         throw new Error('Pending gig edit data is missing.');
       }
 
+      const liveAvailability = getGigAvailability(gig.draftData);
+      const promotedDraftData = {
+        ...pendingEdit,
+        delivery: {
+          ...(pendingEdit.delivery || {}),
+          ...liveAvailability
+        }
+      };
+
       const { categoryId, subcategoryId } =
         await resolveDraftTaxonomyIds(pendingEdit, {
           categoryId: gig.categoryId,
@@ -1226,7 +1236,7 @@ exports.updateGigModerationStatus = async (req, res) => {
           description,
           coverImage,
           isTiered,
-          draftData: pendingEdit,
+          draftData: promotedDraftData,
           draftVersion: Math.max(
             Number(gig.pendingEditVersion) || 0,
             1
