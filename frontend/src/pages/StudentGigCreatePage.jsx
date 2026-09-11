@@ -793,6 +793,7 @@ export default function StudentGigCreatePage({ currentUser }) {
 
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
   const [faqs, setFaqs] = useState([]);
+  const [platformRulesAcknowledged, setPlatformRulesAcknowledged] = useState(false);
   const [media, setMedia] = useState({
     cover: null,
     gallery: [],
@@ -945,7 +946,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       id: faq.id,
       question: faq.question,
       answer: faq.answer
-    }))
+    })),
+    platformRulesAcknowledged: Boolean(platformRulesAcknowledged)
   });
 
   const serializeManagementDraft = () => {
@@ -1095,6 +1097,7 @@ export default function StudentGigCreatePage({ currentUser }) {
           }))
         : []
     );
+    setPlatformRulesAcknowledged(data.platformRulesAcknowledged === true);
 
     const restoreMediaItem = (item) =>
       item
@@ -2583,6 +2586,14 @@ export default function StudentGigCreatePage({ currentUser }) {
       );
     }
 
+    if (!platformRulesAcknowledged) {
+      addBlocker(
+        8,
+        'Acknowledge the marketplace rules.',
+        'You must agree to the marketplace rules before submitting this gig for review.'
+      );
+    }
+
     return {
       blockers,
       warnings,
@@ -2606,6 +2617,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     isRevisionAllowanceValid,
     isExcludedListValid,
     isFaqsComplete,
+    platformRulesAcknowledged,
     extras,
     areExtrasComplete,
     extraValidationErrors
@@ -6996,6 +7008,44 @@ export default function StudentGigCreatePage({ currentUser }) {
             <Plus className="h-4 w-4" />
             Add FAQ
           </button>
+        </section>
+
+        <section className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
+              Marketplace rules
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Confirm you will follow the rules before submission
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+              Before this gig can be submitted for review, confirm that the service follows
+              the marketplace rules, platform policies, and applicable student-safety requirements.
+            </p>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+            <label className="flex min-w-0 cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={platformRulesAcknowledged}
+                onChange={(event) => setPlatformRulesAcknowledged(event.target.checked)}
+                aria-required="true"
+                aria-invalid={!platformRulesAcknowledged}
+                className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
+              />
+              <span className="min-w-0 text-sm leading-6 text-slate-300">
+                I acknowledge the marketplace rules and confirm that this gig complies with
+                the platform rules and safety requirements.
+              </span>
+            </label>
+
+            {!platformRulesAcknowledged && (
+              <p className="mt-3 text-xs font-semibold text-amber-300">
+                Required before this gig can be submitted for review.
+              </p>
+            )}
+          </div>
         </section>
       </div>
     );

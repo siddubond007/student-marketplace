@@ -472,6 +472,16 @@ const validateGigSubmission = (draftData) => {
   const requirements = Array.isArray(draftData?.requirements)
     ? draftData.requirements
     : [];
+
+  if (draftData?.platformRulesAcknowledged !== true) {
+    addBlocker(
+      8,
+      'platformRulesAcknowledged',
+      'Acknowledge the marketplace rules.',
+      'You must agree to the marketplace rules before submitting this gig for review.'
+    );
+  }
+
   const media = draftData?.media || {};
   const gallery = Array.isArray(media.gallery) ? media.gallery : [];
 
