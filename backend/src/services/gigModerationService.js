@@ -87,6 +87,7 @@ const collectText = (draftData) => {
       .map((url) => String(url || '').trim())
       .filter(Boolean),
     liveDemoUrl: String(draftData?.media?.liveDemoUrl || '').trim(),
+    videoUrl: String(draftData?.media?.video?.url || '').trim(),
     currency: normalizeText(pricing.currency),
     basePrice: pricing.basePrice
   };
@@ -340,7 +341,8 @@ const checkUrls = (parts) => {
     parts.coverUrl,
     ...parts.galleryUrls,
     ...parts.portfolioLinks,
-    parts.liveDemoUrl
+    parts.liveDemoUrl,
+    parts.videoUrl
   ].filter(Boolean);
   const suspiciousUrls = urls.filter((url) => {
     try {

@@ -933,6 +933,39 @@ const validateGigSubmission = (draftData) => {
     );
   }
 
+  const video = media.video;
+  if (video) {
+    if (video.validationError) {
+      addBlocker(
+        6,
+        'media.video',
+        'Fix your media.',
+        String(video.validationError)
+      );
+    } else if (String(video.url || '').trim()) {
+      try {
+        const parsed = new URL(String(video.url).trim());
+        if (!/^(https?:)$/i.test(parsed.protocol) || !parsed.hostname) {
+          throw new Error('unsupported protocol');
+        }
+      } catch {
+        addBlocker(
+          6,
+          'media.video',
+          'Fix your media.',
+          'The service introduction video URL must be a valid http:// or https:// URL.'
+        );
+      }
+    } else {
+      addBlocker(
+        6,
+        'media.video',
+        'Fix your media.',
+        'Upload the service introduction video again before continuing.'
+      );
+    }
+  }
+
   return blockers;
 };
 

@@ -134,6 +134,11 @@ export default function GigBuyerPreview({
       }
     })();
 
+  const validVideo =
+    safeMedia.video?.previewUrl && !safeMedia.video?.validationError
+      ? safeMedia.video
+      : null;
+
   const validRequirements = Array.isArray(requirements)
     ? requirements.filter(meaningfulRequirement)
     : [];
@@ -832,6 +837,26 @@ export default function GigBuyerPreview({
               </figure>
             ))}
           </div>
+        </PreviewSection>
+      ) : null}
+
+      {validVideo ? (
+        <PreviewSection eyebrow="Service introduction" title="Video">
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/55">
+            <div className="aspect-video w-full bg-slate-900">
+              <video
+                src={validVideo.previewUrl}
+                controls
+                preload="metadata"
+                className="h-full w-full object-contain"
+              >
+                Your browser does not support video playback.
+              </video>
+            </div>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            An optional service-introduction video from the seller.
+          </p>
         </PreviewSection>
       ) : null}
 

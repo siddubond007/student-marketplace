@@ -288,6 +288,20 @@ export default function GigDetailsPage({ currentUser }) {
     }
   })();
 
+  const videoUrl = (() => {
+    const value = String(gig?.draftData?.media?.video?.url || '').trim();
+    if (!value) return '';
+
+    try {
+      const parsed = new URL(value);
+      return /^(https?:)$/i.test(parsed.protocol) && parsed.hostname
+        ? value
+        : '';
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <div className="space-y-6 pb-16">
       <Link
@@ -410,6 +424,35 @@ export default function GigDetailsPage({ currentUser }) {
               </Link>
             </div>
           </section>
+
+          {videoUrl ? (
+            <section className="glass-panel rounded-3xl border border-slate-800 p-6">
+              <div className="max-w-3xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                  Service introduction
+                </p>
+                <h2 className="mt-1 text-xl font-black text-white">
+                  Video
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Watch a short introduction to the service before placing an order.
+                </p>
+
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+                  <div className="aspect-video w-full bg-slate-900">
+                    <video
+                      src={videoUrl}
+                      controls
+                      preload="metadata"
+                      className="h-full w-full object-contain"
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {liveDemoUrl ? (
             <section className="glass-panel rounded-3xl border border-cyan-500/20 p-6">

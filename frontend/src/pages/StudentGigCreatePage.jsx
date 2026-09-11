@@ -19,6 +19,7 @@ import {
   Trash2,
   Upload,
   Image as ImageIcon,
+  Video,
   GripVertical,
   Crop
 } from 'lucide-react';
@@ -83,6 +84,14 @@ const MEDIA_ALLOWED_TYPES = new Set([
 const MEDIA_ACCEPT = '.jpg,.jpeg,.png,.webp';
 const MEDIA_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 
+const VIDEO_ALLOWED_TYPES = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/quicktime'
+]);
+const VIDEO_ACCEPT = '.mp4,.webm,.mov';
+const VIDEO_MAX_SIZE_BYTES = 25 * 1024 * 1024;
+
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -126,12 +135,71 @@ const readImageDimensions = (file) =>
     image.src = objectUrl;
   });
 
-const uploadGigMedia = async (file) => {
+const CircularUploadProgress = ({ progress = 0, size = 64 }) => {
+  const normalizedProgress = Math.min(100, Math.max(0, Number(progress) || 0));
+  const radius = (size - 8) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset =
+    circumference - (normalizedProgress / 100) * circumference;
+  const isProcessing =
+    normalizedProgress >= 95 && normalizedProgress < 100;
+
+  return (
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
+      aria-label={`Upload progress ${normalizedProgress}%`}
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow={normalizedProgress}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className={`-rotate-90 ${
+          isProcessing ? 'animate-spin' : ''
+        }`}
+        aria-hidden="true"
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          className="text-slate-800"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="text-cyan-400 transition-[stroke-dashoffset] duration-150"
+        />
+      </svg>
+
+      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-white">
+        {normalizedProgress}%
+      </span>
+    </div>
+  );
+};
+
+const uploadGigMedia = async (file, { onUploadProgress } = {}) => {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await API.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress
   });
 
   return response.data;
@@ -170,6 +238,30 @@ const validateMediaFile = async (file, { label }) => {
         `${label} could not be read.`
     };
   }
+};
+
+const validateVideoFile = (file, { label }) => {
+  if (!(file instanceof File)) {
+    return {
+      error: `${label} is not a valid video file.`
+    };
+  }
+
+  if (!VIDEO_ALLOWED_TYPES.has(file.type)) {
+    return {
+      error: `${label} must be an MP4, WebM, or MOV video.`
+    };
+  }
+
+  if (file.size > VIDEO_MAX_SIZE_BYTES) {
+    return {
+      error: `${label} must be 25 MB or smaller.`
+    };
+  }
+
+  return {
+    error: ''
+  };
 };
 
 function SearchableSelect({
@@ -704,12 +796,16 @@ export default function StudentGigCreatePage({ currentUser }) {
   const [media, setMedia] = useState({
     cover: null,
     gallery: [],
+    video: null,
     portfolioLinks: [],
     liveDemoUrl: ''
   });
   const [portfolioLinkInputError, setPortfolioLinkInputError] = useState('');
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [pendingCoverFile, setPendingCoverFile] = useState(null);
+  const [coverUploadProgress, setCoverUploadProgress] = useState(0);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [galleryUploadProgress, setGalleryUploadProgress] = useState({});
   const [draggedGalleryId, setDraggedGalleryId] = useState(null);
   const mediaRef = useRef(media);
 
@@ -728,6 +824,10 @@ export default function StudentGigCreatePage({ currentUser }) {
           URL.revokeObjectURL(item.previewUrl);
         }
       });
+
+      if (mediaRef.current.video?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(mediaRef.current.video.previewUrl);
+      }
     },
     []
   );
@@ -837,6 +937,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     media: {
       cover: serializeDraftMediaItem(media.cover),
       gallery: media.gallery.map(serializeDraftMediaItem).filter(Boolean),
+      video: serializeDraftMediaItem(media.video),
       portfolioLinks: [...media.portfolioLinks],
       liveDemoUrl: String(media.liveDemoUrl || '').trim()
     },
@@ -1019,6 +1120,7 @@ export default function StudentGigCreatePage({ currentUser }) {
       gallery: Array.isArray(data.media?.gallery)
         ? data.media.gallery.map(restoreMediaItem).filter(Boolean)
         : [],
+      video: restoreMediaItem(data.media?.video),
       portfolioLinks: Array.isArray(data.media?.portfolioLinks)
         ? data.media.portfolioLinks
             .map((item) => String(item || '').trim())
@@ -2454,7 +2556,9 @@ export default function StudentGigCreatePage({ currentUser }) {
           ? media.cover.validationError
           : media.gallery.some((item) => item.validationError)
             ? 'Fix or remove invalid gallery images.'
-            : null;
+            : media.video?.validationError
+              ? media.video.validationError
+              : null;
 
     if (mediaBlocker) {
       addBlocker(6, 'Fix your media.', mediaBlocker);
@@ -3572,7 +3676,18 @@ export default function StudentGigCreatePage({ currentUser }) {
       const dimensions = await readImageDimensions(croppedFile);
       const previewUrl = URL.createObjectURL(croppedFile);
 
-      const uploaded = await uploadGigMedia(croppedFile);
+      setCoverUploadProgress(0);
+
+      const uploaded = await uploadGigMedia(croppedFile, {
+        onUploadProgress: (event) => {
+          if (!event.total) return;
+          setCoverUploadProgress(
+            Math.min(95, Math.round((event.loaded * 95) / event.total))
+          );
+        }
+      });
+
+      setCoverUploadProgress(100);
 
       setMedia((previous) => {
         if (previous.cover?.previewUrl) {
@@ -3601,8 +3716,10 @@ export default function StudentGigCreatePage({ currentUser }) {
 
       setCropImageSrc(null);
       setPendingCoverFile(null);
+      window.setTimeout(() => setCoverUploadProgress(0), 220);
       clearMediaError('cover');
     } catch (error) {
+      setCoverUploadProgress(0);
       setFieldErrors((previous) => ({
         ...previous,
         media: {
@@ -3632,6 +3749,108 @@ export default function StudentGigCreatePage({ currentUser }) {
       media: {
         ...(previous.media || {}),
         cover: undefined
+      }
+    }));
+  };
+
+  const handleVideoFileSelected = async (file) => {
+    if (!file) return;
+
+    const validation = validateVideoFile(file, {
+      label: 'Service introduction video'
+    });
+
+    if (validation.error) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        media: {
+          ...(previous.media || {}),
+          video: validation.error
+        }
+      }));
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    let uploaded = null;
+    let uploadError = '';
+
+    try {
+      setVideoUploadProgress(0);
+
+      uploaded = await uploadGigMedia(file, {
+        onUploadProgress: (event) => {
+          if (!event.total) return;
+          setVideoUploadProgress(
+            Math.min(95, Math.round((event.loaded * 95) / event.total))
+          );
+        }
+      });
+    } catch (error) {
+      uploadError =
+        error?.response?.data?.error ||
+        'Unable to upload the service introduction video.';
+    }
+
+    if (!uploadError) {
+      setVideoUploadProgress(100);
+    }
+
+    setMedia((previous) => {
+      if (previous.video?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(previous.video.previewUrl);
+      }
+
+      return {
+        ...previous,
+        video: {
+          id: previous.video?.id || createMediaId(),
+          file,
+          previewUrl,
+          url: uploaded?.url || '',
+          publicId: uploaded?.publicId || '',
+          resourceType: uploaded?.resourceType || '',
+          format: uploaded?.format || '',
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          validationError: uploadError
+        }
+      };
+    });
+
+    if (uploadError) {
+      setVideoUploadProgress(0);
+    } else {
+      window.setTimeout(() => setVideoUploadProgress(0), 220);
+    }
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      media: {
+        ...(previous.media || {}),
+        video: uploadError || undefined
+      }
+    }));
+  };
+
+  const removeVideo = () => {
+    setMedia((previous) => {
+      if (previous.video?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(previous.video.previewUrl);
+      }
+
+      return {
+        ...previous,
+        video: null
+      };
+    });
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      media: {
+        ...(previous.media || {}),
+        video: undefined
       }
     }));
   };
@@ -3667,37 +3886,88 @@ export default function StudentGigCreatePage({ currentUser }) {
       });
     }
 
-    const uploadedItems = await Promise.all(
+    setMedia((previous) => ({
+      ...previous,
+      gallery: [
+        ...previous.gallery,
+        ...nextItems
+      ]
+    }));
+
+    await Promise.all(
       nextItems.map(async (item) => {
-        if (item.validationError) return item;
+        if (item.validationError) return;
+
+        setGalleryUploadProgress((previous) => ({
+          ...previous,
+          [item.id]: 0
+        }));
 
         try {
-          const uploaded = await uploadGigMedia(item.file);
-          return {
+          const uploaded = await uploadGigMedia(item.file, {
+            onUploadProgress: (event) => {
+              if (!event.total) return;
+
+              setGalleryUploadProgress((previous) => ({
+                ...previous,
+                [item.id]: Math.min(
+                  95,
+                  Math.round((event.loaded * 95) / event.total)
+                )
+              }));
+            }
+          });
+
+          const uploadedItem = {
             ...item,
             url: uploaded.url || '',
             publicId: uploaded.publicId || '',
             resourceType: uploaded.resourceType || '',
             format: uploaded.format || ''
           };
-        } catch {
-          return {
+
+          setMedia((previous) => ({
+            ...previous,
+            gallery: previous.gallery.map((galleryItem) =>
+              galleryItem.id === item.id ? uploadedItem : galleryItem
+            )
+          }));
+
+          setGalleryUploadProgress((previous) => ({
+            ...previous,
+            [item.id]: 100
+          }));
+
+          window.setTimeout(() => {
+            setGalleryUploadProgress((previous) => {
+              const next = { ...previous };
+              delete next[item.id];
+              return next;
+            });
+          }, 220);
+        } catch (error) {
+          const failedItem = {
             ...item,
             validationError:
               error?.response?.data?.error ||
               'Unable to upload this gallery image.'
           };
+
+          setMedia((previous) => ({
+            ...previous,
+            gallery: previous.gallery.map((galleryItem) =>
+              galleryItem.id === item.id ? failedItem : galleryItem
+            )
+          }));
+
+          setGalleryUploadProgress((previous) => {
+            const next = { ...previous };
+            delete next[item.id];
+            return next;
+          });
         }
       })
     );
-
-    setMedia((previous) => ({
-      ...previous,
-      gallery: [
-        ...previous.gallery,
-        ...uploadedItems
-      ]
-    }));
 
     setFieldErrors((previous) => {
       const galleryItems = {
@@ -4029,11 +4299,16 @@ export default function StudentGigCreatePage({ currentUser }) {
         'Enter a valid live demo URL using http:// or https://.';
     }
 
+    if (media.video?.validationError) {
+      nextMediaErrors.video = media.video.validationError;
+    }
+
     if (
       nextMediaErrors.cover ||
       nextMediaErrors.galleryItems ||
       nextMediaErrors.portfolioLinks ||
-      nextMediaErrors.liveDemoUrl
+      nextMediaErrors.liveDemoUrl ||
+      nextMediaErrors.video
     ) {
       nextMediaErrors.step =
         nextMediaErrors.cover
@@ -4042,7 +4317,9 @@ export default function StudentGigCreatePage({ currentUser }) {
             ? 'Fix or remove the highlighted gallery images before continuing.'
             : nextMediaErrors.portfolioLinks
               ? 'Fix or remove the highlighted portfolio links before continuing.'
-              : 'Fix or remove the live demo URL before continuing.';
+              : nextMediaErrors.liveDemoUrl
+                ? 'Fix or remove the live demo URL before continuing.'
+                : 'Fix or remove the service introduction video before continuing.';
     }
 
     setFieldErrors((previous) => ({
@@ -4059,7 +4336,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       !nextMediaErrors.cover &&
       !nextMediaErrors.galleryItems &&
       !nextMediaErrors.portfolioLinks &&
-      !nextMediaErrors.liveDemoUrl
+      !nextMediaErrors.liveDemoUrl &&
+      !nextMediaErrors.video
     );
   };
 
@@ -6774,17 +7052,43 @@ export default function StudentGigCreatePage({ currentUser }) {
               )}
             </div>
 
-            {media.cover ? (
+            {media.cover || coverUploadProgress > 0 ? (
               <div className="overflow-hidden rounded-3xl border border-cyan-500/20 bg-slate-950/70">
                 <div className="relative aspect-[16/9] w-full bg-slate-900">
-                  <img
-                    src={media.cover.previewUrl}
-                    alt="Gig cover preview"
-                    className="h-full w-full object-cover"
-                  />
+                  {media.cover?.previewUrl ? (
+                    <img
+                      src={media.cover.previewUrl}
+                      alt="Gig cover preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-slate-900">
+                      <div className="text-center">
+                        <ImageIcon className="mx-auto h-8 w-8 text-slate-700" aria-hidden="true" />
+                        <p className="mt-2 text-xs font-black text-slate-500">
+                          Preparing cover
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="static flex flex-col gap-3 bg-slate-950 p-4 sm:absolute sm:inset-x-0 sm:bottom-0 sm:bg-gradient-to-t sm:from-slate-950/95 sm:via-slate-950/75 sm:to-transparent sm:pt-16 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="min-w-0">
+                  {coverUploadProgress > 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px]">
+                      <div className="rounded-2xl border border-slate-700/80 bg-slate-950/85 p-4 shadow-2xl">
+                        <CircularUploadProgress
+                          progress={coverUploadProgress}
+                          size={82}
+                        />
+                        <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                          Uploading cover
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {media.cover ? (
+                    <div className="static flex flex-col gap-3 bg-slate-950 p-4 sm:absolute sm:inset-x-0 sm:bottom-0 sm:bg-gradient-to-t sm:from-slate-950/95 sm:via-slate-950/75 sm:to-transparent sm:pt-16 sm:flex-row sm:items-end sm:justify-between">
+                      <div className="min-w-0">
                       <p className="truncate text-sm font-black text-white">
                         {media.cover.name}
                       </p>
@@ -6836,8 +7140,9 @@ export default function StudentGigCreatePage({ currentUser }) {
                         <Trash2 className="h-4 w-4" />
                         Remove
                       </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -6999,6 +7304,20 @@ export default function StudentGigCreatePage({ currentUser }) {
                           </div>
                         )}
 
+                        {galleryUploadProgress[item.id] !== undefined ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px]">
+                            <div className="rounded-2xl border border-slate-700/80 bg-slate-950/85 p-3.5 shadow-2xl">
+                              <CircularUploadProgress
+                                progress={galleryUploadProgress[item.id]}
+                                size={76}
+                              />
+                              <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.15em] text-slate-300">
+                                Uploading
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div className="absolute left-2 top-2 rounded-lg border border-slate-700 bg-slate-950/80 px-2 py-1 text-[10px] font-black text-white backdrop-blur-sm">
                           {index + 1}
                         </div>
@@ -7115,6 +7434,152 @@ export default function StudentGigCreatePage({ currentUser }) {
               </p>
             </div>
           )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+              Service introduction video
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Let buyers see your service in action
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Optional short video introducing your service, process, or expected result.
+              MP4, WebM, or MOV · up to 25 MB.
+            </p>
+          </div>
+
+          {media.video || videoUploadProgress > 0 ? (
+            <div
+              className={`mt-6 overflow-hidden rounded-2xl border bg-slate-950/70 ${
+                media.video?.validationError
+                  ? 'border-red-500/40'
+                  : 'border-slate-800'
+              }`}
+            >
+              <div className="relative aspect-video w-full bg-slate-900">
+                {media.video?.previewUrl ? (
+                  <video
+                    src={media.video.previewUrl}
+                    controls
+                    preload="metadata"
+                    className="h-full w-full object-contain"
+                  >
+                    Your browser does not support video playback.
+                  </video>
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center px-5 text-center">
+                    <Video className="h-8 w-8 text-slate-700" aria-hidden="true" />
+                    <p className="mt-3 text-sm font-black text-slate-400">
+                      {videoUploadProgress > 0
+                        ? 'Preparing video'
+                        : 'Video preview unavailable'}
+                    </p>
+                  </div>
+                )}
+
+                {videoUploadProgress > 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-950/55 backdrop-blur-[2px]">
+                    <div className="rounded-2xl border border-slate-700/80 bg-slate-950/85 p-4 shadow-2xl">
+                      <CircularUploadProgress
+                        progress={videoUploadProgress}
+                        size={82}
+                      />
+                      <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                        Uploading video
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {media.video ? (
+                <div className="space-y-3 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:space-y-0">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-black text-white" title={media.video.name}>
+                      {media.video.name}
+                    </p>
+                  <p className="mt-1 text-[10px] font-semibold text-slate-600">
+                    {(media.video.size / (1024 * 1024)).toFixed(1)} MB
+                  </p>
+                  {media.video.validationError ? (
+                    <p role="alert" className="mt-2 text-[11px] font-semibold leading-5 text-red-400">
+                      {media.video.validationError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <label
+                    htmlFor="gig-video-replace"
+                    className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950/85 px-3 py-2.5 text-xs font-black text-slate-200 transition hover:border-cyan-500/30 hover:text-white focus-within:ring-2 focus-within:ring-cyan-400/70"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Replace
+                  </label>
+                  <input
+                    id="gig-video-replace"
+                    type="file"
+                    accept={VIDEO_ACCEPT}
+                    className="sr-only"
+                    onChange={(event) => {
+                      handleVideoFileSelected(event.target.files?.[0]);
+                      event.target.value = '';
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={removeVideo}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs font-black text-red-300 transition hover:bg-red-500/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+                ) : null}
+            </div>
+          ) : (
+            <label
+              htmlFor="gig-video-upload"
+              className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed px-5 py-8 text-center transition focus-within:ring-2 focus-within:ring-cyan-400/70 ${
+                fieldErrors.media?.video
+                  ? 'border-red-500/40 hover:border-red-400/60'
+                  : 'border-slate-700 bg-slate-950/40 hover:border-cyan-500/40 hover:bg-cyan-500/[0.03]'
+              }`}
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                <Video className="h-5 w-5" />
+              </span>
+              <span className="mt-3 text-sm font-black text-white">
+                Add service introduction video
+              </span>
+              <span className="mt-1 max-w-md text-xs leading-5 text-slate-500">
+                Upload an optional video to help buyers understand your service before ordering.
+              </span>
+              <span className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-cyan-500/10">
+                <Upload className="h-4 w-4" />
+                Choose video
+              </span>
+              <input
+                id="gig-video-upload"
+                type="file"
+                accept={VIDEO_ACCEPT}
+                className="sr-only"
+                onChange={(event) => {
+                  handleVideoFileSelected(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+            </label>
+          )}
+
+          {fieldErrors.media?.video ? (
+            <p role="alert" className="mt-3 text-xs font-semibold text-red-400">
+              {fieldErrors.media.video}
+            </p>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/35 p-5 sm:p-7">
