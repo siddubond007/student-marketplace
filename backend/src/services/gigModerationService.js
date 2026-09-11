@@ -12,6 +12,23 @@ const PROHIBITED_SERVICE_PATTERNS = [
   /\b(?:weapon|firearm|explosive|drug\s*sale)\b/i
 ];
 
+const EDUCATION_CATEGORY_IDS = new Set([
+  'education-tutoring-coaching'
+]);
+
+const EDUCATION_CATEGORY_NAMES = new Set([
+  'education, tutoring & coaching',
+  'language learning & linguistic services'
+]);
+
+const ACADEMIC_INTEGRITY_PATTERNS = [
+  /\b(?:do|complete|finish|solve|write|handle)\s+(?:my|your|the|a|an)?\s*(?:graded\s+)?(?:assignment|homework|coursework|classwork)\b/i,
+  /\b(?:do|complete|finish|take|sit|write|answer)\s+(?:my|your|the|a|an)?\s*(?:graded\s+)?(?:exam|test|quiz)\b/i,
+  /\b(?:ghostwrite|write|complete)\s+(?:my|your|the|a|an)?\s*(?:essay|paper|thesis|dissertation)\b/i,
+  /\b(?:submit|turn\s*in|upload)\s+(?:my|your|the|a|an)?\s*(?:assignment|homework|coursework|exam|test|quiz)\s+(?:for|on\s+behalf\s+of)\b/i,
+  /\b(?:take|sit|attend|complete)\s+(?:my|your|the)\s+(?:online\s+)?(?:class|course|exam|test)\s+for\s+(?:me|you|someone)\b/i
+];
+
 const normalizeText = (value) =>
   String(value || '')
     .replace(/<br\s*\/?>/gi, ' ')
@@ -257,6 +274,41 @@ const checkCategoryPolicy = (category) => {
   return [];
 };
 
+const isEducationGig = (parts) => {
+  const categoryId = normalizeForComparison(parts.category).replace(/\s+/g, '-');
+  const categoryName = normalizeText(parts.category).toLowerCase();
+
+  return (
+    EDUCATION_CATEGORY_IDS.has(categoryId) ||
+    EDUCATION_CATEGORY_NAMES.has(categoryName) ||
+    categoryId.startsWith('education-tutoring-coaching-')
+  );
+};
+
+const checkAcademicIntegrity = (parts, combinedText) => {
+  if (!isEducationGig(parts)) return [];
+
+  const matchedSignals = ACADEMIC_INTEGRITY_PATTERNS
+    .map((pattern, index) => (pattern.test(combinedText) ? index + 1 : null))
+    .filter(Boolean);
+
+  if (matchedSignals.length === 0) return [];
+
+  return [{
+    check: 'POLICY_ACADEMIC_INTEGRITY',
+    reasonCode: 'ACADEMIC_INTEGRITY_PROHIBITED_COMPLETION',
+    severity: 'HIGH',
+    message:
+      'This education-related gig appears to offer completion or submission of assessed academic work rather than tutoring or study support.',
+    details: {
+      categoryId: parts.category,
+      subcategoryId: parts.subcategory,
+      serviceType: parts.serviceType,
+      matchedSignals
+    }
+  }];
+};
+
 const findDuplicateFinding = (currentDraftData, existingGigs) => {
   const current = normalizeForComparison(
     flattenComparableText(collectText(currentDraftData))
@@ -314,6 +366,7 @@ async function moderateGig({ draftData, sellerId, gigId, prisma }) {
   const combinedText = flattenComparableText(parts);
   const findings = [
     ...checkTextPolicies(combinedText),
+    ...checkAcademicIntegrity(parts, combinedText),
     ...checkSpam(parts),
     ...checkPricing(draftData),
     ...checkUrls(parts)
