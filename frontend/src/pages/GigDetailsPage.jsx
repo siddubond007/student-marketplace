@@ -28,6 +28,7 @@ export default function GigDetailsPage({ currentUser }) {
   const [customOfferOpen, setCustomOfferOpen] = useState(false);
   const [customOfferBusy, setCustomOfferBusy] = useState(false);
   const [customOfferError, setCustomOfferError] = useState('');
+  const [customOfferToast, setCustomOfferToast] = useState(null);
   const [customOfferForm, setCustomOfferForm] = useState({
     requestedWork: '',
     proposedPrice: '',
@@ -209,6 +210,21 @@ export default function GigDetailsPage({ currentUser }) {
         deliveryDays
       });
 
+      setCustomOfferToast({
+        visible: true,
+        message: 'Custom offer requested successfully.'
+      });
+
+      window.setTimeout(() => {
+        setCustomOfferToast((current) =>
+          current ? { ...current, visible: false } : current
+        );
+
+        window.setTimeout(() => {
+          setCustomOfferToast(null);
+        }, 700);
+      }, 4000);
+
       setCustomOfferForm({
         requestedWork: '',
         proposedPrice: '',
@@ -368,6 +384,28 @@ export default function GigDetailsPage({ currentUser }) {
   })();
 
   return (
+    <>
+        {customOfferToast && (
+          <div
+            className={[
+              'fixed bottom-5 right-5 z-[70] max-w-sm rounded-2xl border border-emerald-500/30 bg-slate-950/95 px-4 py-3 shadow-2xl backdrop-blur-md',
+              'transition-all duration-700 ease-in-out',
+              customOfferToast.visible
+                ? 'translate-y-0 opacity-100'
+                : 'translate-y-2 opacity-0'
+            ].join(' ')}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.65)]" />
+              <p className="text-sm font-bold text-emerald-300">
+                {customOfferToast.message}
+              </p>
+            </div>
+          </div>
+        )}
+
     <div className="space-y-6 pb-16">
       <Link
         to="/gigs"
@@ -985,5 +1023,6 @@ export default function GigDetailsPage({ currentUser }) {
         </aside>
       </div>
     </div>
+    </>
   );
 }

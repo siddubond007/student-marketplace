@@ -33,6 +33,8 @@ export default function OrderWorkspacePage({ currentUser }) {
     comment: ''
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
 
   const isClient = currentUser?.id === order?.clientId;
   const isSeller = currentUser?.id === order?.sellerId;
@@ -158,6 +160,101 @@ export default function OrderWorkspacePage({ currentUser }) {
       socket.disconnect();
     };
   }, [orderId, currentUser?.id]);
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleCompletePayment = async () => {
+    if (!isClient || order?.status !== 'PENDING_PAYMENT' || !order?.razorpayOrderId) {
+      return;
+    }
+
+    setPaymentError('');
+    setPaymentBusy(true);
+
+    try {
+      const isLoaded = await loadRazorpay();
+
+      if (!isLoaded) {
+        setPaymentError('Payment gateway could not be loaded. Please try again.');
+        return;
+      }
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key',
+        amount: Math.round(Number(order.totalAmount || 0) * 100),
+        currency: 'INR',
+        name: 'SkillLaunch Escrow',
+        description: projectTitle,
+        order_id: order.razorpayOrderId,
+        handler: async (response) => {
+          try {
+            await API.post(`/orders/${order.id}/verify-payment`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+
+            const refreshed = await API.get(`/orders/${orderId}`);
+            if (refreshed.data) {
+              setOrder(refreshed.data);
+            }
+          } catch (verifyErr) {
+            console.error('Order payment verification failed:', verifyErr);
+            setPaymentError(
+              verifyErr?.response?.data?.error ||
+              'Payment was received, but verification could not be completed.'
+            );
+          } finally {
+            setPaymentBusy(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentBusy(false);
+          }
+        },
+        prefill: {
+          name: currentUser?.fullName || 'Client Account',
+          email: currentUser?.email || 'client@skilllaunch.com'
+        },
+        theme: {
+          color: '#4f46e5'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', (response) => {
+        setPaymentError(
+          response?.error?.description ||
+          'The payment was not completed.'
+        );
+        setPaymentBusy(false);
+      });
+
+      rzp.open();
+    } catch (err) {
+      console.error('Order payment initialization failed:', err);
+      setPaymentError(
+        err?.response?.data?.error ||
+        'Unable to start payment. Please try again.'
+      );
+      setPaymentBusy(false);
+    }
+  };
 
   const handleDeliver = async (e) => {
     e.preventDefault();
@@ -562,8 +659,25 @@ export default function OrderWorkspacePage({ currentUser }) {
             )}
 
             {isClient && order?.status === 'PENDING_PAYMENT' && (
-              <div className="px-5 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm font-bold text-amber-300">
-                Payment required to continue
+              <>
+                <button
+                  type="button"
+                  onClick={handleCompletePayment}
+                  disabled={paymentBusy || !order?.razorpayOrderId}
+                  className="px-5 py-3 neon-airflow-btn text-white text-sm font-black rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {paymentBusy ? 'Opening Payment…' : 'Complete Payment'}
+                </button>
+
+                <div className="px-5 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm font-bold text-amber-300">
+                  Payment required to continue
+                </div>
+              </>
+            )}
+
+            {paymentError && (
+              <div className="w-full basis-full px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-sm font-bold text-red-300">
+                {paymentError}
               </div>
             )}
           </div>
