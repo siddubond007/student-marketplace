@@ -93,7 +93,8 @@ exports.getGigById = async (req, res) => {
                 category: true,
                 hourlyRate: true,
                 skills: true,
-                badges: true
+                badges: true,
+                responseTimeExpectation: true
               }
             },
             verification: {

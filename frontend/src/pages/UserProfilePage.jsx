@@ -116,7 +116,8 @@ export default function UserProfilePage({ currentUser }) {
     college: '',
     hourlyRate: '499',
     bio: '',
-    skills: []
+    skills: [],
+    responseTimeExpectation: ''
   });
 
   const [collegeQuery, setCollegeQuery] = useState('');
@@ -144,7 +145,8 @@ export default function UserProfilePage({ currentUser }) {
             college: res.data.profile.college || '',
             hourlyRate: String(res.data.profile.hourlyRate || 499),
             bio: res.data.profile.bio || '',
-            skills: res.data.profile.skills || ['Student Talent']
+            skills: res.data.profile.skills || ['Student Talent'],
+            responseTimeExpectation: res.data.profile.responseTimeExpectation || ''
           });
           setCollegeQuery(res.data.profile.college || '');
           if (res.data.profile.socialLinks) {
@@ -240,7 +242,8 @@ export default function UserProfilePage({ currentUser }) {
         college: editForm.college || collegeQuery,
         hourlyRate: Number(editForm.hourlyRate),
         bio: editForm.bio,
-        skills: editForm.skills
+        skills: editForm.skills,
+        responseTimeExpectation: editForm.responseTimeExpectation
       });
       confetti({ particleCount: 100, spread: 70 });
       setShowEditModal(false);
@@ -2100,6 +2103,24 @@ export default function UserProfilePage({ currentUser }) {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase mb-1.5">Response Time Expectation</label>
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={editForm.responseTimeExpectation}
+                  onChange={e => setEditForm({
+                    ...editForm,
+                    responseTimeExpectation: e.target.value
+                  })}
+                  placeholder="e.g. Usually replies within 24 hours"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"
+                />
+                <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+                  Seller-declared expectation shown to buyers. Do not state a guaranteed response time.
+                </p>
               </div>
 
               <div className="relative">

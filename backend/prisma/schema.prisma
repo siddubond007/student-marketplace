@@ -127,6 +127,7 @@ model Profile {
   skills           String[] @default(["Student Talent", "Fast Learner"])
   badges           String[] @default(["Verified Student"])
   canUseTieredGigs Boolean  @default(false)
+  responseTimeExpectation String?
 
   // 5 Student Profile Sections
   portfolioItems    Json? @default("[]")

@@ -86,7 +86,8 @@ exports.updateProfile = async (req, res) => {
   try {
     const { 
       tagline, bio, college, category, hourlyRate, skills, avatarUrl, coverUrl,
-      experienceList, educationList, qualificationList, certificationList, socialLinks 
+      experienceList, educationList, qualificationList, certificationList, socialLinks,
+      responseTimeExpectation
     } = req.body;
 
     const updatedProfile = await prisma.profile.upsert({
@@ -105,7 +106,10 @@ exports.updateProfile = async (req, res) => {
         educationList: educationList || [],
         qualificationList: qualificationList || [],
         certificationList: certificationList || [],
-        socialLinks: socialLinks || {}
+        socialLinks: socialLinks || {},
+        responseTimeExpectation: typeof responseTimeExpectation === 'string'
+          ? responseTimeExpectation.trim().slice(0, 120) || null
+          : null
       },
       update: {
         tagline,
@@ -120,7 +124,12 @@ exports.updateProfile = async (req, res) => {
         educationList: educationList !== undefined ? educationList : undefined,
         qualificationList: qualificationList !== undefined ? qualificationList : undefined,
         certificationList: certificationList !== undefined ? certificationList : undefined,
-        socialLinks: socialLinks !== undefined ? socialLinks : undefined
+        socialLinks: socialLinks !== undefined ? socialLinks : undefined,
+        responseTimeExpectation: responseTimeExpectation !== undefined
+          ? (typeof responseTimeExpectation === 'string'
+              ? responseTimeExpectation.trim().slice(0, 120) || null
+              : null)
+          : undefined
       }
     });
 

@@ -87,6 +87,9 @@ export default function GigBuyerPreview({
   const sellerRating = Number(sellerProfile?.averageRating || 0);
   const sellerReviewCount = Number(sellerProfile?.totalReviews || 0);
   const sellerVerified = sellerProfile?.verification?.status === 'APPROVED';
+  const responseTimeExpectation = String(
+    sellerProfile?.profile?.responseTimeExpectation || ''
+  ).trim();
   const profileSkills = Array.isArray(profile.skills)
     ? profile.skills.map((skill) => String(skill || '').trim()).filter(Boolean)
     : [];
@@ -287,6 +290,11 @@ export default function GigBuyerPreview({
                 {profile.college && (
                   <span className="rounded-full border border-slate-800 bg-slate-950/60 px-2.5 py-1 text-[10px] font-bold text-slate-400">
                     {profile.college}
+                  </span>
+                )}
+                {responseTimeExpectation && (
+                  <span className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-bold text-sky-300">
+                    Response: {responseTimeExpectation}
                   </span>
                 )}
               </div>

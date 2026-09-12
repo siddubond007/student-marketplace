@@ -412,6 +412,12 @@ export default function GigDetailsPage({ currentUser }) {
                   <span className="text-slate-500">
                     {profile?.college || 'Student Creator'}
                   </span>
+
+                  {String(profile?.responseTimeExpectation || '').trim() && (
+                    <span className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-bold text-sky-300">
+                      Response: {String(profile.responseTimeExpectation).trim()}
+                    </span>
+                  )}
                 </div>
               </div>
 
