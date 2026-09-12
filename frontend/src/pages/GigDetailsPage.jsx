@@ -534,6 +534,63 @@ export default function GigDetailsPage({ currentUser }) {
             </div>
           </section>
 
+          {(() => {
+            const policyValue = String(gig?.draftData?.usageRightsPolicy || '').trim();
+
+            const policy = {
+              'buyer-owns-final-work': {
+                label: 'Buyer owns the final delivered work',
+                description:
+                  'The buyer receives ownership of the final deliverable created specifically for this gig, unless a stated exception applies.'
+              },
+              'license-commercial-use': {
+                label: 'Commercial-use license',
+                description:
+                  'The buyer receives a license to use the delivered work for commercial purposes; ownership remains with the freelancer unless otherwise agreed in the gig.'
+              },
+              'license-personal-use': {
+                label: 'Personal-use license',
+                description:
+                  'The buyer may use the delivered work for personal purposes only; commercial redistribution or resale is not included.'
+              },
+              'portfolio-display-only': {
+                label: 'Portfolio / display use only',
+                description:
+                  'The delivered work is provided for portfolio or display purposes and does not include broader commercial usage rights.'
+              }
+            }[policyValue];
+
+            return policy ? (
+              <section className="glass-panel rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-6">
+                <div className="max-w-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
+                    Usage & ownership
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-white">
+                    What the buyer receives
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    This gig uses the following structured SkillLaunch usage and ownership policy.
+                  </p>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-slate-950/60 p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-white">
+                        {policy.label}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-400">
+                        {policy.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : null;
+          })()}
+
           {videoUrl ? (
             <section className="glass-panel rounded-3xl border border-slate-800 p-6">
               <div className="max-w-3xl">

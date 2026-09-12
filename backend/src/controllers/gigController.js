@@ -474,6 +474,22 @@ const validateGigSubmission = (draftData) => {
     ? draftData.requirements
     : [];
 
+  const allowedUsageRightsPolicies = new Set([
+    'buyer-owns-final-work',
+    'license-commercial-use',
+    'license-personal-use',
+    'portfolio-display-only'
+  ]);
+
+  if (!allowedUsageRightsPolicies.has(String(draftData?.usageRightsPolicy || '').trim())) {
+    addBlocker(
+      8,
+      'usageRightsPolicy',
+      'Select a usage and ownership policy.',
+      'Choose the structured usage and ownership policy that applies to this gig before submitting it for review.'
+    );
+  }
+
   if (draftData?.platformRulesAcknowledged !== true) {
     addBlocker(
       8,

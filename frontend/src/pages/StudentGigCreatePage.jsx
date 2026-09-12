@@ -73,6 +73,29 @@ const createFaq = () => ({
   answer: ''
 });
 
+const GIG_USAGE_RIGHTS_POLICIES = {
+  buyerOwnsFinalWork: {
+    value: 'buyer-owns-final-work',
+    label: 'Buyer owns the final delivered work',
+    description: 'The buyer receives ownership of the final deliverable created specifically for this gig, unless a stated exception applies.'
+  },
+  licenseCommercial: {
+    value: 'license-commercial-use',
+    label: 'Commercial-use license',
+    description: 'The buyer receives a license to use the delivered work for commercial purposes; ownership remains with the freelancer unless otherwise agreed in the gig.'
+  },
+  licensePersonal: {
+    value: 'license-personal-use',
+    label: 'Personal-use license',
+    description: 'The buyer may use the delivered work for personal purposes only; commercial redistribution or resale is not included.'
+  },
+  portfolioOnly: {
+    value: 'portfolio-display-only',
+    label: 'Portfolio / display use only',
+    description: 'The delivered work is provided for portfolio or display purposes and does not include broader commercial usage rights.'
+  }
+};
+
 const createMediaId = () =>
   `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -793,6 +816,7 @@ export default function StudentGigCreatePage({ currentUser }) {
 
   const [requirements, setRequirements] = useState(() => [createRequirement()]);
   const [faqs, setFaqs] = useState([]);
+  const [usageRightsPolicy, setUsageRightsPolicy] = useState('');
   const [platformRulesAcknowledged, setPlatformRulesAcknowledged] = useState(false);
   const [media, setMedia] = useState({
     cover: null,
@@ -947,6 +971,7 @@ export default function StudentGigCreatePage({ currentUser }) {
       question: faq.question,
       answer: faq.answer
     })),
+    usageRightsPolicy,
     platformRulesAcknowledged: Boolean(platformRulesAcknowledged)
   });
 
@@ -1096,6 +1121,9 @@ export default function StudentGigCreatePage({ currentUser }) {
             answer: faq.answer || ''
           }))
         : []
+    );
+    setUsageRightsPolicy(
+      typeof data.usageRightsPolicy === 'string' ? data.usageRightsPolicy : ''
     );
     setPlatformRulesAcknowledged(data.platformRulesAcknowledged === true);
 
@@ -1470,6 +1498,10 @@ export default function StudentGigCreatePage({ currentUser }) {
       const validation = getFaqValidation(faq);
       return validation.questionValid && validation.answerValid;
     });
+
+  const isUsageRightsPolicyComplete = Object.values(GIG_USAGE_RIGHTS_POLICIES).some(
+    (policy) => policy.value === usageRightsPolicy
+  );
 
   const descriptionGuidance = !descriptionText
     ? 'Explain what you provide, what the buyer receives, and what to expect.'
@@ -2586,6 +2618,14 @@ export default function StudentGigCreatePage({ currentUser }) {
       );
     }
 
+    if (!isUsageRightsPolicyComplete) {
+      addBlocker(
+        8,
+        'Select a usage and ownership policy.',
+        'Choose the structured usage and ownership policy that applies to this gig before submitting it for review.'
+      );
+    }
+
     if (!platformRulesAcknowledged) {
       addBlocker(
         8,
@@ -2617,6 +2657,7 @@ export default function StudentGigCreatePage({ currentUser }) {
     isRevisionAllowanceValid,
     isExcludedListValid,
     isFaqsComplete,
+    isUsageRightsPolicyComplete,
     platformRulesAcknowledged,
     extras,
     areExtrasComplete,
@@ -3530,6 +3571,8 @@ export default function StudentGigCreatePage({ currentUser }) {
       }
     });
 
+    const policyHasError = !isUsageRightsPolicyComplete;
+
     setFieldErrors((previous) => ({
       ...previous,
       faqs: {
@@ -3537,15 +3580,19 @@ export default function StudentGigCreatePage({ currentUser }) {
           ? 'Complete each FAQ or remove the unfinished FAQ.'
           : null,
         items: nextItems
-      }
+      },
+      usageRightsPolicy: policyHasError
+        ? 'Select a usage and ownership policy before continuing.'
+        : null
     }));
 
     setTouchedFields((previous) => ({
       ...previous,
-      faqs: true
+      faqs: true,
+      usageRightsPolicy: true
     }));
 
-    return !hasErrors;
+    return !hasErrors && !policyHasError;
   };
 
   const updateFaq = (faqId, updater) => {
@@ -7008,6 +7055,89 @@ export default function StudentGigCreatePage({ currentUser }) {
             <Plus className="h-4 w-4" />
             Add FAQ
           </button>
+        </section>
+
+        <section className="rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-5 sm:p-7">
+          <div className="max-w-3xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">
+              Usage & ownership policy
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+              Define what the buyer receives
+            </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+              Choose the structured SkillLaunch policy that best describes the intended
+              usage and ownership terms for the final work delivered through this gig.
+            </p>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {Object.values(GIG_USAGE_RIGHTS_POLICIES).map((policy) => {
+              const checked = usageRightsPolicy === policy.value;
+
+              return (
+                <label
+                  key={policy.value}
+                  className={[
+                    'block cursor-pointer rounded-2xl border p-4 transition sm:p-5',
+                    checked
+                      ? 'border-cyan-500/40 bg-cyan-500/10'
+                      : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
+                  ].join(' ')}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="radio"
+                      name="usageRightsPolicy"
+                      value={policy.value}
+                      checked={checked}
+                      onChange={(event) => {
+                        setUsageRightsPolicy(event.target.value);
+                        setFieldErrors((previous) => ({
+                          ...previous,
+                          usageRightsPolicy: null
+                        }));
+                        setTouchedFields((previous) => ({
+                          ...previous,
+                          usageRightsPolicy: true
+                        }));
+                      }}
+                      aria-required="true"
+                      aria-invalid={Boolean(
+                        touchedFields.usageRightsPolicy &&
+                        fieldErrors.usageRightsPolicy
+                      )}
+                      className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
+                    />
+
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black text-white">
+                        {policy.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-400">
+                        {policy.description}
+                      </span>
+                    </span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          {touchedFields.usageRightsPolicy && fieldErrors.usageRightsPolicy && (
+            <p
+              role="alert"
+              className="mt-3 text-xs font-semibold text-red-400"
+            >
+              {fieldErrors.usageRightsPolicy}
+            </p>
+          )}
+
+          {!isUsageRightsPolicyComplete && !touchedFields.usageRightsPolicy && (
+            <p className="mt-3 text-xs font-semibold text-amber-300">
+              Required before you can continue or submit this gig for review.
+            </p>
+          )}
         </section>
 
         <section className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5 sm:p-7">
