@@ -10,6 +10,7 @@ const rateLimit = require('express-rate-limit');
 const prisma = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const gigRoutes = require('./routes/gigRoutes');
+const gigCustomOfferRoutes = require('./routes/gigCustomOfferRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -121,6 +122,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // REST Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/gigs', gigRoutes);
+app.use('/api/gig-custom-offers', gigCustomOfferRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/orders', orderRoutes);

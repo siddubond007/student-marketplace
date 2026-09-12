@@ -86,6 +86,8 @@ model User {
   verification             VerificationRequest?
   wallet                   Wallet?
   gigs                     Gig[]
+  customOffersAsBuyer      GigCustomOffer[]      @relation("CustomOfferBuyer")
+  customOffersAsSeller     GigCustomOffer[]      @relation("CustomOfferSeller")
   jobsPosted               Job[]                 @relation("ClientJobs")
   bidsPlaced               Bid[]                 @relation("StudentBids")
   ordersAsClient           Order[]               @relation("ClientOrders")
@@ -193,6 +195,7 @@ model Gig {
 
   packages       GigPackage[]
   extras          GigExtra[]
+  customOffers   GigCustomOffer[]
   orders         Order[]
   analyticsEvents GigAnalyticsEvent[]
   favorites      GigFavorite[]
@@ -280,6 +283,35 @@ model GigExtra {
   scope     Json?
 
   @@index([gigId])
+}
+
+enum GigCustomOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model GigCustomOffer {
+  id              String              @id @default(uuid())
+  gigId           String
+  gig             Gig                 @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  buyerId         String
+  buyer           User                @relation("CustomOfferBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId        String
+  seller          User                @relation("CustomOfferSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  requestedWork   String
+  proposedPrice   Float
+  deliveryDays    Int
+  status          GigCustomOfferStatus @default(PENDING)
+  orderId         String?             @unique
+  order           Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([gigId, status, createdAt])
+  @@index([buyerId, status, createdAt])
+  @@index([sellerId, status, createdAt])
 }
 
 model Job {
@@ -385,6 +417,7 @@ model Order {
   activityEvents OrderActivityEvent[]
   GigPackage   GigPackage?   @relation(fields: [gigPackageId], references: [id])
   gigPackageId String?
+  customOffer  GigCustomOffer?
 
   @@index([status])
   @@index([jobId])

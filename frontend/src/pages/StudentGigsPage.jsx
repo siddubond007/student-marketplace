@@ -231,13 +231,22 @@ export default function StudentGigsPage({ currentUser }) {
               </p>
             </div>
 
-            <Link
-              to="/student/gigs/create"
-              className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black flex items-center justify-center gap-2"
-            >
-              <PlusCircle className="w-4 h-4" />
-              Publish New Gig
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/custom-offers"
+                className="px-4 py-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-black flex items-center justify-center gap-2 hover:border-cyan-400/50 hover:text-white transition"
+              >
+                Custom Offers
+              </Link>
+
+              <Link
+                to="/student/gigs/create"
+                className="px-4 py-2.5 neon-airflow-btn text-white rounded-xl text-xs font-black flex items-center justify-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Publish New Gig
+              </Link>
+            </div>
           </div>
         </div>
       </section>

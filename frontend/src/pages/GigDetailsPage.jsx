@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   Clock3,
   ShieldCheck,
-  Star
+  Star,
+  MessageSquarePlus,
+  X
 } from 'lucide-react';
 import API from '../services/api';
 import { sanitizeRichTextHtml } from '../utils/richText.js';
@@ -23,6 +25,14 @@ export default function GigDetailsPage({ currentUser }) {
   const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [error, setError] = useState('');
   const [purchaseError, setPurchaseError] = useState('');
+  const [customOfferOpen, setCustomOfferOpen] = useState(false);
+  const [customOfferBusy, setCustomOfferBusy] = useState(false);
+  const [customOfferError, setCustomOfferError] = useState('');
+  const [customOfferForm, setCustomOfferForm] = useState({
+    requestedWork: '',
+    proposedPrice: '',
+    deliveryDays: ''
+  });
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
@@ -157,6 +167,61 @@ export default function GigDetailsPage({ currentUser }) {
         err?.response?.data?.error ||
         'Unable to start the purchase. Please try again.'
       );
+    }
+  };
+
+  const submitCustomOffer = async (event) => {
+    event.preventDefault();
+
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    setCustomOfferError('');
+
+    const requestedWork = String(customOfferForm.requestedWork || '').trim();
+    const proposedPrice = Number(customOfferForm.proposedPrice);
+    const deliveryDays = Number(customOfferForm.deliveryDays);
+
+    if (!requestedWork) {
+      setCustomOfferError('Describe the custom work you need.');
+      return;
+    }
+
+    if (!Number.isFinite(proposedPrice) || proposedPrice <= 0) {
+      setCustomOfferError('Enter a valid proposed price.');
+      return;
+    }
+
+    if (!Number.isInteger(deliveryDays) || deliveryDays <= 0) {
+      setCustomOfferError('Enter a valid delivery period in whole days.');
+      return;
+    }
+
+    setCustomOfferBusy(true);
+
+    try {
+      await API.post('/gig-custom-offers', {
+        gigId,
+        requestedWork,
+        proposedPrice,
+        deliveryDays
+      });
+
+      setCustomOfferForm({
+        requestedWork: '',
+        proposedPrice: '',
+        deliveryDays: ''
+      });
+      setCustomOfferOpen(false);
+    } catch (err) {
+      setCustomOfferError(
+        err?.response?.data?.error ||
+        'Unable to send your custom offer. Please try again.'
+      );
+    } finally {
+      setCustomOfferBusy(false);
     }
   };
 
@@ -781,6 +846,25 @@ export default function GigDetailsPage({ currentUser }) {
                       : 'Sign in to Purchase'}
                 </button>
 
+                <button
+                  type="button"
+                  disabled={!currentUser || !effectiveAcceptingOrders || customOfferBusy}
+                  onClick={() => {
+                    if (!currentUser) {
+                      navigate('/login');
+                      return;
+                    }
+                    setCustomOfferError('');
+                    setCustomOfferOpen(true);
+                  }}
+                  className="w-full mt-2 px-4 py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-black hover:border-indigo-400/50 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <MessageSquarePlus className="w-4 h-4" />
+                    Request Custom Offer
+                  </span>
+                </button>
+
                 {!currentUser && (
                   <Link
                     to="/login"
@@ -791,6 +875,111 @@ export default function GigDetailsPage({ currentUser }) {
                 )}
                 </div>
               </>
+            )}
+
+            {customOfferOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950 shadow-2xl">
+                  <div className="flex items-start justify-between gap-4 p-6 border-b border-slate-800">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+                        Custom work
+                      </p>
+                      <h3 className="text-xl font-black text-white mt-1">
+                        Request a custom offer
+                      </h3>
+                      <p className="text-sm leading-6 text-slate-500 mt-2">
+                        Tell the seller what falls outside the standard packages.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomOfferOpen(false)}
+                      className="rounded-xl border border-slate-800 p-2 text-slate-500 hover:text-white transition"
+                      aria-label="Close custom offer form"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={submitCustomOffer} className="p-6 space-y-4">
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                        What do you need?
+                      </span>
+                      <textarea
+                        value={customOfferForm.requestedWork}
+                        onChange={(event) =>
+                          setCustomOfferForm((previous) => ({
+                            ...previous,
+                            requestedWork: event.target.value
+                          }))
+                        }
+                        rows={6}
+                        maxLength={5000}
+                        placeholder="Describe the custom scope, deliverables, or changes you need."
+                        className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                      />
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="block">
+                        <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                          Proposed price (INR)
+                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={customOfferForm.proposedPrice}
+                          onChange={(event) =>
+                            setCustomOfferForm((previous) => ({
+                              ...previous,
+                              proposedPrice: event.target.value
+                            }))
+                          }
+                          placeholder="1250"
+                          className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                          Delivery (days)
+                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={customOfferForm.deliveryDays}
+                          onChange={(event) =>
+                            setCustomOfferForm((previous) => ({
+                              ...previous,
+                              deliveryDays: event.target.value
+                            }))
+                          }
+                          placeholder="5"
+                          className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                        />
+                      </label>
+                    </div>
+
+                    {customOfferError && (
+                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-sm font-bold text-red-300">
+                        {customOfferError}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={customOfferBusy}
+                      className="w-full rounded-xl neon-airflow-btn px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {customOfferBusy ? 'Sending…' : 'Send Custom Offer'}
+                    </button>
+                  </form>
+                </div>
+              </div>
             )}
           </section>
         </aside>
