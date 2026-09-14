@@ -82,20 +82,11 @@ function PerspectiveContent({ perspective, className = '' }) {
 
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
-  const [transition, setTransition] = useState(null);
   const groupId = useId();
-  const current = PERSPECTIVES[active];
-  const incoming = transition ? PERSPECTIVES[transition.next] : null;
 
   const selectPerspective = (next) => {
-    if (next === active || transition) return;
-
-    setTransition({ next });
-
-    window.setTimeout(() => {
-      setActive(next);
-      setTransition(null);
-    }, 460);
+    if (next === active) return;
+    setActive(next);
   };
 
   return (
@@ -118,7 +109,6 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
           aria-pressed={active === 'client'}
           onClick={() => selectPerspective('client')}
-          disabled={Boolean(transition)}
         >
           <BriefcaseBusiness aria-hidden="true" />
           <span>I’m Hiring</span>
@@ -129,7 +119,6 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`}
           aria-pressed={active === 'student'}
           onClick={() => selectPerspective('student')}
-          disabled={Boolean(transition)}
         >
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
@@ -137,22 +126,16 @@ export default function HomeDualPerspective() {
       </div>
 
       <div className="home-dual__stage">
-        <div className="home-dual__card" aria-live="polite">
+        <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
-          <div className={`home-dual__card-sheen ${transition ? 'is-active' : ''}`} aria-hidden="true" />
-          <div className={`home-dual__card-orbit ${transition ? 'is-active' : ''}`} aria-hidden="true" />
 
-          <PerspectiveContent
-            perspective={current}
-            className={transition ? 'is-outgoing' : ''}
-          />
+          <div className="home-dual__card-layer home-dual__card-layer--client">
+            <PerspectiveContent perspective={PERSPECTIVES.client} />
+          </div>
 
-          {incoming && (
-            <PerspectiveContent
-              perspective={incoming}
-              className="is-incoming"
-            />
-          )}
+          <div className="home-dual__card-layer home-dual__card-layer--student">
+            <PerspectiveContent perspective={PERSPECTIVES.student} />
+          </div>
         </div>
       </div>
     </section>
