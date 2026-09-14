@@ -34,22 +34,71 @@ const PERSPECTIVES = {
   },
 };
 
+function PerspectiveContent({ perspective, className = '' }) {
+  const Icon = perspective.icon;
+
+  return (
+    <div className={`home-dual__card-content ${className}`}>
+      <div className="home-dual__card-top">
+        <div className="home-dual__role-icon">
+          <Icon aria-hidden="true" />
+        </div>
+        <span>{perspective.eyebrow}</span>
+      </div>
+
+      <div className="home-dual__card-body">
+        <h3>{perspective.title}</h3>
+        <p>{perspective.body}</p>
+
+        <div className="home-dual__items">
+          {perspective.items.map(([title, text]) => (
+            <div className="home-dual__item" key={title}>
+              <span className="home-dual__item-number" aria-hidden="true" />
+              <div>
+                <h4>{title}</h4>
+                <p>{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Link to={perspective.to} className="home-dual__cta">
+          <span>{perspective.action}</span>
+          <ArrowRight aria-hidden="true" />
+        </Link>
+      </div>
+
+      <div className="home-dual__card-footer">
+        <span className="home-dual__footer-line" aria-hidden="true" />
+        <span>
+          {perspective === PERSPECTIVES.client
+            ? 'A clearer way to discover student capability.'
+            : 'A clearer way to turn capability into opportunity.'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
-  const [transitioning, setTransitioning] = useState(false);
+  const [transition, setTransition] = useState(null);
   const groupId = useId();
   const current = PERSPECTIVES[active];
-  const Icon = current.icon;
+  const incoming = transition ? PERSPECTIVES[transition.next] : null;
 
   const selectPerspective = (next) => {
-    if (next === active || transitioning) return;
+    if (next === active || transition) return;
 
-    setTransitioning(true);
+    setTransition({
+      next,
+      direction: next === 'student' ? 'forward' : 'backward',
+    });
 
     window.setTimeout(() => {
       setActive(next);
-      setTransitioning(false);
-    }, 520);
+      setTransition(null);
+    }, 760);
   };
 
   return (
@@ -72,7 +121,7 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
           aria-pressed={active === 'client'}
           onClick={() => selectPerspective('client')}
-          disabled={transitioning}
+          disabled={Boolean(transition)}
         >
           <BriefcaseBusiness aria-hidden="true" />
           <span>I’m Hiring</span>
@@ -83,7 +132,7 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`}
           aria-pressed={active === 'student'}
           onClick={() => selectPerspective('student')}
-          disabled={transitioning}
+          disabled={Boolean(transition)}
         >
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
@@ -92,52 +141,20 @@ export default function HomeDualPerspective() {
 
       <div className="home-dual__stage">
         <div
-          className={`home-dual__card ${transitioning ? 'is-transitioning' : ''}`}
+          className={`home-dual__card ${transition ? `is-transitioning is-${transition.direction}` : ''}`}
           aria-live="polite"
         >
           <div className="home-dual__card-glow" aria-hidden="true" />
           <div className="home-dual__card-sheen" aria-hidden="true" />
           <div className="home-dual__card-orbit" aria-hidden="true" />
 
-          <div className="home-dual__card-content">
-            <div className="home-dual__card-top">
-              <div className="home-dual__role-icon">
-                <Icon aria-hidden="true" />
-              </div>
-              <span>{current.eyebrow}</span>
-            </div>
-
-            <div className="home-dual__card-body">
-              <h3>{current.title}</h3>
-              <p>{current.body}</p>
-
-              <div className="home-dual__items">
-                {current.items.map(([title, text]) => (
-                  <div className="home-dual__item" key={title}>
-                    <span className="home-dual__item-number" aria-hidden="true" />
-                    <div>
-                      <h4>{title}</h4>
-                      <p>{text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Link to={current.to} className="home-dual__cta">
-                <span>{current.action}</span>
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-
-            <div className="home-dual__card-footer">
-              <span className="home-dual__footer-line" aria-hidden="true" />
-              <span>
-                {active === 'client'
-                  ? 'A clearer way to discover student capability.'
-                  : 'A clearer way to turn capability into opportunity.'}
-              </span>
-            </div>
-          </div>
+          <PerspectiveContent
+            perspective={current}
+            className={transition ? 'is-outgoing' : ''}
+          />
+          {incoming && (
+            <PerspectiveContent perspective={incoming} className="is-incoming" />
+          )}
         </div>
       </div>
     </section>
