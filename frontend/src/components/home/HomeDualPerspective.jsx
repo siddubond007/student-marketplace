@@ -5,7 +5,6 @@ import './HomeDualPerspective.css';
 
 const PERSPECTIVES = {
   client: {
-    label: 'I’m Hiring',
     eyebrow: 'FOR CLIENTS',
     title: 'Find student talent that fits the work.',
     body:
@@ -20,7 +19,6 @@ const PERSPECTIVES = {
     icon: BriefcaseBusiness,
   },
   student: {
-    label: 'I’m a Student',
     eyebrow: 'FOR STUDENTS',
     title: 'Turn your skills into experience and opportunity.',
     body:
@@ -39,9 +37,7 @@ const PERSPECTIVES = {
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
   const [transitioning, setTransitioning] = useState(false);
-  const [revealing, setRevealing] = useState(false);
   const groupId = useId();
-
   const current = PERSPECTIVES[active];
   const Icon = current.icon;
 
@@ -49,20 +45,11 @@ export default function HomeDualPerspective() {
     if (next === active || transitioning) return;
 
     setTransitioning(true);
-    setRevealing(false);
 
     window.setTimeout(() => {
       setActive(next);
-      setRevealing(true);
-    }, 480);
-
-    window.setTimeout(() => {
       setTransitioning(false);
-    }, 980);
-
-    window.setTimeout(() => {
-      setRevealing(false);
-    }, 1120);
+    }, 520);
   };
 
   return (
@@ -105,7 +92,7 @@ export default function HomeDualPerspective() {
 
       <div className="home-dual__stage">
         <div
-          className={`home-dual__card ${transitioning ? 'is-transitioning' : ''} ${revealing ? 'is-revealing' : ''}`}
+          className={`home-dual__card ${transitioning ? 'is-transitioning' : ''}`}
           aria-live="polite"
         >
           <div className="home-dual__card-glow" aria-hidden="true" />
