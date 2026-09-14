@@ -41,6 +41,7 @@ export default function HomeDualPerspective() {
   const [transitioning, setTransitioning] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const groupId = useId();
+
   const current = PERSPECTIVES[active];
   const Icon = current.icon;
 
@@ -53,10 +54,13 @@ export default function HomeDualPerspective() {
     window.setTimeout(() => {
       setActive(next);
       setRevealing(true);
-    }, 430);
+    }, 480);
 
     window.setTimeout(() => {
       setTransitioning(false);
+    }, 980);
+
+    window.setTimeout(() => {
       setRevealing(false);
     }, 1120);
   };
