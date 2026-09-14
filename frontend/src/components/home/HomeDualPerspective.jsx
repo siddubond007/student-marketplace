@@ -44,13 +44,16 @@ export default function HomeDualPerspective() {
   const Icon = current.icon;
 
   const selectPerspective = (next) => {
-    if (next === active) return;
+    if (next === active || isFlipping) return;
 
     setIsFlipping(true);
     window.setTimeout(() => {
       setActive(next);
+    }, 440);
+
+    window.setTimeout(() => {
       setIsFlipping(false);
-    }, 180);
+    }, 980);
   };
 
   return (
@@ -76,6 +79,7 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
           aria-pressed={active === 'client'}
           onClick={() => selectPerspective('client')}
+          disabled={isFlipping}
         >
           <BriefcaseBusiness aria-hidden="true" />
           <span>I’m Hiring</span>
@@ -86,6 +90,7 @@ export default function HomeDualPerspective() {
           className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`}
           aria-pressed={active === 'student'}
           onClick={() => selectPerspective('student')}
+          disabled={isFlipping}
         >
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
@@ -98,6 +103,7 @@ export default function HomeDualPerspective() {
           aria-live="polite"
         >
           <div className="home-dual__card-glow" aria-hidden="true" />
+          <div className="home-dual__card-sheen" aria-hidden="true" />
 
           <div className="home-dual__card-top">
             <div className="home-dual__role-icon">
