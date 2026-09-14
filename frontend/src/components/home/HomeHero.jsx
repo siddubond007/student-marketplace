@@ -18,15 +18,32 @@ const distance = (a, b) => {
 };
 
 function makeStar(width, height) {
+  const shapeRoll = Math.random();
+  const colorRoll = Math.random();
+
+  let kind = 'dot';
+  if (shapeRoll > 0.91) kind = 'sparkle';
+  else if (shapeRoll > 0.79) kind = 'cross';
+  else if (shapeRoll > 0.63) kind = 'diamond';
+
+  let color = 'white';
+  if (colorRoll > 0.94) color = 'orange';
+  else if (colorRoll > 0.84) color = 'blue';
+  else if (colorRoll > 0.71) color = 'ice';
+
   return {
     x: Math.random() * width,
     y: Math.random() * height,
-    radius: randomBetween(0.35, 1.45),
-    alpha: randomBetween(0.2, 0.9),
+    radius: randomBetween(0.35, 1.5),
+    alpha: randomBetween(0.22, 0.92),
     phase: Math.random() * Math.PI * 2,
     speed: randomBetween(0.0008, 0.0028),
     driftX: randomBetween(-0.018, 0.018),
     driftY: randomBetween(-0.012, 0.012),
+    kind,
+    color,
+    twinkle: randomBetween(0.75, 1.8),
+    rotation: Math.random() * Math.PI * 2,
   };
 }
 
@@ -91,19 +108,86 @@ function makePlanet(width, height, index) {
 
 function drawStar(ctx, star, time) {
   const pulse =
-    star.alpha * (0.72 + Math.sin(time * star.speed + star.phase) * 0.22);
+    star.alpha *
+    (0.68 + Math.sin(time * star.speed * star.twinkle + star.phase) * 0.3);
 
-  ctx.beginPath();
-  ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-  ctx.fillStyle = `rgba(235,245,255,${Math.max(0.08, pulse)})`;
-  ctx.fill();
+  const alpha = Math.max(0.07, pulse);
 
-  if (star.radius > 1.05) {
+  let main = `rgba(240,248,255,${alpha})`;
+  let glow = `rgba(235,246,255,${alpha * 0.22})`;
+
+  if (star.color === 'ice') {
+    main = `rgba(205,232,249,${alpha})`;
+    glow = `rgba(190,225,248,${alpha * 0.25})`;
+  } else if (star.color === 'blue') {
+    main = `rgba(145,199,239,${alpha})`;
+    glow = `rgba(130,190,239,${alpha * 0.27})`;
+  } else if (star.color === 'orange') {
+    main = `rgba(255,188,108,${alpha})`;
+    glow = `rgba(255,178,92,${alpha * 0.30})`;
+  }
+
+  ctx.save();
+  ctx.translate(star.x, star.y);
+  ctx.rotate(star.rotation);
+
+  if (star.kind === 'dot') {
     ctx.beginPath();
-    ctx.arc(star.x, star.y, star.radius * 3.1, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(175,215,255,${pulse * 0.035})`;
+    ctx.arc(0, 0, star.radius, 0, Math.PI * 2);
+    ctx.fillStyle = main;
+    ctx.fill();
+
+    if (star.radius > 1.0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, star.radius * 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+    }
+  } else if (star.kind === 'diamond') {
+    const r = Math.max(1.0, star.radius * 1.7);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.62, 0);
+    ctx.lineTo(0, r);
+    ctx.lineTo(-r * 0.62, 0);
+    ctx.closePath();
+    ctx.fillStyle = main;
+    ctx.fill();
+  } else if (star.kind === 'cross') {
+    const r = Math.max(1.3, star.radius * 2.8);
+
+    ctx.beginPath();
+    ctx.moveTo(-r, 0);
+    ctx.lineTo(r, 0);
+    ctx.moveTo(0, -r);
+    ctx.lineTo(0, r);
+    ctx.strokeStyle = main;
+    ctx.lineWidth = Math.max(0.55, star.radius * 0.55);
+    ctx.stroke();
+  } else {
+    const r = Math.max(1.8, star.radius * 3.5);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.25, -r * 0.25);
+    ctx.lineTo(r, 0);
+    ctx.lineTo(r * 0.25, r * 0.25);
+    ctx.lineTo(0, r);
+    ctx.lineTo(-r * 0.25, r * 0.25);
+    ctx.lineTo(-r, 0);
+    ctx.lineTo(-r * 0.25, -r * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = main;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
     ctx.fill();
   }
+
+  ctx.restore();
 }
 
 function drawAsteroid(ctx, asteroid) {
@@ -134,7 +218,6 @@ function drawAsteroid(ctx, asteroid) {
 
 function drawPlanet(ctx, planet) {
   ctx.save();
-
   ctx.translate(planet.x, planet.y);
 
   ctx.beginPath();
@@ -185,7 +268,6 @@ function drawPlanet(ctx, planet) {
 
 function drawAstronaut(ctx, astronaut) {
   ctx.save();
-
   ctx.translate(astronaut.x, astronaut.y);
   ctx.rotate(astronaut.rotation);
 
@@ -437,7 +519,6 @@ export default function HomeHero() {
 
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
-
 
       ctx.fillStyle = '#020811';
       ctx.fillRect(0, 0, width, height);
