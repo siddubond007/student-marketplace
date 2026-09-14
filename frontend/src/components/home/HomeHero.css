@@ -36,6 +36,90 @@
     );
 }
 
+.home-hero__milky-way {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 360px;
+  height: 132px;
+  pointer-events: none;
+  opacity: 0;
+  transform:
+    translate3d(0, 0, 0)
+    translate(-50%, -50%)
+    rotate(-28deg);
+  transform-origin: center;
+  will-change: transform, opacity;
+  transition: none !important;
+  contain: layout style paint;
+}
+
+.home-hero__milky-way-core,
+.home-hero__milky-way-band,
+.home-hero__milky-way-specks {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.home-hero__milky-way-core {
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(245, 250, 255, 0.22) 0%,
+      rgba(214, 232, 246, 0.12) 18%,
+      rgba(160, 195, 220, 0.055) 38%,
+      rgba(95, 135, 168, 0.018) 58%,
+      transparent 76%
+    );
+  filter: blur(9px);
+}
+
+.home-hero__milky-way-band {
+  border-radius: 50%;
+  transform: rotate(0deg) scaleY(0.3);
+}
+
+.home-hero__milky-way-band--one {
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(235, 246, 255, 0.16) 0%,
+      rgba(196, 220, 240, 0.075) 22%,
+      rgba(145, 180, 210, 0.026) 47%,
+      transparent 72%
+    );
+  filter: blur(7px);
+}
+
+.home-hero__milky-way-band--two {
+  transform: rotate(0deg) scaleY(0.18);
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(252, 253, 255, 0.20) 0%,
+      rgba(210, 228, 242, 0.07) 25%,
+      transparent 68%
+    );
+  filter: blur(3px);
+}
+
+.home-hero__milky-way-specks {
+  opacity: 0.58;
+  background-image:
+    radial-gradient(circle at 18% 44%, rgba(245, 250, 255, 0.62) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 27% 59%, rgba(205, 228, 245, 0.48) 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 39% 39%, rgba(239, 247, 253, 0.56) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 52% 56%, rgba(205, 226, 242, 0.46) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 64% 43%, rgba(243, 249, 255, 0.58) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle at 77% 55%, rgba(210, 230, 244, 0.44) 0 0.9px, transparent 1.4px),
+    radial-gradient(circle at 85% 40%, rgba(238, 247, 253, 0.52) 0 0.8px, transparent 1.3px);
+  filter: blur(0.2px);
+}
+
 .home-hero__canvas {
   position: absolute;
   inset: 0;
@@ -48,7 +132,7 @@
 
 .home-hero__content {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   min-height: 640px;
   display: flex;
   align-items: center;

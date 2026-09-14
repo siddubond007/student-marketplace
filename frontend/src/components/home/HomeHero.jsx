@@ -229,6 +229,7 @@ function drawAstronaut(ctx, astronaut) {
 export default function HomeHero() {
   const heroRef = useRef(null);
   const canvasRef = useRef(null);
+  const milkyWayRef = useRef(null);
 
   const pointerRef = useRef({
     x: 0,
@@ -241,8 +242,9 @@ export default function HomeHero() {
   useEffect(() => {
     const hero = heroRef.current;
     const canvas = canvasRef.current;
+    const milkyWay = milkyWayRef.current;
 
-    if (!hero || !canvas) return undefined;
+    if (!hero || !canvas || !milkyWay) return undefined;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return undefined;
@@ -312,12 +314,26 @@ export default function HomeHero() {
       }
     };
 
+    const updateMilkyWay = (event) => {
+      const rect = hero.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      milkyWay.style.transform =
+        `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) rotate(-28deg)`;
+      milkyWay.style.opacity = '1';
+
+      pointer.targetX = x;
+      pointer.targetY = y;
+      pointer.x = x;
+      pointer.y = y;
+      pointer.active = true;
+    };
+
     const onPointerMove = (event) => {
       const rect = hero.getBoundingClientRect();
 
-      pointer.targetX = event.clientX - rect.left;
-      pointer.targetY = event.clientY - rect.top;
-      pointer.active = true;
+      updateMilkyWay(event);
 
       trail.push({
         x: pointer.targetX,
@@ -331,8 +347,13 @@ export default function HomeHero() {
       }
     };
 
+    const onPointerRawUpdate = (event) => {
+      updateMilkyWay(event);
+    };
+
     const onPointerLeave = () => {
       pointer.active = false;
+      milkyWay.style.opacity = '0';
     };
 
     const recycleAsteroid = (asteroid) => {
@@ -414,102 +435,9 @@ export default function HomeHero() {
       }
     };
 
-    const drawPointerField = (time) => {
-      if (!pointer.active) return;
-
-      const outer = ctx.createRadialGradient(
-        pointer.x,
-        pointer.y,
-        0,
-        pointer.x,
-        pointer.y,
-        175
-      );
-
-      outer.addColorStop(0, 'rgba(235,246,255,0.042)');
-      outer.addColorStop(0.22, 'rgba(196,220,240,0.022)');
-      outer.addColorStop(0.48, 'rgba(145,180,210,0.012)');
-      outer.addColorStop(0.72, 'rgba(110,150,185,0.009)');
-      outer.addColorStop(1, 'rgba(80,120,155,0)');
-
-      ctx.fillStyle = outer;
-      ctx.beginPath();
-      ctx.arc(pointer.x, pointer.y, 260, 0, Math.PI * 2);
-      ctx.fill();
-
-      const inner = ctx.createRadialGradient(
-        pointer.x,
-        pointer.y,
-        0,
-        pointer.x,
-        pointer.y,
-        82
-      );
-
-      inner.addColorStop(0, 'rgba(248,252,255,0.052)');
-      inner.addColorStop(0.35, 'rgba(210,230,246,0.018)');
-      inner.addColorStop(1, 'rgba(210,230,246,0)');
-
-      ctx.fillStyle = inner;
-      ctx.beginPath();
-      ctx.arc(pointer.x, pointer.y, 105, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.save();
-      ctx.translate(pointer.x, pointer.y);
-
-      const slowRotation = -0.42 + Math.sin(time * 0.00005) * 0.035;
-      ctx.rotate(slowRotation);
-
-      ctx.beginPath();
-      ctx.ellipse(
-        0,
-        0,
-        175,
-        46,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.strokeStyle = 'rgba(180,212,237,0.035)';
-      ctx.lineWidth = 11;
-      ctx.filter = 'blur(12px)';
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.ellipse(
-        0,
-        0,
-        132,
-        34,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.strokeStyle = 'rgba(222,238,249,0.03)';
-      ctx.lineWidth = 5;
-      ctx.filter = 'blur(5px)';
-      ctx.stroke();
-
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.arc(pointer.x, pointer.y, 2.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(246,251,255,0.94)';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(pointer.x, pointer.y, 12, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(207,228,244,0.075)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    };
-
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
 
-      pointer.x += (pointer.targetX - pointer.x) * 0.11;
-      pointer.y += (pointer.targetY - pointer.y) * 0.11;
 
       ctx.fillStyle = '#020811';
       ctx.fillRect(0, 0, width, height);
@@ -615,8 +543,6 @@ export default function HomeHero() {
 
       trail = trail.filter((particle) => particle.life > 0.02);
 
-      drawPointerField(time);
-
       animationFrame = window.requestAnimationFrame(draw);
     };
 
@@ -629,6 +555,12 @@ export default function HomeHero() {
       passive: true,
     });
 
+    if ('onpointerrawupdate' in window) {
+      hero.addEventListener('pointerrawupdate', onPointerRawUpdate, {
+        passive: true,
+      });
+    }
+
     hero.addEventListener('pointerleave', onPointerLeave, {
       passive: true,
     });
@@ -639,6 +571,11 @@ export default function HomeHero() {
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
       hero.removeEventListener('pointermove', onPointerMove);
+
+      if ('onpointerrawupdate' in window) {
+        hero.removeEventListener('pointerrawupdate', onPointerRawUpdate);
+      }
+
       hero.removeEventListener('pointerleave', onPointerLeave);
     };
   }, []);
@@ -649,6 +586,17 @@ export default function HomeHero() {
       className="home-hero home-hero--space"
       aria-labelledby="home-hero-title"
     >
+      <div
+        ref={milkyWayRef}
+        className="home-hero__milky-way"
+        aria-hidden="true"
+      >
+        <span className="home-hero__milky-way-core" />
+        <span className="home-hero__milky-way-band home-hero__milky-way-band--one" />
+        <span className="home-hero__milky-way-band home-hero__milky-way-band--two" />
+        <span className="home-hero__milky-way-specks" />
+      </div>
+
       <canvas
         ref={canvasRef}
         className="home-hero__canvas"
