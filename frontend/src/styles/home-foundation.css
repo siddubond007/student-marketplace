@@ -1,0 +1,258 @@
+:root {
+  /* Home foundation tokens: semantic and intentionally theme-ready. HP-02 owns runtime switching. */
+  --home-font-display: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --home-font-body: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --home-space-1: 0.25rem;
+  --home-space-2: 0.5rem;
+  --home-space-3: 0.75rem;
+  --home-space-4: 1rem;
+  --home-space-5: 1.25rem;
+  --home-space-6: 1.5rem;
+  --home-space-8: 2rem;
+  --home-space-10: 2.5rem;
+  --home-space-12: 3rem;
+  --home-space-16: 4rem;
+  --home-space-20: 5rem;
+
+  --home-radius-sm: 0.75rem;
+  --home-radius-md: 1rem;
+  --home-radius-lg: 1.5rem;
+  --home-radius-xl: 2rem;
+
+  --home-content-max: 80rem;
+  --home-readable-max: 48rem;
+
+  --home-text-primary: #f8fafc;
+  --home-text-secondary: #cbd5e1;
+  --home-text-muted: #94a3b8;
+  --home-accent: #a78bfa;
+  --home-accent-strong: #818cf8;
+  --home-accent-soft: rgba(129, 140, 248, 0.14);
+  --home-surface: rgba(15, 23, 42, 0.72);
+  --home-surface-strong: rgba(15, 23, 42, 0.9);
+  --home-surface-subtle: rgba(30, 41, 59, 0.62);
+  --home-border: rgba(148, 163, 184, 0.2);
+  --home-border-strong: rgba(129, 140, 248, 0.42);
+  --home-shadow: 0 24px 80px rgba(2, 6, 23, 0.28);
+  --home-focus: rgba(167, 139, 250, 0.95);
+
+  /* Reserved light-theme token map. Runtime activation belongs to HP-02. */
+  --home-light-text-primary: #0f172a;
+  --home-light-text-secondary: #334155;
+  --home-light-text-muted: #64748b;
+  --home-light-surface: rgba(255, 255, 255, 0.82);
+  --home-light-surface-strong: #ffffff;
+  --home-light-surface-subtle: rgba(248, 250, 252, 0.9);
+  --home-light-border: rgba(100, 116, 139, 0.2);
+  --home-light-shadow: 0 24px 72px rgba(15, 23, 42, 0.12);
+}
+
+.home-section {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.home-section__inner {
+  width: min(100%, var(--home-content-max));
+  margin-inline: auto;
+}
+
+.home-section__header {
+  max-width: var(--home-readable-max);
+  margin-bottom: var(--home-space-8);
+}
+
+.home-section__eyebrow {
+  margin: 0 0 var(--home-space-2);
+  color: var(--home-accent);
+  font-family: var(--home-font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.home-section__title {
+  margin: 0;
+  color: var(--home-text-primary);
+  font-family: var(--home-font-display);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+}
+
+.home-section__description {
+  margin: var(--home-space-4) 0 0;
+  color: var(--home-text-secondary);
+  font-family: var(--home-font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.home-card {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--home-space-6);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius-lg);
+  background: var(--home-surface);
+  box-shadow: var(--home-shadow);
+  color: var(--home-text-primary);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.home-card--interactive {
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.home-card--interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--home-border-strong);
+  background: var(--home-surface-strong);
+}
+
+.home-card--interactive:focus-visible {
+  outline: 3px solid var(--home-focus);
+  outline-offset: 3px;
+}
+
+.home-button {
+  min-height: 2.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--home-space-2);
+  box-sizing: border-box;
+  padding: 0.8rem 1.15rem;
+  border: 1px solid transparent;
+  border-radius: 0.9rem;
+  font-family: var(--home-font-body);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.home-button:hover {
+  transform: translateY(-1px);
+}
+
+.home-button:focus-visible {
+  outline: 3px solid var(--home-focus);
+  outline-offset: 3px;
+}
+
+.home-button--primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  box-shadow: 0 14px 32px rgba(124, 58, 237, 0.24);
+}
+
+.home-button--primary:hover {
+  box-shadow: 0 18px 38px rgba(124, 58, 237, 0.32);
+}
+
+.home-button--secondary {
+  color: var(--home-text-primary);
+  background: var(--home-surface-strong);
+  border-color: var(--home-border);
+}
+
+.home-button--secondary:hover {
+  border-color: var(--home-border-strong);
+}
+
+.home-button--ghost {
+  color: var(--home-accent);
+  background: transparent;
+  border-color: transparent;
+}
+
+.home-button--ghost:hover {
+  color: var(--home-text-primary);
+  background: var(--home-accent-soft);
+}
+
+.home-reveal {
+  --home-reveal-delay: 0ms;
+}
+
+.home-reveal--prepared {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity 520ms ease var(--home-reveal-delay),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--home-reveal-delay);
+  will-change: opacity, transform;
+}
+
+.home-reveal--prepared.home-reveal--visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (max-width: 1023px) {
+  .home-section__inner {
+    width: min(100%, calc(var(--home-content-max) - 4rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .home-section__inner {
+    width: min(100%, calc(100% - 2rem));
+  }
+
+  .home-section__header {
+    margin-bottom: var(--home-space-6);
+  }
+
+  .home-section__title {
+    font-size: clamp(1.8rem, 8vw, 2.45rem);
+  }
+
+  .home-card {
+    padding: var(--home-space-5);
+    border-radius: var(--home-radius-md);
+  }
+
+  .home-button {
+    width: 100%;
+    min-height: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-card--interactive,
+  .home-button,
+  .home-reveal--prepared {
+    transition-duration: 1ms;
+    transition-delay: 0ms;
+  }
+
+  .home-card--interactive:hover,
+  .home-button:hover {
+    transform: none;
+  }
+
+  .home-reveal--prepared {
+    opacity: 1;
+    transform: none;
+  }
+}
