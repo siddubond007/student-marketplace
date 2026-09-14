@@ -90,15 +90,12 @@ export default function HomeDualPerspective() {
   const selectPerspective = (next) => {
     if (next === active || transition) return;
 
-    setTransition({
-      next,
-      direction: next === 'student' ? 'forward' : 'backward',
-    });
+    setTransition({ next });
 
     window.setTimeout(() => {
       setActive(next);
       setTransition(null);
-    }, 760);
+    }, 460);
   };
 
   return (
@@ -140,20 +137,21 @@ export default function HomeDualPerspective() {
       </div>
 
       <div className="home-dual__stage">
-        <div
-          className={`home-dual__card ${transition ? `is-transitioning is-${transition.direction}` : ''}`}
-          aria-live="polite"
-        >
+        <div className="home-dual__card" aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
-          <div className="home-dual__card-sheen" aria-hidden="true" />
-          <div className="home-dual__card-orbit" aria-hidden="true" />
+          <div className={`home-dual__card-sheen ${transition ? 'is-active' : ''}`} aria-hidden="true" />
+          <div className={`home-dual__card-orbit ${transition ? 'is-active' : ''}`} aria-hidden="true" />
 
           <PerspectiveContent
             perspective={current}
             className={transition ? 'is-outgoing' : ''}
           />
+
           {incoming && (
-            <PerspectiveContent perspective={incoming} className="is-incoming" />
+            <PerspectiveContent
+              perspective={incoming}
+              className="is-incoming"
+            />
           )}
         </div>
       </div>
