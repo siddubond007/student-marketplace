@@ -154,7 +154,7 @@
 }
 
 .home-dual__card.is-transitioning {
-  animation: homeDualGlobeShift 760ms cubic-bezier(0.22, 0.7, 0.22, 1) both;
+  animation: homeDualShellDissolve 760ms cubic-bezier(0.2, 0.72, 0.2, 1) both;
 }
 
 .home-dual__card-content {
@@ -163,7 +163,8 @@
 }
 
 .home-dual__card-content.is-outgoing {
-  animation: homeDualContentOut 360ms cubic-bezier(0.4, 0, 0.8, 0.2) both;
+  pointer-events: none;
+  animation: homeDualDissolveOut 420ms cubic-bezier(0.55, 0, 0.85, 0.25) both;
 }
 
 .home-dual__card-content.is-incoming {
@@ -171,7 +172,7 @@
   inset: 2rem;
   z-index: 4;
   pointer-events: auto;
-  animation: homeDualContentIn 520ms cubic-bezier(0.18, 0.68, 0.22, 1) 300ms both;
+  animation: homeDualDissolveIn 520ms cubic-bezier(0.16, 0.7, 0.2, 1) 230ms both;
 }
 
 .home-dual__card-glow {
@@ -191,7 +192,7 @@
   z-index: 3;
   inset: -20% -35%;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 37%, rgba(235, 247, 255, 0.045) 48%, rgba(235, 247, 255, 0.095) 50%, rgba(235, 247, 255, 0.04) 52%, transparent 63%);
+  background: linear-gradient(105deg, transparent 37%, rgba(235, 247, 255, 0.035) 48%, rgba(235, 247, 255, 0.08) 50%, rgba(235, 247, 255, 0.03) 52%, transparent 63%);
   transform: translateX(-72%);
   opacity: 0;
 }
@@ -207,10 +208,9 @@
   height: 54%;
   left: 17%;
   top: 23%;
-  border: 1px solid rgba(214, 235, 249, 0.075);
+  border: 1px solid rgba(214, 235, 249, 0.065);
   border-radius: 50%;
   transform: rotate(-8deg) scaleX(0.78);
-  box-shadow: 0 0 50px rgba(170, 209, 235, 0.03);
   opacity: 0;
   pointer-events: none;
 }
@@ -363,48 +363,99 @@
   background: rgba(211, 232, 246, 0.35);
 }
 
-@keyframes homeDualGlobeShift {
-  0% {
-    transform: translateX(0) rotateY(0deg) scale(1);
+@keyframes homeDualShellDissolve {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 28px 80px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.025);
   }
-  32% {
-    transform: translateX(-12px) rotateY(-7deg) scale(0.992);
-  }
-  62% {
-    transform: translateX(10px) rotateY(7deg) scale(0.992);
-  }
-  100% {
-    transform: translateX(0) rotateY(0deg) scale(1);
+  50% {
+    transform: scale(0.995);
+    box-shadow:
+      0 32px 88px rgba(0, 0, 0, 0.46),
+      inset 0 1px 0 rgba(255, 255, 255, 0.035);
   }
 }
 
-@keyframes homeDualContentOut {
+@keyframes homeDualDissolveOut {
   0% {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
     filter: blur(0);
   }
+  55% {
+    opacity: 0.35;
+    transform: translate3d(-8px, -2px, 0) scale(0.992);
+    filter: blur(3px);
+  }
   100% {
     opacity: 0;
-    transform: translateX(-22px) scale(0.985);
-    filter: blur(5px);
+    transform: translate3d(-14px, -4px, 0) scale(0.985);
+    filter: blur(7px);
   }
 }
 
-@keyframes homeDualContentIn {
+@keyframes homeDualDissolveIn {
   0% {
     opacity: 0;
-    transform: translateX(28px) translateY(8px) scale(0.985);
+    transform: translate3d(14px, 5px, 0) scale(0.985);
     filter: blur(7px);
   }
-  45% {
-    opacity: 0.62;
-    transform: translateX(9px) translateY(2px) scale(0.995);
-    filter: blur(2.5px);
+  38% {
+    opacity: 0.3;
+    transform: translate3d(7px, 2px, 0) scale(0.992);
+    filter: blur(4px);
+  }
+  72% {
+    opacity: 0.78;
+    transform: translate3d(2px, 0, 0) scale(0.998);
+    filter: blur(1.4px);
   }
   100% {
     opacity: 1;
-    transform: translateX(0) translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.home-dual__card-content.is-incoming .home-dual__card-top {
+  animation: homeDualElementIn 360ms ease-out 300ms both;
+}
+
+.home-dual__card-content.is-incoming .home-dual__card-body h3 {
+  animation: homeDualElementIn 440ms cubic-bezier(0.18, 0.72, 0.22, 1) 335ms both;
+}
+
+.home-dual__card-content.is-incoming .home-dual__card-body > p {
+  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) 385ms both;
+}
+
+.home-dual__card-content.is-incoming .home-dual__item {
+  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) both;
+}
+
+.home-dual__card-content.is-incoming .home-dual__item:nth-child(1) { animation-delay: 435ms; }
+.home-dual__card-content.is-incoming .home-dual__item:nth-child(2) { animation-delay: 485ms; }
+.home-dual__card-content.is-incoming .home-dual__item:nth-child(3) { animation-delay: 535ms; }
+
+.home-dual__card-content.is-incoming .home-dual__cta {
+  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) 590ms both;
+}
+
+.home-dual__card-content.is-incoming .home-dual__card-footer {
+  animation: homeDualElementIn 400ms ease-out 620ms both;
+}
+
+@keyframes homeDualElementIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
     filter: blur(0);
   }
 }
@@ -414,11 +465,11 @@
     transform: translateX(-72%);
     opacity: 0;
   }
-  30% {
-    opacity: 0.18;
+  28% {
+    opacity: 0.12;
   }
-  55% {
-    opacity: 0.35;
+  54% {
+    opacity: 0.28;
   }
   100% {
     transform: translateX(72%);
@@ -429,19 +480,19 @@
 @keyframes homeDualOrbit {
   0% {
     opacity: 0;
-    transform: rotate(-8deg) scaleX(0.78) scale(0.92);
+    transform: rotate(-8deg) scaleX(0.78) scale(0.94);
   }
-  35% {
-    opacity: 0.16;
-    transform: rotate(-2deg) scaleX(0.78) scale(1.04);
+  38% {
+    opacity: 0.1;
+    transform: rotate(-3deg) scaleX(0.78) scale(1.02);
   }
-  62% {
-    opacity: 0.26;
-    transform: rotate(5deg) scaleX(0.78) scale(1.07);
+  64% {
+    opacity: 0.17;
+    transform: rotate(4deg) scaleX(0.78) scale(1.05);
   }
   100% {
     opacity: 0;
-    transform: rotate(9deg) scaleX(0.78) scale(0.96);
+    transform: rotate(8deg) scaleX(0.78) scale(0.97);
   }
 }
 
@@ -496,6 +547,12 @@
   .home-dual__card.is-transitioning,
   .home-dual__card-content.is-outgoing,
   .home-dual__card-content.is-incoming,
+  .home-dual__card-content.is-incoming .home-dual__card-top,
+  .home-dual__card-content.is-incoming .home-dual__card-body h3,
+  .home-dual__card-content.is-incoming .home-dual__card-body > p,
+  .home-dual__card-content.is-incoming .home-dual__item,
+  .home-dual__card-content.is-incoming .home-dual__cta,
+  .home-dual__card-content.is-incoming .home-dual__card-footer,
   .home-dual__card-sheen,
   .home-dual__card-orbit {
     animation: none !important;
@@ -506,6 +563,17 @@
   }
 
   .home-dual__card-content.is-incoming {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+
+  .home-dual__card-content.is-incoming .home-dual__card-top,
+  .home-dual__card-content.is-incoming .home-dual__card-body h3,
+  .home-dual__card-content.is-incoming .home-dual__card-body > p,
+  .home-dual__card-content.is-incoming .home-dual__item,
+  .home-dual__card-content.is-incoming .home-dual__cta,
+  .home-dual__card-content.is-incoming .home-dual__card-footer {
     opacity: 1;
     filter: none;
     transform: none;
