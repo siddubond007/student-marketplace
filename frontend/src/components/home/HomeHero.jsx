@@ -31,9 +31,14 @@ function makeStar(width, height) {
   else if (colorRoll > 0.84) color = 'blue';
   else if (colorRoll > 0.71) color = 'ice';
 
+  const x = Math.random() * width;
+  const y = Math.random() * height;
+
   return {
-    x: Math.random() * width,
-    y: Math.random() * height,
+    x,
+    y,
+    homeX: x,
+    homeY: y,
     radius: randomBetween(0.35, 1.5),
     alpha: randomBetween(0.22, 0.92),
     phase: Math.random() * Math.PI * 2,
@@ -319,6 +324,7 @@ export default function HomeHero() {
     targetX: 0,
     targetY: 0,
     active: false,
+    lastMoveAt: 0,
   });
 
   useEffect(() => {
@@ -410,11 +416,10 @@ export default function HomeHero() {
       pointer.x = x;
       pointer.y = y;
       pointer.active = true;
+      pointer.lastMoveAt = performance.now();
     };
 
     const onPointerMove = (event) => {
-      const rect = hero.getBoundingClientRect();
-
       updateMilkyWay(event);
 
       trail.push({
@@ -538,6 +543,9 @@ export default function HomeHero() {
       ctx.fillStyle = dust;
       ctx.fillRect(0, 0, width, height);
 
+      const idleFor = performance.now() - pointer.lastMoveAt;
+      const releasingStars = pointer.active && idleFor >= 500;
+
       stars.forEach((star) => {
         if (!reducedMotion) {
           star.x += star.driftX;
@@ -551,7 +559,7 @@ export default function HomeHero() {
           if (pointer.active) {
             const d = distance(star, pointer);
 
-            if (d < 165) {
+            if (!releasingStars && d < 165) {
               const dx = pointer.x - star.x;
               const dy = pointer.y - star.y;
               const pull = (1 - d / 165) * 0.018;
@@ -559,6 +567,25 @@ export default function HomeHero() {
               star.x += dx * pull;
               star.y += dy * pull;
             }
+
+            if (releasingStars && d < 185) {
+              const safe = Math.max(d, 1);
+              const nx = (star.x - pointer.x) / safe;
+              const ny = (star.y - pointer.y) / safe;
+              const nearFactor = Math.max(0, 1 - d / 185);
+
+              star.x += nx * (2.2 + nearFactor * 5.2);
+              star.y += ny * (2.2 + nearFactor * 5.2);
+
+              star.x += (star.homeX - star.x) * 0.018;
+              star.y += (star.homeY - star.y) * 0.018;
+            } else if (!releasingStars) {
+              star.x += (star.homeX - star.x) * 0.0015;
+              star.y += (star.homeY - star.y) * 0.0015;
+            }
+          } else {
+            star.x += (star.homeX - star.x) * 0.0015;
+            star.y += (star.homeY - star.y) * 0.0015;
           }
         }
 
