@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import HomeHero from '../components/home/HomeHero';
+import HomeDualPerspective from '../components/home/HomeDualPerspective';
 import { 
   Sparkles, ShieldCheck, Flame, PlusCircle, FolderPlus, ArrowRight, Star, Zap, 
   Award, CheckCircle2, Play, Check, ArrowUpRight, Globe, Layers, PhoneCall,
@@ -27,38 +28,8 @@ export default function HomePage({ currentUser }) {
       {/* ─── 1. HERO SECTION ─── */}
       <HomeHero />
 
-      {/* ─── 2. "YEAR OF THE LAUNCH" 4-QUADRANT SHOWCASE (Screenshot 5) ─── */}
-      <section className="glass-panel p-8 sm:p-12 rounded-3xl border border-slate-800 space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <span className="text-xs font-black uppercase text-indigo-400 tracking-wider">Campaign Spotlight</span>
-            <h2 className="text-3xl font-black text-white mt-1">YEAR OF THE LAUNCH</h2>
-            <p className="text-xs text-slate-400">The year you finally launch your startup ideas with student builders.</p>
-          </div>
-          <Link to="/jobs" className="px-6 py-2.5 neon-airflow-btn text-white text-xs font-black rounded-xl shadow-lg self-start">
-            Launch Now &gt;
-          </Link>
-        </div>
-
-        {/* 4-Quadrant Visual Collage */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { title: '3D Mechanical Design', cost: '₹1,200', days: '4 days', img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80' },
-            { title: 'Watch Exploded Render', cost: '₹1,500', days: '3 days', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80' },
-            { title: 'Brand Packaging & Cups', cost: '₹800', days: '2 days', img: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=400&q=80' },
-            { title: 'Mobile App Figma UI', cost: '₹1,400', days: '3 days', img: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=400&q=80' }
-          ].map((item, idx) => (
-            <div key={idx} className="relative h-64 rounded-2xl overflow-hidden group border border-slate-800 shadow-xl">
-              <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-              <div className="absolute bottom-3 left-3 right-3">
-                <span className="text-xs font-black text-white block">{item.title}</span>
-                <span className="text-[10px] text-emerald-400 font-bold">Delivered for {item.cost} in {item.days}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ─── 2. DUAL PERSPECTIVE / WHY THIS PLATFORM ─── */}
+      <HomeDualPerspective />
 
       {/* ─── 3. "MAKE IT REAL" DUAL SMARTPHONE SHOWCASE (Screenshot 6) ─── */}
       <section className="glass-panel p-8 sm:p-14 rounded-3xl border border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
