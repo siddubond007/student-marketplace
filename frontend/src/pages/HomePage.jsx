@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import HomeHero from '../components/home/HomeHero';
 import { 
   Sparkles, ShieldCheck, Flame, PlusCircle, FolderPlus, ArrowRight, Star, Zap, 
   Award, CheckCircle2, Play, Check, ArrowUpRight, Globe, Layers, PhoneCall,
@@ -23,74 +24,8 @@ export default function HomePage({ currentUser }) {
   return (
     <div className="space-y-24 pb-20 -mt-4">
       
-      {/* ─── 1. HERO SECTION WITH VIDEO/CANVAS LOOP & PROJECT CALLOUT ─── */}
-      <section className="relative min-h-[640px] rounded-3xl overflow-hidden border border-slate-800/80 glass-panel flex flex-col justify-between p-8 sm:p-14 shadow-2xl">
-        
-        {/* Background Ambient Cyber Video Simulation */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent z-10" />
-          <img 
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1800&q=80" 
-            alt="Hero Background" 
-            className="w-full h-full object-cover opacity-35 scale-105 filter blur-[1px]"
-          />
-        </div>
-
-        {/* Hero Content Left */}
-        <div className="relative z-20 max-w-2xl space-y-6 pt-4">
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.1]">
-            Hire the best student freelancers for any project, online.
-          </h1>
-
-          <ul className="space-y-2.5 text-sm sm:text-base text-slate-300 font-medium">
-            <li className="flex items-center space-x-2.5">
-              <span className="w-2 h-2 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
-              <span>India's largest student freelancer network (Ages 16–26)</span>
-            </li>
-            <li className="flex items-center space-x-2.5">
-              <span className="w-2 h-2 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
-              <span>Any tech, design, editing, or writing task you can think of</span>
-            </li>
-            <li className="flex items-center space-x-2.5">
-              <span className="w-2 h-2 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
-              <span>Save up to 70% with hungry freshers & get bids in minutes</span>
-            </li>
-            <li className="flex items-center space-x-2.5">
-              <span className="w-2 h-2 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
-              <span>Pay safely with 5-Day Escrow only when you're 100% satisfied</span>
-            </li>
-          </ul>
-
-          <div className="flex flex-wrap gap-4 pt-4">
-            <Link 
-              to="/register"
-              className="px-8 py-4 bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white font-black text-sm rounded-2xl shadow-xl shadow-pink-600/30 transition transform hover:-translate-y-0.5"
-            >
-              Hire a Student
-            </Link>
-            <Link 
-              to="/register"
-              className="px-8 py-4 bg-slate-900/90 border border-slate-700 hover:border-white text-white font-black text-sm rounded-2xl transition"
-            >
-              Earn Money Freelancing
-            </Link>
-          </div>
-        </div>
-
-        {/* Dynamic Proof-of-Work Badge Bottom-Right (Screenshot 1) */}
-        <div className="relative z-20 self-end text-right pt-8">
-          <div className="inline-block p-4 glass-panel rounded-2xl border border-slate-700/60 shadow-2xl max-w-sm text-left">
-            <div className="flex items-center space-x-1 text-amber-400 font-bold text-xs mb-1">
-              <Star className="w-4 h-4 fill-amber-400" />
-              <span>5.0 Star Verified Work</span>
-            </div>
-            <h4 className="text-sm font-black text-white">Aarav J. <span className="text-slate-400 text-xs font-normal">@aarav_codes (IIT Madras)</span></h4>
-            <p className="text-xs text-slate-300 mt-1">
-              "This AI web app & PostgreSQL architecture cost ₹1,500 and took 3 days."
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* ─── 1. HERO SECTION ─── */}
+      <HomeHero />
 
       {/* ─── 2. "YEAR OF THE LAUNCH" 4-QUADRANT SHOWCASE (Screenshot 5) ─── */}
       <section className="glass-panel p-8 sm:p-12 rounded-3xl border border-slate-800 space-y-8">
