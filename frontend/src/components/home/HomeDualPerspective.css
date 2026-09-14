@@ -1,3 +1,4 @@
+/* HP-02 dual perspective — stable shell + soft dissolve/reveal */
 .home-dual {
   position: relative;
   display: grid;
@@ -98,10 +99,9 @@
   font-weight: 800;
   cursor: pointer;
   transition:
-    color 220ms ease,
-    background 220ms ease,
-    transform 220ms ease,
-    box-shadow 220ms ease;
+    color 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .home-dual__switch:disabled {
@@ -153,26 +153,29 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
+/* Keep the shell still. Only the contents dissolve/reveal. */
 .home-dual__card.is-transitioning {
-  animation: homeDualShellDissolve 760ms cubic-bezier(0.2, 0.72, 0.2, 1) both;
+  animation: none;
 }
 
 .home-dual__card-content {
   position: relative;
   z-index: 2;
+  will-change: opacity, transform, filter;
 }
 
 .home-dual__card-content.is-outgoing {
   pointer-events: none;
-  animation: homeDualDissolveOut 420ms cubic-bezier(0.55, 0, 0.85, 0.25) both;
+  animation: homeDualDissolveOut 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .home-dual__card-content.is-incoming {
   position: absolute;
   inset: 2rem;
   z-index: 4;
-  pointer-events: auto;
-  animation: homeDualDissolveIn 520ms cubic-bezier(0.16, 0.7, 0.2, 1) 230ms both;
+  pointer-events: none;
+  opacity: 0;
+  animation: homeDualDissolveIn 760ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
 }
 
 .home-dual__card-glow {
@@ -185,6 +188,7 @@
   background: radial-gradient(circle, rgba(179, 216, 240, 0.15), transparent 68%);
   filter: blur(14px);
   pointer-events: none;
+  transition: opacity 700ms ease;
 }
 
 .home-dual__card-sheen {
@@ -192,13 +196,13 @@
   z-index: 3;
   inset: -20% -35%;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 37%, rgba(235, 247, 255, 0.035) 48%, rgba(235, 247, 255, 0.08) 50%, rgba(235, 247, 255, 0.03) 52%, transparent 63%);
+  background: linear-gradient(105deg, transparent 39%, rgba(235, 247, 255, 0.025) 48%, rgba(235, 247, 255, 0.075) 50%, rgba(235, 247, 255, 0.025) 52%, transparent 61%);
   transform: translateX(-72%);
   opacity: 0;
 }
 
 .home-dual__card.is-transitioning .home-dual__card-sheen {
-  animation: homeDualSheen 760ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: homeDualSheen 980ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .home-dual__card-orbit {
@@ -208,7 +212,7 @@
   height: 54%;
   left: 17%;
   top: 23%;
-  border: 1px solid rgba(214, 235, 249, 0.065);
+  border: 1px solid rgba(214, 235, 249, 0.05);
   border-radius: 50%;
   transform: rotate(-8deg) scaleX(0.78);
   opacity: 0;
@@ -216,7 +220,7 @@
 }
 
 .home-dual__card.is-transitioning .home-dual__card-orbit {
-  animation: homeDualOrbit 760ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: homeDualOrbit 980ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .home-dual__card-top {
@@ -324,9 +328,9 @@
   font-weight: 800;
   text-decoration: none;
   transition:
-    transform 180ms ease,
-    background 180ms ease,
-    border-color 180ms ease;
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .home-dual__cta:hover {
@@ -363,99 +367,53 @@
   background: rgba(211, 232, 246, 0.35);
 }
 
-@keyframes homeDualShellDissolve {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow:
-      0 28px 80px rgba(0, 0, 0, 0.42),
-      inset 0 1px 0 rgba(255, 255, 255, 0.025);
-  }
-  50% {
-    transform: scale(0.995);
-    box-shadow:
-      0 32px 88px rgba(0, 0, 0, 0.46),
-      inset 0 1px 0 rgba(255, 255, 255, 0.035);
-  }
-}
-
 @keyframes homeDualDissolveOut {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
     filter: blur(0);
   }
-  55% {
-    opacity: 0.35;
-    transform: translate3d(-8px, -2px, 0) scale(0.992);
-    filter: blur(3px);
+  35% {
+    opacity: 0.82;
+    transform: translate3d(-3px, -1px, 0) scale(0.998);
+    filter: blur(1px);
+  }
+  72% {
+    opacity: 0.28;
+    transform: translate3d(-8px, -3px, 0) scale(0.992);
+    filter: blur(3.5px);
   }
   100% {
     opacity: 0;
-    transform: translate3d(-14px, -4px, 0) scale(0.985);
-    filter: blur(7px);
+    transform: translate3d(-12px, -4px, 0) scale(0.987);
+    filter: blur(6px);
   }
 }
 
 @keyframes homeDualDissolveIn {
   0% {
     opacity: 0;
-    transform: translate3d(14px, 5px, 0) scale(0.985);
-    filter: blur(7px);
+    transform: translate3d(10px, 5px, 0) scale(0.988);
+    filter: blur(6px);
   }
-  38% {
-    opacity: 0.3;
-    transform: translate3d(7px, 2px, 0) scale(0.992);
-    filter: blur(4px);
+  28% {
+    opacity: 0.12;
+    transform: translate3d(7px, 3px, 0) scale(0.992);
+    filter: blur(4.5px);
   }
-  72% {
-    opacity: 0.78;
-    transform: translate3d(2px, 0, 0) scale(0.998);
-    filter: blur(1.4px);
+  55% {
+    opacity: 0.46;
+    transform: translate3d(3px, 1px, 0) scale(0.997);
+    filter: blur(2px);
+  }
+  78% {
+    opacity: 0.82;
+    transform: translate3d(1px, 0, 0) scale(0.999);
+    filter: blur(0.8px);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0);
-  }
-}
-
-.home-dual__card-content.is-incoming .home-dual__card-top {
-  animation: homeDualElementIn 360ms ease-out 300ms both;
-}
-
-.home-dual__card-content.is-incoming .home-dual__card-body h3 {
-  animation: homeDualElementIn 440ms cubic-bezier(0.18, 0.72, 0.22, 1) 335ms both;
-}
-
-.home-dual__card-content.is-incoming .home-dual__card-body > p {
-  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) 385ms both;
-}
-
-.home-dual__card-content.is-incoming .home-dual__item {
-  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) both;
-}
-
-.home-dual__card-content.is-incoming .home-dual__item:nth-child(1) { animation-delay: 435ms; }
-.home-dual__card-content.is-incoming .home-dual__item:nth-child(2) { animation-delay: 485ms; }
-.home-dual__card-content.is-incoming .home-dual__item:nth-child(3) { animation-delay: 535ms; }
-
-.home-dual__card-content.is-incoming .home-dual__cta {
-  animation: homeDualElementIn 420ms cubic-bezier(0.18, 0.72, 0.22, 1) 590ms both;
-}
-
-.home-dual__card-content.is-incoming .home-dual__card-footer {
-  animation: homeDualElementIn 400ms ease-out 620ms both;
-}
-
-@keyframes homeDualElementIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-    filter: blur(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
     filter: blur(0);
   }
 }
@@ -466,10 +424,13 @@
     opacity: 0;
   }
   28% {
-    opacity: 0.12;
+    opacity: 0.08;
   }
-  54% {
-    opacity: 0.28;
+  52% {
+    opacity: 0.24;
+  }
+  74% {
+    opacity: 0.08;
   }
   100% {
     transform: translateX(72%);
@@ -480,19 +441,19 @@
 @keyframes homeDualOrbit {
   0% {
     opacity: 0;
-    transform: rotate(-8deg) scaleX(0.78) scale(0.94);
+    transform: rotate(-8deg) scaleX(0.78) scale(0.96);
   }
-  38% {
-    opacity: 0.1;
-    transform: rotate(-3deg) scaleX(0.78) scale(1.02);
+  40% {
+    opacity: 0.07;
+    transform: rotate(-2deg) scaleX(0.78) scale(1.01);
   }
-  64% {
-    opacity: 0.17;
-    transform: rotate(4deg) scaleX(0.78) scale(1.05);
+  62% {
+    opacity: 0.13;
+    transform: rotate(3deg) scaleX(0.78) scale(1.03);
   }
   100% {
     opacity: 0;
-    transform: rotate(8deg) scaleX(0.78) scale(0.97);
+    transform: rotate(7deg) scaleX(0.78) scale(0.98);
   }
 }
 
@@ -544,36 +505,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-dual__card.is-transitioning,
   .home-dual__card-content.is-outgoing,
   .home-dual__card-content.is-incoming,
-  .home-dual__card-content.is-incoming .home-dual__card-top,
-  .home-dual__card-content.is-incoming .home-dual__card-body h3,
-  .home-dual__card-content.is-incoming .home-dual__card-body > p,
-  .home-dual__card-content.is-incoming .home-dual__item,
-  .home-dual__card-content.is-incoming .home-dual__cta,
-  .home-dual__card-content.is-incoming .home-dual__card-footer,
   .home-dual__card-sheen,
   .home-dual__card-orbit {
     animation: none !important;
   }
 
   .home-dual__card-content.is-outgoing {
-    opacity: 0;
+    display: none;
   }
 
   .home-dual__card-content.is-incoming {
-    opacity: 1;
-    filter: none;
-    transform: none;
-  }
-
-  .home-dual__card-content.is-incoming .home-dual__card-top,
-  .home-dual__card-content.is-incoming .home-dual__card-body h3,
-  .home-dual__card-content.is-incoming .home-dual__card-body > p,
-  .home-dual__card-content.is-incoming .home-dual__item,
-  .home-dual__card-content.is-incoming .home-dual__cta,
-  .home-dual__card-content.is-incoming .home-dual__card-footer {
+    position: relative;
+    inset: auto;
     opacity: 1;
     filter: none;
     transform: none;
