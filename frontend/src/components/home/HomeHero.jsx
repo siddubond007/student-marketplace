@@ -314,7 +314,6 @@ export default function HomeHero() {
 
     const onPointerMove = (event) => {
       const rect = hero.getBoundingClientRect();
-
       pointer.targetX = event.clientX - rect.left;
       pointer.targetY = event.clientY - rect.top;
       pointer.active = true;
