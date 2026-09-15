@@ -114,10 +114,7 @@ export default function HomeDualPerspective() {
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <motion.div
-        className="home-dual__intro"
-        style={{ y: introY, opacity: introOpacity }}
-      >
+      <motion.div className="home-dual__intro" style={{ y: introY, opacity: introOpacity }}>
         <div className="home-dual__eyebrow" aria-label="Why this platform">
           <Sparkles aria-hidden="true" />
           <span className="home-dual__eyebrow-word">WHY</span>
@@ -134,45 +131,22 @@ export default function HomeDualPerspective() {
         </div>
       </motion.div>
 
-      <motion.div
-        className="home-dual__switcher"
-        role="group"
-        aria-label="Choose your perspective"
-        style={{ y: switcherY, opacity: switcherOpacity }}
-      >
-        <button
-          type="button"
-          className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
-          aria-pressed={active === 'client'}
-          onClick={() => setActive('client')}
-        >
+      <motion.div className="home-dual__switcher" role="group" aria-label="Choose your perspective" style={{ y: switcherY, opacity: switcherOpacity }}>
+        <button type="button" className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`} aria-pressed={active === 'client'} onClick={() => setActive('client')}>
           <BriefcaseBusiness aria-hidden="true" />
           <span>I’m Hiring</span>
         </button>
-
-        <button
-          type="button"
-          className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`}
-          aria-pressed={active === 'student'}
-          onClick={() => setActive('student')}
-        >
+        <button type="button" className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`} aria-pressed={active === 'student'} onClick={() => setActive('student')}>
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
         </button>
       </motion.div>
 
-      <motion.div
-        className="home-dual__stage"
-        style={{ y: stageY, opacity: stageOpacity, scale: stageScale }}
-      >
+      <motion.div className="home-dual__stage" style={{ y: stageY, opacity: stageOpacity, scale: stageScale }}>
         <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
-          <div className="home-dual__card-layer home-dual__card-layer--client">
-            <PerspectiveContent perspective={PERSPECTIVES.client} />
-          </div>
-          <div className="home-dual__card-layer home-dual__card-layer--student">
-            <PerspectiveContent perspective={PERSPECTIVES.student} />
-          </div>
+          <div className="home-dual__card-layer home-dual__card-layer--client"><PerspectiveContent perspective={PERSPECTIVES.client} /></div>
+          <div className="home-dual__card-layer home-dual__card-layer--student"><PerspectiveContent perspective={PERSPECTIVES.student} /></div>
         </div>
       </motion.div>
     </section>
