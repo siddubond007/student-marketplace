@@ -86,41 +86,40 @@ export default function HomeDualPerspective() {
   const sectionRef = useRef(null);
   const groupId = useId();
   const reduceMotion = useReducedMotion();
+
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start 92%', 'end 34%'],
   });
 
-  // One spring-smoothed progress value gives the reveal a continuous, liquid
-  // feel instead of directly snapping visual properties to wheel events.
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 78,
-    damping: 22,
-    mass: 0.82,
+    stiffness: 72,
+    damping: 24,
+    mass: 0.9,
     restSpeed: 0.001,
     restDelta: 0.001,
   });
 
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  const introY = useTransform(progress, [0, 0.14, 0.42], [150, 54, 0]);
-  const introOpacity = useTransform(progress, [0, 0.12, 0.30, 0.42], [0, 0.20, 0.82, 1]);
-  const introBlur = useTransform(progress, [0, 0.18, 0.38], ['7px', '2px', '0px']);
+  const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
+  const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
+  const introBlur = useTransform(progress, [0, 0.10, 0.26, 0.40], ['8px', '5px', '1.5px', '0px']);
 
-  const switcherY = useTransform(progress, [0.16, 0.28, 0.58], [130, 48, 0]);
-  const switcherOpacity = useTransform(progress, [0.16, 0.28, 0.48, 0.58], [0, 0.18, 0.82, 1]);
-  const switcherBlur = useTransform(progress, [0.16, 0.34, 0.54], ['5px', '1px', '0px']);
+  const switcherY = useTransform(progress, [0.16, 0.26, 0.42, 0.56], [135, 92, 28, 0]);
+  const switcherOpacity = useTransform(progress, [0.16, 0.24, 0.36, 0.52, 0.56], [0, 0.06, 0.32, 0.84, 1]);
+  const switcherBlur = useTransform(progress, [0.16, 0.26, 0.46, 0.56], ['6px', '4px', '1px', '0px']);
 
-  const stageY = useTransform(progress, [0.34, 0.48, 0.80], [220, 70, 0]);
-  const stageOpacity = useTransform(progress, [0.34, 0.48, 0.68, 0.80], [0, 0.14, 0.78, 1]);
-  const stageScale = useTransform(progress, [0.34, 0.80], [0.965, 1]);
-  const stageBlur = useTransform(progress, [0.34, 0.52, 0.74], ['7px', '2px', '0px']);
+  const stageY = useTransform(progress, [0.34, 0.46, 0.66, 0.86], [230, 150, 48, 0]);
+  const stageOpacity = useTransform(progress, [0.34, 0.44, 0.58, 0.78, 0.86], [0, 0.05, 0.28, 0.84, 1]);
+  const stageScale = useTransform(progress, [0.34, 0.56, 0.86], [0.965, 0.988, 1]);
+  const stageBlur = useTransform(progress, [0.34, 0.48, 0.72, 0.86], ['8px', '5px', '1px', '0px']);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
       <motion.div
         className="home-dual__intro"
-        style={{ y: introY, opacity: introOpacity, filter: `blur(${introBlur.get()})` }}
+        style={{ y: introY, opacity: introOpacity, filter: introBlur }}
       >
         <div className="home-dual__eyebrow">
           <Sparkles aria-hidden="true" />
@@ -137,7 +136,7 @@ export default function HomeDualPerspective() {
         className="home-dual__switcher"
         role="group"
         aria-label="Choose your perspective"
-        style={{ y: switcherY, opacity: switcherOpacity, filter: `blur(${switcherBlur.get()})` }}
+        style={{ y: switcherY, opacity: switcherOpacity, filter: switcherBlur }}
       >
         <button
           type="button"
@@ -162,7 +161,7 @@ export default function HomeDualPerspective() {
 
       <motion.div
         className="home-dual__stage"
-        style={{ y: stageY, opacity: stageOpacity, scale: stageScale, filter: `blur(${stageBlur.get()})` }}
+        style={{ y: stageY, opacity: stageOpacity, scale: stageScale, filter: stageBlur }}
       >
         <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
