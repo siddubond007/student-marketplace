@@ -31,21 +31,23 @@
   max-width: none;
   margin: 0;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  column-gap: clamp(3rem, 5vw, 6rem);
+  grid-template-columns: 340px minmax(0, 1fr);
+  column-gap: clamp(3.25rem, 5vw, 5.5rem);
   align-items: start;
 }
 
 .home-dual__rail {
   position: relative;
+  min-width: 0;
   min-height: 560px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: clamp(1.9rem, 2.8vw, 2.8rem);
+  gap: clamp(1.45rem, 2.1vw, 2.1rem);
   padding-top: 0.15rem;
   margin: 0;
+  overflow: visible;
   transform-origin: left top;
   will-change: transform, opacity;
 }
@@ -54,7 +56,7 @@
   content: "";
   position: absolute;
   left: 0.1rem;
-  top: 3.45rem;
+  top: 3.1rem;
   bottom: 0.2rem;
   width: 1px;
   background: linear-gradient(180deg, rgba(255, 207, 78, 0.22), rgba(255, 207, 78, 0));
@@ -67,7 +69,7 @@
   z-index: 1;
   width: 1.15rem;
   height: 1.15rem;
-  margin: 0 0 0.2rem 0.1rem;
+  margin: 0 0 0.05rem 0.1rem;
   color: #ffd05c;
   stroke: currentColor;
 }
@@ -76,11 +78,14 @@
   position: relative;
   z-index: 1;
   display: block;
+  width: max-content;
+  max-width: none;
+  overflow: visible;
   white-space: nowrap;
   font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif);
-  font-size: clamp(3.35rem, 4vw, 4.35rem);
-  line-height: 0.84;
-  letter-spacing: -0.06em;
+  font-size: clamp(3rem, 3.6vw, 3.9rem);
+  line-height: 0.86;
+  letter-spacing: -0.055em;
   font-weight: 950;
   text-align: left;
   background: linear-gradient(105deg, #fff3ad 0%, #ffd95f 26%, #ffb52d 49%, #fff1ab 71%, #ffbf38 100%);
@@ -245,14 +250,13 @@
 @media (max-width: 1100px) {
   .home-dual { padding-inline: 2rem; }
   .home-dual__layout { grid-template-columns: 230px minmax(0, 1fr); column-gap: 3rem; }
-  .home-dual__rail-word { font-size: clamp(2.75rem, 5vw, 3.8rem); }
-  .home-dual__main { width: 100%; }
+  .home-dual__rail-word { font-size: clamp(2.7rem, 4.6vw, 3.7rem); }
 }
 
 @media (max-width: 780px) {
   .home-dual { padding: 5.5rem 1rem 6rem; }
   .home-dual__layout { display: block; width: 100%; }
-  .home-dual__rail { min-height: 0; gap: 0.35rem; margin-bottom: 3.25rem; align-items: center; text-align: center; }
+  .home-dual__rail { min-height: 0; gap: 1rem; margin-bottom: 3.25rem; align-items: center; text-align: center; }
   .home-dual__rail::after { display: none; }
   .home-dual__rail svg { margin-bottom: 0.35rem; }
   .home-dual__rail-word { font-size: clamp(3.1rem, 12vw, 4.8rem); line-height: 0.88; }
