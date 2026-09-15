@@ -31,9 +31,6 @@
   opacity: 0.5;
 }
 
-/* Scroll-linked entrance: every group begins below its resting position.
-   Opacity is deliberately coupled to the rise so the content feels like it
-   emerges upward into the scene rather than simply fading in place. */
 .home-dual__intro {
   position: relative;
   z-index: 1;
@@ -84,6 +81,44 @@
   will-change: opacity, transform;
 }
 
+/* Real scroll-linked entrance for Chromium/Brave: the elements physically rise
+   from below as the user scrolls, rather than playing a one-shot entrance. */
+@supports (animation-timeline: view()) {
+  .home-dual__intro {
+    animation: home-dual-rise-intro 1s linear both;
+    animation-timeline: view(block);
+    animation-range: entry 0% entry 72%;
+  }
+
+  .home-dual__switcher {
+    animation: home-dual-rise-switcher 1s linear both;
+    animation-timeline: view(block);
+    animation-range: entry 18% entry 78%;
+  }
+
+  .home-dual__stage {
+    animation: home-dual-rise-stage 1s linear both;
+    animation-timeline: view(block);
+    animation-range: entry 32% entry 88%;
+  }
+
+  @keyframes home-dual-rise-intro {
+    from { opacity: 0; transform: translate3d(0, 170px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes home-dual-rise-switcher {
+    from { opacity: 0; transform: translate3d(0, 150px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes home-dual-rise-stage {
+    from { opacity: 0; transform: translate3d(0, 240px, 0) scale(0.94); }
+    65% { opacity: 0.92; transform: translate3d(0, 34px, 0) scale(0.988); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+}
+
 .home-dual__card {
   position: relative;
   display: grid;
@@ -96,8 +131,6 @@
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-/* Both perspectives stay mounted and occupy the exact same grid cell.
-   The grid row grows to the taller panel, so buttons/footers never clip. */
 .home-dual__card-layer {
   grid-area: 1 / 1;
   position: relative;
@@ -136,7 +169,7 @@
 @media (prefers-reduced-motion: reduce) {
   .home-dual__intro,
   .home-dual__switcher,
-  .home-dual__stage { opacity: 1; transform: none; }
+  .home-dual__stage { opacity: 1; transform: none; animation: none; }
   .home-dual__card-layer { transition: none; }
   .home-dual__card-layer--student,
   .home-dual__card.is-student .home-dual__card-layer--client { transform: none; filter: none; }
