@@ -102,6 +102,10 @@ export default function HomeDualPerspective() {
 
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
+  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-90, -52, -14, 0]);
+  const railOpacity = useTransform(progress, [0, 0.10, 0.24, 0.42, 0.52], [0, 0.08, 0.38, 0.82, 1]);
+  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.96, 0.985, 1]);
+
   const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
   const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
 
@@ -114,41 +118,52 @@ export default function HomeDualPerspective() {
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <motion.div className="home-dual__intro" style={{ y: introY, opacity: introOpacity }}>
-        <div className="home-dual__eyebrow" aria-label="Why this platform">
+      <div className="home-dual__layout">
+        <motion.aside
+          className="home-dual__rail"
+          aria-label="Why this platform"
+          style={{ x: railX, opacity: railOpacity, scale: railScale }}
+        >
           <Sparkles aria-hidden="true" />
-          <span className="home-dual__eyebrow-word">WHY</span>
-          <span className="home-dual__eyebrow-word">THIS</span>
-          <span className="home-dual__eyebrow-word">PLATFORM?</span>
-        </div>
+          <span className="home-dual__rail-word">WHY</span>
+          <span className="home-dual__rail-word">THIS</span>
+          <span className="home-dual__rail-word">PLATFORM?</span>
+        </motion.aside>
 
-        <div className="home-dual__intro-copy">
-          <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
-          <p>
-            Built for the people hiring for real needs and the students ready to
-            turn practical skills into meaningful opportunities.
-          </p>
-        </div>
-      </motion.div>
+        <div className="home-dual__main">
+          <motion.div className="home-dual__intro" style={{ y: introY, opacity: introOpacity }}>
+            <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
+            <p>
+              Built for the people hiring for real needs and the students ready to
+              turn practical skills into meaningful opportunities.
+            </p>
+          </motion.div>
 
-      <motion.div className="home-dual__switcher" role="group" aria-label="Choose your perspective" style={{ y: switcherY, opacity: switcherOpacity }}>
-        <button type="button" className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`} aria-pressed={active === 'client'} onClick={() => setActive('client')}>
-          <BriefcaseBusiness aria-hidden="true" />
-          <span>I’m Hiring</span>
-        </button>
-        <button type="button" className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`} aria-pressed={active === 'student'} onClick={() => setActive('student')}>
-          <GraduationCap aria-hidden="true" />
-          <span>I’m a Student</span>
-        </button>
-      </motion.div>
+          <motion.div
+            className="home-dual__switcher"
+            role="group"
+            aria-label="Choose your perspective"
+            style={{ y: switcherY, opacity: switcherOpacity }}
+          >
+            <button type="button" className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`} aria-pressed={active === 'client'} onClick={() => setActive('client')}>
+              <BriefcaseBusiness aria-hidden="true" />
+              <span>I’m Hiring</span>
+            </button>
+            <button type="button" className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`} aria-pressed={active === 'student'} onClick={() => setActive('student')}>
+              <GraduationCap aria-hidden="true" />
+              <span>I’m a Student</span>
+            </button>
+          </motion.div>
 
-      <motion.div className="home-dual__stage" style={{ y: stageY, opacity: stageOpacity, scale: stageScale }}>
-        <div className={`home-dual__card is-${active}`} aria-live="polite">
-          <div className="home-dual__card-glow" aria-hidden="true" />
-          <div className="home-dual__card-layer home-dual__card-layer--client"><PerspectiveContent perspective={PERSPECTIVES.client} /></div>
-          <div className="home-dual__card-layer home-dual__card-layer--student"><PerspectiveContent perspective={PERSPECTIVES.student} /></div>
+          <motion.div className="home-dual__stage" style={{ y: stageY, opacity: stageOpacity, scale: stageScale }}>
+            <div className={`home-dual__card is-${active}`} aria-live="polite">
+              <div className="home-dual__card-glow" aria-hidden="true" />
+              <div className="home-dual__card-layer home-dual__card-layer--client"><PerspectiveContent perspective={PERSPECTIVES.client} /></div>
+              <div className="home-dual__card-layer home-dual__card-layer--student"><PerspectiveContent perspective={PERSPECTIVES.student} /></div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }
