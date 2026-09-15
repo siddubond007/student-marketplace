@@ -104,41 +104,41 @@ export default function HomeDualPerspective() {
 
   const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
   const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
-  const introBlur = useTransform(progress, [0, 0.10, 0.26, 0.40], ['8px', '5px', '1.5px', '0px']);
 
   const switcherY = useTransform(progress, [0.14, 0.24, 0.38, 0.50], [135, 90, 25, 0]);
   const switcherOpacity = useTransform(progress, [0.14, 0.22, 0.34, 0.46, 0.50], [0, 0.06, 0.34, 0.86, 1]);
-  const switcherBlur = useTransform(progress, [0.14, 0.24, 0.40, 0.50], ['6px', '4px', '1px', '0px']);
 
-  // Start the content reveal earlier so the lower content is already meaningfully
-  // entering by the time the WHY THIS PLATFORM heading reaches the upper half.
   const stageY = useTransform(progress, [0.26, 0.36, 0.52, 0.72], [220, 125, 34, 0]);
   const stageOpacity = useTransform(progress, [0.26, 0.34, 0.46, 0.62, 0.72], [0, 0.06, 0.34, 0.86, 1]);
   const stageScale = useTransform(progress, [0.26, 0.48, 0.72], [0.965, 0.99, 1]);
-  const stageBlur = useTransform(progress, [0.26, 0.38, 0.58, 0.72], ['8px', '5px', '1px', '0px']);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
       <motion.div
         className="home-dual__intro"
-        style={{ y: introY, opacity: introOpacity, filter: introBlur }}
+        style={{ y: introY, opacity: introOpacity }}
       >
-        <div className="home-dual__eyebrow">
+        <div className="home-dual__eyebrow" aria-label="Why this platform">
           <Sparkles aria-hidden="true" />
-          <span>WHY THIS PLATFORM?</span>
+          <span className="home-dual__eyebrow-word">WHY</span>
+          <span className="home-dual__eyebrow-word">THIS</span>
+          <span className="home-dual__eyebrow-word">PLATFORM?</span>
         </div>
-        <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
-        <p>
-          Built for the people hiring for real needs and the students ready to
-          turn practical skills into meaningful opportunities.
-        </p>
+
+        <div className="home-dual__intro-copy">
+          <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
+          <p>
+            Built for the people hiring for real needs and the students ready to
+            turn practical skills into meaningful opportunities.
+          </p>
+        </div>
       </motion.div>
 
       <motion.div
         className="home-dual__switcher"
         role="group"
         aria-label="Choose your perspective"
-        style={{ y: switcherY, opacity: switcherOpacity, filter: switcherBlur }}
+        style={{ y: switcherY, opacity: switcherOpacity }}
       >
         <button
           type="button"
@@ -163,7 +163,7 @@ export default function HomeDualPerspective() {
 
       <motion.div
         className="home-dual__stage"
-        style={{ y: stageY, opacity: stageOpacity, scale: stageScale, filter: stageBlur }}
+        style={{ y: stageY, opacity: stageOpacity, scale: stageScale }}
       >
         <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
