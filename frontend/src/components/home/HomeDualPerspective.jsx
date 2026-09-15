@@ -89,9 +89,7 @@ export default function HomeDualPerspective() {
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    // Extend the timeline so the lower perspective content can finish its
-    // entrance only after the upper heading has naturally moved toward/out of view.
-    offset: ['start 92%', 'end 5%'],
+    offset: ['start 92%', 'end 34%'],
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
@@ -104,30 +102,46 @@ export default function HomeDualPerspective() {
 
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  const railX = useTransform(progress, [0, 0.14, 0.30, 0.48], [-90, -52, -14, 0]);
-  const railOpacity = useTransform(progress, [0, 0.08, 0.20, 0.38, 0.48], [0, 0.08, 0.38, 0.82, 1]);
-  const railScale = useTransform(progress, [0, 0.28, 0.48], [0.97, 0.985, 1]);
+  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-60, -32, -8, 0]);
+  const railOpacity = useTransform(progress, [0, 0.10, 0.24, 0.42, 0.52], [0, 0.08, 0.38, 0.82, 1]);
+  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.97, 0.99, 1]);
 
-  const introY = useTransform(progress, [0, 0.09, 0.22, 0.38], [150, 104, 32, 0]);
-  const introOpacity = useTransform(progress, [0, 0.07, 0.18, 0.32, 0.38], [0, 0.06, 0.32, 0.82, 1]);
+  const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
+  const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
 
-  const switcherY = useTransform(progress, [0.12, 0.23, 0.40, 0.58], [135, 88, 24, 0]);
-  const switcherOpacity = useTransform(progress, [0.12, 0.20, 0.32, 0.52, 0.58], [0, 0.06, 0.32, 0.86, 1]);
+  const switcherY = useTransform(progress, [0.14, 0.24, 0.38, 0.50], [135, 90, 25, 0]);
+  const switcherOpacity = useTransform(progress, [0.14, 0.22, 0.34, 0.46, 0.50], [0, 0.06, 0.34, 0.86, 1]);
 
-  // The lower content intentionally completes later than the heading and switcher.
-  // This lets the user keep scrolling until the main perspective is fully revealed,
-  // while the upper copy has already moved naturally out of the viewport.
-  const stageY = useTransform(progress, [0.30, 0.44, 0.68, 0.92], [220, 145, 42, 0]);
-  const stageOpacity = useTransform(progress, [0.30, 0.40, 0.58, 0.80, 0.92], [0, 0.06, 0.32, 0.86, 1]);
-  const stageScale = useTransform(progress, [0.30, 0.60, 0.92], [0.965, 0.99, 1]);
+  const stageY = useTransform(progress, [0.26, 0.36, 0.52, 0.72], [220, 125, 34, 0]);
+  const stageOpacity = useTransform(progress, [0.26, 0.34, 0.46, 0.62, 0.72], [0, 0.06, 0.34, 0.86, 1]);
+  const stageScale = useTransform(progress, [0.26, 0.48, 0.72], [0.965, 0.99, 1]);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <div className="home-dual__layout">
+      <div
+        className="home-dual__layout"
+        style={{
+          display: 'block',
+          width: '100%',
+          maxWidth: 'none',
+          margin: 0,
+          position: 'relative',
+        }}
+      >
         <motion.aside
           className="home-dual__rail"
           aria-label="Why this platform"
-          style={{ x: railX, opacity: railOpacity, scale: railScale }}
+          style={{
+            x: railX,
+            opacity: railOpacity,
+            scale: railScale,
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: 'min(270px, 20vw)',
+            minHeight: '560px',
+            gap: '2.1rem',
+          }}
         >
           <Sparkles aria-hidden="true" />
           <span className="home-dual__rail-word">WHY</span>
@@ -135,7 +149,13 @@ export default function HomeDualPerspective() {
           <span className="home-dual__rail-word">PLATFORM?</span>
         </motion.aside>
 
-        <div className="home-dual__main">
+        <div
+          className="home-dual__main"
+          style={{
+            width: 'min(900px, calc(100% - 320px))',
+            margin: '0 auto',
+          }}
+        >
           <motion.div className="home-dual__intro" style={{ y: introY, opacity: introOpacity }}>
             <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
             <p>
@@ -144,12 +164,7 @@ export default function HomeDualPerspective() {
             </p>
           </motion.div>
 
-          <motion.div
-            className="home-dual__switcher"
-            role="group"
-            aria-label="Choose your perspective"
-            style={{ y: switcherY, opacity: switcherOpacity }}
-          >
+          <motion.div className="home-dual__switcher" role="group" aria-label="Choose your perspective" style={{ y: switcherY, opacity: switcherOpacity }}>
             <button type="button" className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`} aria-pressed={active === 'client'} onClick={() => setActive('client')}>
               <BriefcaseBusiness aria-hidden="true" />
               <span>I’m Hiring</span>
