@@ -1,5 +1,8 @@
 /* HP-02 dual perspective — stable shell + permanent dual-layer crossfade */
 .home-dual {
+  --home-dual-reveal-intro: 0;
+  --home-dual-reveal-switcher: 0;
+  --home-dual-reveal-stage: 0;
   position: relative;
   display: grid;
   gap: 2.25rem;
@@ -28,13 +31,36 @@
   opacity: 0.5;
 }
 
-.home-dual__intro { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; text-align: center; }
+.home-dual__intro {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
+  opacity: var(--home-dual-reveal-intro);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-intro)) * 74px), 0);
+}
+
 .home-dual__eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: #bcd3e6; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; }
 .home-dual__eyebrow svg { width: 0.95rem; height: 0.95rem; }
 .home-dual__intro h2 { margin: 0.85rem 0 0; color: #f5f8fc; font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif); font-size: clamp(2.25rem, 4.3vw, 4.2rem); line-height: 1.02; letter-spacing: -0.045em; font-weight: 900; text-wrap: balance; }
 .home-dual__intro p { max-width: 650px; margin: 1rem auto 0; color: #aebdca; font-size: 1rem; line-height: 1.75; }
 
-.home-dual__switcher { position: relative; z-index: 2; display: inline-flex; justify-self: center; gap: 0.45rem; padding: 0.38rem; border: 1px solid rgba(191, 213, 231, 0.14); border-radius: 1.1rem; background: rgba(8, 17, 28, 0.72); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02); }
+.home-dual__switcher {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  justify-self: center;
+  gap: 0.45rem;
+  padding: 0.38rem;
+  border: 1px solid rgba(191, 213, 231, 0.14);
+  border-radius: 1.1rem;
+  background: rgba(8, 17, 28, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  opacity: var(--home-dual-reveal-switcher);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-switcher)) * 62px), 0);
+}
+
 .home-dual__switch { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-width: 10.5rem; padding: 0.76rem 1rem; border: 0; border-radius: 0.82rem; background: transparent; color: #93a6b6; font: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: color 220ms ease, background 220ms ease, box-shadow 220ms ease; }
 .home-dual__switch:disabled { cursor: default; }
 .home-dual__switch svg { width: 1rem; height: 1rem; }
@@ -42,7 +68,14 @@
 .home-dual__switch:focus-visible { outline: 3px solid rgba(220, 236, 255, 0.85); outline-offset: 2px; }
 .home-dual__switch.is-active { color: #07121e; background: #dceeff; box-shadow: 0 8px 24px rgba(178, 211, 238, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7); }
 
-.home-dual__stage { position: relative; z-index: 1; display: flex; justify-content: center; }
+.home-dual__stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  opacity: var(--home-dual-reveal-stage);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-stage)) * 88px), 0);
+}
 
 .home-dual__card {
   position: relative;
@@ -94,6 +127,9 @@
 .home-dual__footer-line { width: 2.2rem; height: 1px; background: rgba(211, 232, 246, 0.35); }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-dual__intro,
+  .home-dual__switcher,
+  .home-dual__stage { opacity: 1; transform: none; }
   .home-dual__card-layer { transition: none; }
   .home-dual__card-layer--student,
   .home-dual__card.is-student .home-dual__card-layer--client { transform: none; filter: none; }
