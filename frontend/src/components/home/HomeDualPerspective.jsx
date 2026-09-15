@@ -102,9 +102,9 @@ export default function HomeDualPerspective() {
 
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-60, -32, -8, 0]);
+  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-56, -30, -8, 0]);
   const railOpacity = useTransform(progress, [0, 0.10, 0.24, 0.42, 0.52], [0, 0.08, 0.38, 0.82, 1]);
-  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.97, 0.99, 1]);
+  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.98, 0.995, 1]);
 
   const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
   const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
@@ -118,30 +118,67 @@ export default function HomeDualPerspective() {
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <div
-        className="home-dual__layout"
-        style={{
-          display: 'block',
-          width: '100%',
-          maxWidth: 'none',
-          margin: 0,
-          position: 'relative',
-        }}
-      >
+      <style>{`
+        .home-dual__layout {
+          display: block !important;
+          position: relative !important;
+          width: 100% !important;
+          max-width: none !important;
+          margin: 0 !important;
+        }
+        .home-dual__rail {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 255px !important;
+          min-width: 0 !important;
+          min-height: 560px !important;
+          gap: 1.65rem !important;
+          padding-top: 0 !important;
+          margin: 0 !important;
+          overflow: visible !important;
+        }
+        .home-dual__rail-word {
+          width: max-content !important;
+          max-width: none !important;
+          font-size: clamp(3.15rem, 3.8vw, 3.9rem) !important;
+          line-height: 0.86 !important;
+          letter-spacing: -0.055em !important;
+        }
+        .home-dual__main {
+          width: min(900px, calc(100% - 2rem)) !important;
+          max-width: 900px !important;
+          margin: 0 auto !important;
+        }
+        .home-dual__intro-copy { width: 100%; }
+        @media (max-width: 780px) {
+          .home-dual__rail {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            width: auto !important;
+            min-height: 0 !important;
+            gap: 1rem !important;
+            margin: 0 0 3rem !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+          .home-dual__rail-word {
+            font-size: clamp(3rem, 12vw, 4.5rem) !important;
+            line-height: 0.88 !important;
+          }
+          .home-dual__main {
+            width: 100% !important;
+            max-width: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="home-dual__layout">
         <motion.aside
           className="home-dual__rail"
           aria-label="Why this platform"
-          style={{
-            x: railX,
-            opacity: railOpacity,
-            scale: railScale,
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: 'min(270px, 20vw)',
-            minHeight: '560px',
-            gap: '2.1rem',
-          }}
+          style={{ x: railX, opacity: railOpacity, scale: railScale }}
         >
           <Sparkles aria-hidden="true" />
           <span className="home-dual__rail-word">WHY</span>
@@ -149,22 +186,23 @@ export default function HomeDualPerspective() {
           <span className="home-dual__rail-word">PLATFORM?</span>
         </motion.aside>
 
-        <div
-          className="home-dual__main"
-          style={{
-            width: 'min(900px, calc(100% - 320px))',
-            margin: '0 auto',
-          }}
-        >
+        <div className="home-dual__main">
           <motion.div className="home-dual__intro" style={{ y: introY, opacity: introOpacity }}>
-            <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
-            <p>
-              Built for the people hiring for real needs and the students ready to
-              turn practical skills into meaningful opportunities.
-            </p>
+            <div className="home-dual__intro-copy">
+              <h2 id={`${groupId}-title`}>One marketplace. Two ways to grow.</h2>
+              <p>
+                Built for the people hiring for real needs and the students ready to
+                turn practical skills into meaningful opportunities.
+              </p>
+            </div>
           </motion.div>
 
-          <motion.div className="home-dual__switcher" role="group" aria-label="Choose your perspective" style={{ y: switcherY, opacity: switcherOpacity }}>
+          <motion.div
+            className="home-dual__switcher"
+            role="group"
+            aria-label="Choose your perspective"
+            style={{ y: switcherY, opacity: switcherOpacity }}
+          >
             <button type="button" className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`} aria-pressed={active === 'client'} onClick={() => setActive('client')}>
               <BriefcaseBusiness aria-hidden="true" />
               <span>I’m Hiring</span>
