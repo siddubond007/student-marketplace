@@ -98,19 +98,27 @@ export default function HomeDualPerspective() {
     }
 
     let frame = 0;
+    let rafStarted = false;
 
     const clamp = (value) => Math.min(1, Math.max(0, value));
     const easeOut = (value) => 1 - Math.pow(1 - value, 3);
 
     const updateReveal = () => {
       frame = 0;
+      rafStarted = false;
+
       const rect = section.getBoundingClientRect();
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      const progress = clamp((viewportHeight * 0.9 - rect.top) / (viewportHeight * 0.78));
 
-      const intro = easeOut(clamp(progress / 0.42));
+      // Begin revealing while the section is still mostly below the viewport,
+      // then finish as the section rises through the viewport. This makes the
+      // reveal respond to every scroll amount instead of relying on a one-shot
+      // intersection event.
+      const progress = clamp((viewportHeight * 0.96 - rect.top) / (viewportHeight * 1.05));
+
+      const intro = easeOut(clamp(progress / 0.44));
       const switcher = easeOut(clamp((progress - 0.16) / 0.30));
-      const stage = easeOut(clamp((progress - 0.30) / 0.50));
+      const stage = easeOut(clamp((progress - 0.32) / 0.56));
 
       section.style.setProperty('--home-dual-reveal-intro', intro.toFixed(4));
       section.style.setProperty('--home-dual-reveal-switcher', switcher.toFixed(4));
@@ -118,14 +126,22 @@ export default function HomeDualPerspective() {
     };
 
     const requestUpdate = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateReveal);
+      if (rafStarted) return;
+      rafStarted = true;
+      frame = window.requestAnimationFrame(updateReveal);
     };
 
-    updateReveal();
+    // Capture scroll events at document level as well as window level so the
+    // reveal still follows the user's scroll when the app uses a nested scroll
+    // container.
+    document.addEventListener('scroll', requestUpdate, { passive: true, capture: true });
     window.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', requestUpdate);
 
+    updateReveal();
+
     return () => {
+      document.removeEventListener('scroll', requestUpdate, true);
       window.removeEventListener('scroll', requestUpdate);
       window.removeEventListener('resize', requestUpdate);
       if (frame) window.cancelAnimationFrame(frame);
