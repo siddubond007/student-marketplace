@@ -31,6 +31,9 @@
   opacity: 0.5;
 }
 
+/* Scroll-linked entrance: every group begins below its resting position.
+   Opacity is deliberately coupled to the rise so the content feels like it
+   emerges upward into the scene rather than simply fading in place. */
 .home-dual__intro {
   position: relative;
   z-index: 1;
@@ -38,7 +41,8 @@
   margin: 0 auto;
   text-align: center;
   opacity: var(--home-dual-reveal-intro);
-  transform: translate3d(0, calc((1 - var(--home-dual-reveal-intro)) * 74px), 0);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-intro)) * 150px), 0);
+  will-change: opacity, transform;
 }
 
 .home-dual__eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: #bcd3e6; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; }
@@ -58,7 +62,8 @@
   background: rgba(8, 17, 28, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   opacity: var(--home-dual-reveal-switcher);
-  transform: translate3d(0, calc((1 - var(--home-dual-reveal-switcher)) * 62px), 0);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-switcher)) * 170px), 0);
+  will-change: opacity, transform;
 }
 
 .home-dual__switch { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-width: 10.5rem; padding: 0.76rem 1rem; border: 0; border-radius: 0.82rem; background: transparent; color: #93a6b6; font: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: color 220ms ease, background 220ms ease, box-shadow 220ms ease; }
@@ -74,7 +79,9 @@
   display: flex;
   justify-content: center;
   opacity: var(--home-dual-reveal-stage);
-  transform: translate3d(0, calc((1 - var(--home-dual-reveal-stage)) * 88px), 0);
+  transform: translate3d(0, calc((1 - var(--home-dual-reveal-stage)) * 230px), 0) scale(calc(0.965 + (0.035 * var(--home-dual-reveal-stage))));
+  transform-origin: center top;
+  will-change: opacity, transform;
 }
 
 .home-dual__card {
