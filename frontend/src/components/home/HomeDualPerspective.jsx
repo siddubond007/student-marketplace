@@ -106,14 +106,16 @@ export default function HomeDualPerspective() {
   const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
   const introBlur = useTransform(progress, [0, 0.10, 0.26, 0.40], ['8px', '5px', '1.5px', '0px']);
 
-  const switcherY = useTransform(progress, [0.16, 0.26, 0.42, 0.56], [135, 92, 28, 0]);
-  const switcherOpacity = useTransform(progress, [0.16, 0.24, 0.36, 0.52, 0.56], [0, 0.06, 0.32, 0.84, 1]);
-  const switcherBlur = useTransform(progress, [0.16, 0.26, 0.46, 0.56], ['6px', '4px', '1px', '0px']);
+  const switcherY = useTransform(progress, [0.14, 0.24, 0.38, 0.50], [135, 90, 25, 0]);
+  const switcherOpacity = useTransform(progress, [0.14, 0.22, 0.34, 0.46, 0.50], [0, 0.06, 0.34, 0.86, 1]);
+  const switcherBlur = useTransform(progress, [0.14, 0.24, 0.40, 0.50], ['6px', '4px', '1px', '0px']);
 
-  const stageY = useTransform(progress, [0.34, 0.46, 0.66, 0.86], [230, 150, 48, 0]);
-  const stageOpacity = useTransform(progress, [0.34, 0.44, 0.58, 0.78, 0.86], [0, 0.05, 0.28, 0.84, 1]);
-  const stageScale = useTransform(progress, [0.34, 0.56, 0.86], [0.965, 0.988, 1]);
-  const stageBlur = useTransform(progress, [0.34, 0.48, 0.72, 0.86], ['8px', '5px', '1px', '0px']);
+  // Start the content reveal earlier so the lower content is already meaningfully
+  // entering by the time the WHY THIS PLATFORM heading reaches the upper half.
+  const stageY = useTransform(progress, [0.26, 0.36, 0.52, 0.72], [220, 125, 34, 0]);
+  const stageOpacity = useTransform(progress, [0.26, 0.34, 0.46, 0.62, 0.72], [0, 0.06, 0.34, 0.86, 1]);
+  const stageScale = useTransform(progress, [0.26, 0.48, 0.72], [0.965, 0.99, 1]);
+  const stageBlur = useTransform(progress, [0.26, 0.38, 0.58, 0.72], ['8px', '5px', '1px', '0px']);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
