@@ -1,4 +1,4 @@
-/* HP-02 dual perspective — normal section + staged scroll reveal */
+/* HP-02 dual perspective — normal section + smooth staged scroll reveal */
 .home-dual {
   position: relative;
   display: grid;
@@ -11,6 +11,8 @@
     radial-gradient(circle at 78% 18%, rgba(90, 135, 172, 0.08), transparent 34%),
     radial-gradient(circle at 18% 82%, rgba(126, 162, 190, 0.045), transparent 32%),
     rgba(2, 8, 17, 0.54);
+  view-timeline-name: --home-dual-view;
+  view-timeline-axis: block;
 }
 
 .home-dual::before {
@@ -25,12 +27,15 @@
   opacity: 0.32;
 }
 
-/* Each major region has its own viewport timeline. The user must actually
-   scroll to that region before its entrance begins. */
+/* One shared timeline controls the sequence. This keeps the entrance smooth,
+   reversible, and tied directly to the user's scroll rather than to a timer. */
 .home-dual__intro,
 .home-dual__switcher,
 .home-dual__stage {
-  view-timeline-axis: block;
+  animation-duration: 1s;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --home-dual-view;
 }
 
 .home-dual__intro {
@@ -39,11 +44,8 @@
   max-width: 760px;
   margin: 0 auto;
   text-align: center;
-  opacity: 0;
-  transform: translate3d(0, 120px, 0);
-  animation: home-dual-region-rise 1s linear both;
-  animation-timeline: view(block);
-  animation-range: entry 0% cover 48%;
+  animation-name: home-dual-intro-reveal;
+  animation-range: entry 0% cover 36%;
 }
 
 .home-dual__eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: #bcd3e6; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; }
@@ -62,14 +64,12 @@
   border-radius: 1.1rem;
   background: rgba(8, 17, 28, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-  opacity: 0;
-  transform: translate3d(0, 105px, 0);
-  animation: home-dual-region-rise 1s linear both;
-  animation-timeline: view(block);
-  animation-range: entry 4% cover 44%;
+  animation-name: home-dual-switcher-reveal;
+  animation-range: entry 17% cover 49%;
 }
 
 .home-dual__switch { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-width: 10.5rem; padding: 0.76rem 1rem; border: 0; border-radius: 0.82rem; background: transparent; color: #93a6b6; font: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: color 220ms ease, background 220ms ease, box-shadow 220ms ease; }
+.home-dual__switch:disabled { cursor: default; }
 .home-dual__switch svg { width: 1rem; height: 1rem; }
 .home-dual__switch:hover:not(:disabled) { color: #eaf3fa; }
 .home-dual__switch:focus-visible { outline: 3px solid rgba(220, 236, 255, 0.85); outline-offset: 2px; }
@@ -80,29 +80,36 @@
   z-index: 1;
   display: flex;
   justify-content: center;
-  opacity: 0;
-  transform: translate3d(0, 180px, 0);
-  animation: home-dual-stage-rise 1s linear both;
-  animation-timeline: view(block);
-  animation-range: entry 2% cover 52%;
+  animation-name: home-dual-stage-reveal;
+  animation-range: entry 34% cover 72%;
 }
 
-@keyframes home-dual-region-rise {
-  from { opacity: 0; transform: translate3d(0, 120px, 0); }
-  55% { opacity: 0.58; transform: translate3d(0, 48px, 0); }
-  82% { opacity: 0.90; transform: translate3d(0, 14px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+@keyframes home-dual-intro-reveal {
+  0% { opacity: 0; transform: translate3d(0, 120px, 0); }
+  35% { opacity: 0.28; transform: translate3d(0, 78px, 0); }
+  68% { opacity: 0.78; transform: translate3d(0, 26px, 0); }
+  88% { opacity: 0.96; transform: translate3d(0, 6px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
-@keyframes home-dual-stage-rise {
-  from { opacity: 0; transform: translate3d(0, 180px, 0); }
-  50% { opacity: 0.52; transform: translate3d(0, 72px, 0); }
-  80% { opacity: 0.88; transform: translate3d(0, 20px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+@keyframes home-dual-switcher-reveal {
+  0% { opacity: 0; transform: translate3d(0, 105px, 0); }
+  38% { opacity: 0.22; transform: translate3d(0, 77px, 0); }
+  70% { opacity: 0.76; transform: translate3d(0, 27px, 0); }
+  90% { opacity: 0.96; transform: translate3d(0, 5px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
-/* The old card shell is intentionally removed. The perspective content now
-   sits directly in the section as a normal content area. */
+@keyframes home-dual-stage-reveal {
+  0% { opacity: 0; transform: translate3d(0, 190px, 0) scale(0.965); }
+  34% { opacity: 0.16; transform: translate3d(0, 152px, 0) scale(0.968); }
+  58% { opacity: 0.48; transform: translate3d(0, 92px, 0) scale(0.978); }
+  78% { opacity: 0.82; transform: translate3d(0, 36px, 0) scale(0.991); }
+  92% { opacity: 0.97; transform: translate3d(0, 8px, 0) scale(0.998); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* The old card shell stays removed. The content is a normal page area. */
 .home-dual__card {
   position: relative;
   display: grid;
@@ -153,7 +160,7 @@
 @media (prefers-reduced-motion: reduce) {
   .home-dual__intro,
   .home-dual__switcher,
-  .home-dual__stage { opacity: 1; transform: none; animation: none; }
+  .home-dual__stage { animation: none; opacity: 1; transform: none; }
   .home-dual__card-layer { transition: none; }
   .home-dual__card-layer--student,
   .home-dual__card.is-student .home-dual__card-layer--client { transform: none; filter: none; }
@@ -162,7 +169,7 @@
 @supports not (animation-timeline: view()) {
   .home-dual__intro,
   .home-dual__switcher,
-  .home-dual__stage { opacity: 1; transform: none; animation: none; }
+  .home-dual__stage { animation: none; opacity: 1; transform: none; }
 }
 
 @media (max-width: 780px) {
