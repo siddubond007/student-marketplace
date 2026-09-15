@@ -89,7 +89,9 @@ export default function HomeDualPerspective() {
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ['start 92%', 'end 34%'],
+    // Extend the timeline so the lower perspective content can finish its
+    // entrance only after the upper heading has naturally moved toward/out of view.
+    offset: ['start 92%', 'end 5%'],
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
@@ -102,19 +104,22 @@ export default function HomeDualPerspective() {
 
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-90, -52, -14, 0]);
-  const railOpacity = useTransform(progress, [0, 0.10, 0.24, 0.42, 0.52], [0, 0.08, 0.38, 0.82, 1]);
-  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.96, 0.985, 1]);
+  const railX = useTransform(progress, [0, 0.14, 0.30, 0.48], [-90, -52, -14, 0]);
+  const railOpacity = useTransform(progress, [0, 0.08, 0.20, 0.38, 0.48], [0, 0.08, 0.38, 0.82, 1]);
+  const railScale = useTransform(progress, [0, 0.28, 0.48], [0.97, 0.985, 1]);
 
-  const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
-  const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
+  const introY = useTransform(progress, [0, 0.09, 0.22, 0.38], [150, 104, 32, 0]);
+  const introOpacity = useTransform(progress, [0, 0.07, 0.18, 0.32, 0.38], [0, 0.06, 0.32, 0.82, 1]);
 
-  const switcherY = useTransform(progress, [0.14, 0.24, 0.38, 0.50], [135, 90, 25, 0]);
-  const switcherOpacity = useTransform(progress, [0.14, 0.22, 0.34, 0.46, 0.50], [0, 0.06, 0.34, 0.86, 1]);
+  const switcherY = useTransform(progress, [0.12, 0.23, 0.40, 0.58], [135, 88, 24, 0]);
+  const switcherOpacity = useTransform(progress, [0.12, 0.20, 0.32, 0.52, 0.58], [0, 0.06, 0.32, 0.86, 1]);
 
-  const stageY = useTransform(progress, [0.26, 0.36, 0.52, 0.72], [220, 125, 34, 0]);
-  const stageOpacity = useTransform(progress, [0.26, 0.34, 0.46, 0.62, 0.72], [0, 0.06, 0.34, 0.86, 1]);
-  const stageScale = useTransform(progress, [0.26, 0.48, 0.72], [0.965, 0.99, 1]);
+  // The lower content intentionally completes later than the heading and switcher.
+  // This lets the user keep scrolling until the main perspective is fully revealed,
+  // while the upper copy has already moved naturally out of the viewport.
+  const stageY = useTransform(progress, [0.30, 0.44, 0.68, 0.92], [220, 145, 42, 0]);
+  const stageOpacity = useTransform(progress, [0.30, 0.40, 0.58, 0.80, 0.92], [0, 0.06, 0.32, 0.86, 1]);
+  const stageScale = useTransform(progress, [0.30, 0.60, 0.92], [0.965, 0.99, 1]);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
