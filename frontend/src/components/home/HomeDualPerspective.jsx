@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, BriefcaseBusiness, GraduationCap, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './HomeDualPerspective.css';
@@ -34,11 +34,11 @@ const PERSPECTIVES = {
   },
 };
 
-function PerspectiveContent({ perspective, className = '' }) {
+function PerspectiveContent({ perspective }) {
   const Icon = perspective.icon;
 
   return (
-    <div className={`home-dual__card-content ${className}`}>
+    <div className="home-dual__card-content">
       <div className="home-dual__card-top">
         <div className="home-dual__role-icon">
           <Icon aria-hidden="true" />
@@ -82,7 +82,55 @@ function PerspectiveContent({ perspective, className = '' }) {
 
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
+  const sectionRef = useRef(null);
   const groupId = useId();
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return undefined;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMotion.matches) {
+      section.style.setProperty('--home-dual-reveal-intro', '1');
+      section.style.setProperty('--home-dual-reveal-switcher', '1');
+      section.style.setProperty('--home-dual-reveal-stage', '1');
+      return undefined;
+    }
+
+    let frame = 0;
+
+    const clamp = (value) => Math.min(1, Math.max(0, value));
+    const easeOut = (value) => 1 - Math.pow(1 - value, 3);
+
+    const updateReveal = () => {
+      frame = 0;
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const progress = clamp((viewportHeight * 0.9 - rect.top) / (viewportHeight * 0.78));
+
+      const intro = easeOut(clamp(progress / 0.42));
+      const switcher = easeOut(clamp((progress - 0.16) / 0.30));
+      const stage = easeOut(clamp((progress - 0.30) / 0.50));
+
+      section.style.setProperty('--home-dual-reveal-intro', intro.toFixed(4));
+      section.style.setProperty('--home-dual-reveal-switcher', switcher.toFixed(4));
+      section.style.setProperty('--home-dual-reveal-stage', stage.toFixed(4));
+    };
+
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateReveal);
+    };
+
+    updateReveal();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+
+    return () => {
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const selectPerspective = (next) => {
     if (next === active) return;
@@ -90,7 +138,11 @@ export default function HomeDualPerspective() {
   };
 
   return (
-    <section className="home-dual" aria-labelledby={`${groupId}-title`}>
+    <section
+      ref={sectionRef}
+      className="home-dual"
+      aria-labelledby={`${groupId}-title`}
+    >
       <div className="home-dual__intro">
         <div className="home-dual__eyebrow">
           <Sparkles aria-hidden="true" />
