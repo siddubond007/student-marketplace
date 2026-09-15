@@ -93,9 +93,9 @@ export default function HomeDualPerspective() {
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 72,
-    damping: 24,
-    mass: 0.9,
+    stiffness: 112,
+    damping: 27,
+    mass: 0.72,
     restSpeed: 0.001,
     restDelta: 0.001,
   });
@@ -103,18 +103,18 @@ export default function HomeDualPerspective() {
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
   const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-56, -30, -8, 0]);
-  const railOpacity = useTransform(progress, [0, 0.10, 0.24, 0.42, 0.52], [0, 0.08, 0.38, 0.82, 1]);
-  const railScale = useTransform(progress, [0, 0.30, 0.52], [0.98, 0.995, 1]);
+  const railOpacity = useTransform(progress, [0, 0.08, 0.20, 0.35, 0.48], [0, 0.08, 0.38, 0.82, 1]);
+  const railScale = useTransform(progress, [0, 0.25, 0.48], [0.98, 0.995, 1]);
 
-  const introY = useTransform(progress, [0, 0.10, 0.24, 0.40], [150, 105, 34, 0]);
-  const introOpacity = useTransform(progress, [0, 0.08, 0.20, 0.34, 0.40], [0, 0.06, 0.34, 0.82, 1]);
+  const introY = useTransform(progress, [0, 0.08, 0.20, 0.35], [150, 92, 24, 0]);
+  const introOpacity = useTransform(progress, [0, 0.06, 0.16, 0.28, 0.35], [0, 0.06, 0.32, 0.82, 1]);
 
-  const switcherY = useTransform(progress, [0.14, 0.24, 0.38, 0.50], [135, 90, 25, 0]);
-  const switcherOpacity = useTransform(progress, [0.14, 0.22, 0.34, 0.46, 0.50], [0, 0.06, 0.34, 0.86, 1]);
+  const switcherY = useTransform(progress, [0.11, 0.20, 0.32, 0.43], [135, 82, 22, 0]);
+  const switcherOpacity = useTransform(progress, [0.11, 0.18, 0.28, 0.40, 0.43], [0, 0.06, 0.34, 0.86, 1]);
 
-  const stageY = useTransform(progress, [0.26, 0.36, 0.52, 0.72], [220, 125, 34, 0]);
-  const stageOpacity = useTransform(progress, [0.26, 0.34, 0.46, 0.62, 0.72], [0, 0.06, 0.34, 0.86, 1]);
-  const stageScale = useTransform(progress, [0.26, 0.48, 0.72], [0.965, 0.99, 1]);
+  const stageY = useTransform(progress, [0.20, 0.29, 0.43, 0.60], [220, 118, 28, 0]);
+  const stageOpacity = useTransform(progress, [0.20, 0.27, 0.38, 0.52, 0.60], [0, 0.06, 0.34, 0.86, 1]);
+  const stageScale = useTransform(progress, [0.20, 0.40, 0.60], [0.965, 0.99, 1]);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
