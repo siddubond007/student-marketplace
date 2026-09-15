@@ -4,73 +4,48 @@
   overflow: hidden;
   isolation: isolate;
   padding: 7rem 2.5rem 8rem;
-  border-top: 1px solid rgba(190, 211, 229, 0.10);
-  border-bottom: 1px solid rgba(190, 211, 229, 0.08);
+  border-top: 1px solid rgba(190, 211, 229, 0.08);
+  border-bottom: 1px solid rgba(190, 211, 229, 0.07);
   background: #01050a;
+  box-shadow: none;
 }
 
-/* Fine star/dust veil above the canvas, kept subtle enough for readable UI. */
+/* Very soft atmospheric color only; the canvas carries the visible cosmic field. */
 .home-dual::before {
   content: "";
   position: absolute;
-  inset: -8%;
+  inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.92;
   background:
-    radial-gradient(circle at 6% 18%, rgba(255, 214, 142, 0.78) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 11% 76%, rgba(220, 255, 231, 0.72) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 17% 42%, rgba(255, 155, 196, 0.72) 0 0.9px, transparent 1.7px),
-    radial-gradient(circle at 22% 18%, rgba(168, 255, 212, 0.64) 0 0.9px, transparent 1.7px),
-    radial-gradient(circle at 28% 69%, rgba(182, 157, 255, 0.70) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 34% 29%, rgba(255, 195, 117, 0.62) 0 0.8px, transparent 1.6px),
-    radial-gradient(circle at 41% 81%, rgba(197, 255, 226, 0.62) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 47% 16%, rgba(255, 146, 190, 0.64) 0 0.9px, transparent 1.7px),
-    radial-gradient(circle at 53% 61%, rgba(183, 139, 255, 0.66) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 59% 31%, rgba(169, 255, 205, 0.60) 0 0.9px, transparent 1.7px),
-    radial-gradient(circle at 64% 88%, rgba(255, 203, 122, 0.60) 0 0.8px, transparent 1.6px),
-    radial-gradient(circle at 70% 18%, rgba(218, 159, 255, 0.62) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 76% 72%, rgba(153, 255, 207, 0.64) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 82% 38%, rgba(255, 170, 182, 0.58) 0 0.9px, transparent 1.6px),
-    radial-gradient(circle at 89% 16%, rgba(207, 182, 255, 0.62) 0 0.9px, transparent 1.7px),
-    radial-gradient(circle at 94% 69%, rgba(182, 255, 223, 0.62) 0 1px, transparent 1.7px),
-    repeating-radial-gradient(circle at 72% 48%, rgba(214, 255, 233, 0.10) 0 0.6px, transparent 0.8px 42px),
-    repeating-radial-gradient(circle at 24% 62%, rgba(255, 183, 121, 0.07) 0 0.5px, transparent 0.75px 52px);
+    radial-gradient(ellipse 58% 18% at 61% 53%, rgba(55, 235, 145, 0.035), transparent 72%),
+    radial-gradient(ellipse 25% 17% at 76% 34%, rgba(166, 91, 255, 0.015), transparent 75%),
+    radial-gradient(ellipse 24% 16% at 35% 60%, rgba(255, 107, 176, 0.014), transparent 76%),
+    radial-gradient(ellipse 24% 17% at 70% 71%, rgba(255, 172, 86, 0.012), transparent 78%);
   mix-blend-mode: screen;
-  animation: home-dual-stars-drift 70s linear infinite;
+  opacity: 0.9;
 }
 
-/* Green Milky-Way / nebula cloud with warmer and cooler color pockets. */
+/* Only a faint green dust haze here; no bright white wash and no rings. */
 .home-dual::after {
   content: "";
   position: absolute;
-  inset: -24%;
+  inset: -20%;
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 62% 22% at 62% 52%, rgba(97, 255, 183, 0.22) 0%, rgba(64, 226, 143, 0.14) 25%, rgba(31, 143, 96, 0.07) 48%, transparent 74%),
-    radial-gradient(ellipse 44% 13% at 60% 53%, rgba(220, 255, 228, 0.13) 0%, rgba(100, 255, 184, 0.09) 32%, transparent 72%),
-    radial-gradient(ellipse 28% 19% at 79% 44%, rgba(210, 95, 255, 0.13) 0%, rgba(130, 81, 211, 0.06) 48%, transparent 76%),
-    radial-gradient(ellipse 25% 18% at 46% 58%, rgba(255, 109, 166, 0.095) 0%, rgba(225, 73, 126, 0.035) 50%, transparent 76%),
-    radial-gradient(ellipse 22% 17% at 68% 64%, rgba(255, 176, 85, 0.08) 0%, rgba(229, 119, 56, 0.03) 46%, transparent 76%),
-    radial-gradient(ellipse 74% 14% at 61% 53%, rgba(53, 255, 157, 0.10) 0%, rgba(42, 167, 112, 0.035) 50%, transparent 80%);
-  filter: blur(14px);
-  opacity: 0.95;
+    radial-gradient(ellipse 60% 8% at 61% 53%, rgba(104, 255, 182, 0.018), transparent 74%),
+    radial-gradient(ellipse 78% 5% at 61% 53%, rgba(48, 200, 123, 0.010), transparent 82%);
+  filter: blur(22px);
+  opacity: 0.72;
   mix-blend-mode: screen;
-  transform: rotate(-14deg) scale(1.08);
-  transform-origin: center;
-  animation: home-dual-cosmic-drift 32s ease-in-out infinite alternate;
+  transform: rotate(-15deg) scale(1.08);
+  animation: home-dual-milky-drift 44s ease-in-out infinite alternate;
 }
 
-@keyframes home-dual-stars-drift {
-  0% { transform: translate3d(-0.6%, -0.25%, 0) scale(1.02); }
-  50% { transform: translate3d(0.35%, 0.3%, 0) scale(1.035); }
-  100% { transform: translate3d(0.75%, -0.2%, 0) scale(1.02); }
-}
-
-@keyframes home-dual-cosmic-drift {
-  0% { transform: rotate(-16deg) translate3d(-1.8%, -0.5%, 0) scale(1.07); }
-  100% { transform: rotate(-12deg) translate3d(1.8%, 0.8%, 0) scale(1.12); }
+@keyframes home-dual-milky-drift {
+  0% { transform: rotate(-15deg) translate3d(-0.8%, 0, 0) scale(1.08); }
+  100% { transform: rotate(-13deg) translate3d(0.8%, 0.7%, 0) scale(1.10); }
 }
 
 .home-dual__galaxy-canvas {
@@ -81,8 +56,7 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.82;
-  filter: saturate(1.14) brightness(0.86);
+  opacity: 1;
 }
 
 .home-dual__layout {
@@ -95,19 +69,19 @@
   overflow: visible;
 }
 
-/* Dedicated left rail; it does not participate in the centering of the main copy. */
+/* Independent left rail. Its width is intentionally larger than PLATFORM? so the last glyph never clips. */
 .home-dual__rail {
   position: absolute;
   top: 0;
   left: 0;
-  width: 255px;
+  width: 310px;
   min-height: 560px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 1.55rem;
-  padding: 0.15rem 1.15rem 0 0;
+  gap: 1.95rem;
+  padding: 0.15rem 1rem 0 0;
   margin: 0;
   overflow: visible;
   transform-origin: left top;
@@ -134,15 +108,15 @@
   max-width: none;
   overflow: visible;
   white-space: nowrap;
-  padding-right: 0.22em;
+  padding-right: 0.24em;
   box-sizing: content-box;
   font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif);
-  font-size: clamp(3.15rem, 3.8vw, 3.9rem);
-  line-height: 0.84;
+  font-size: clamp(3.15rem, 3.75vw, 4rem);
+  line-height: 0.86;
   letter-spacing: -0.055em;
   font-weight: 950;
   text-align: left;
-  background: linear-gradient(108deg, #fff3a6 0%, #ffe268 24%, #ffc42c 48%, #fff0a1 72%, #ffba34 100%);
+  background: linear-gradient(108deg, #fff3a6 0%, #ffe268 25%, #ffc42c 50%, #fff0a1 73%, #ffba34 100%);
   background-size: 280% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -205,7 +179,7 @@
   border: 1px solid rgba(191, 213, 231, 0.14);
   border-radius: 1.1rem;
   background: rgba(8, 17, 28, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 10px 32px rgba(0, 0, 0, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 10px 32px rgba(0, 0, 0, 0.12);
   will-change: transform, opacity;
 }
 
@@ -293,6 +267,8 @@
 .home-dual__footer-line { width: 2.2rem; height: 1px; background: rgba(211, 232, 246, 0.35); }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-dual::before,
+  .home-dual::after { animation: none; }
   .home-dual__rail,
   .home-dual__intro,
   .home-dual__switcher,
@@ -305,9 +281,9 @@
 
 @media (max-width: 1100px) {
   .home-dual { padding-inline: 2rem; }
-  .home-dual__rail { width: 220px; }
-  .home-dual__rail-word { font-size: clamp(2.7rem, 4.6vw, 3.65rem); }
-  .home-dual__main { width: min(900px, calc(100% - 2rem)); }
+  .home-dual__rail { width: 250px; padding-right: 0.75rem; }
+  .home-dual__rail-word { font-size: clamp(2.75rem, 4.8vw, 3.8rem); }
+  .home-dual__main { width: min(900px, calc(100% - 1rem)); }
 }
 
 @media (max-width: 780px) {
