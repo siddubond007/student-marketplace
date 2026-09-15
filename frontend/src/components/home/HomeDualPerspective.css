@@ -5,10 +5,7 @@
   padding: 7rem 2.5rem 8rem;
   border-top: 1px solid rgba(190, 211, 229, 0.10);
   border-bottom: 1px solid rgba(190, 211, 229, 0.08);
-  background:
-    radial-gradient(circle at 78% 18%, rgba(90, 135, 172, 0.08), transparent 34%),
-    radial-gradient(circle at 18% 82%, rgba(126, 162, 190, 0.045), transparent 32%),
-    rgba(2, 8, 17, 0.54);
+  background: #02070f;
   box-shadow: none;
 }
 
@@ -21,12 +18,46 @@
     radial-gradient(circle at 12% 20%, rgba(232, 243, 252, 0.16) 0 1px, transparent 1.6px),
     radial-gradient(circle at 84% 28%, rgba(183, 216, 238, 0.13) 0 1px, transparent 1.7px),
     radial-gradient(circle at 68% 78%, rgba(255, 205, 137, 0.12) 0 1px, transparent 1.6px);
-  opacity: 0.32;
+  opacity: 0.22;
+  z-index: 1;
+}
+
+.home-dual::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 58% 16% at 64% 50%, rgba(248, 250, 255, 0.07) 0%, rgba(218, 232, 246, 0.035) 32%, transparent 74%),
+    radial-gradient(ellipse 75% 10% at 64% 50%, rgba(98, 132, 165, 0.025), transparent 76%);
+  filter: blur(12px);
+  opacity: 0.65;
+  mix-blend-mode: screen;
+  transform: rotate(-15deg) scale(1.08);
+  transform-origin: center;
+  animation: home-dual-milky-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes home-dual-milky-drift {
+  0% { transform: rotate(-15deg) translate3d(-1%, 0, 0) scale(1.08); }
+  100% { transform: rotate(-12deg) translate3d(1%, 1%, 0) scale(1.11); }
+}
+
+.home-dual__galaxy-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 1;
 }
 
 .home-dual__layout {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -46,10 +77,12 @@
   justify-content: flex-start;
   gap: clamp(1.45rem, 2.1vw, 2.1rem);
   padding-top: 0.15rem;
+  padding-right: 1rem;
   margin: 0;
   overflow: visible;
   transform-origin: left top;
   will-change: transform, opacity;
+  z-index: 3;
 }
 
 .home-dual__rail::after {
@@ -82,6 +115,8 @@
   max-width: none;
   overflow: visible;
   white-space: nowrap;
+  padding-right: 0.18em;
+  box-sizing: content-box;
   font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif);
   font-size: clamp(3rem, 3.6vw, 3.9rem);
   line-height: 0.86;
@@ -108,11 +143,13 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  position: relative;
+  z-index: 3;
 }
 
 .home-dual__intro {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   width: 100%;
   margin: 0;
   text-align: center;
@@ -140,7 +177,7 @@
 
 .home-dual__switcher {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   display: inline-flex;
   align-self: center;
   gap: 0.45rem;
@@ -182,7 +219,7 @@
 
 .home-dual__stage {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   justify-content: center;
   width: 100%;
@@ -237,6 +274,8 @@
 .home-dual__footer-line { width: 2.2rem; height: 1px; background: rgba(211, 232, 246, 0.35); }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-dual::before,
+  .home-dual::after { animation: none; }
   .home-dual__rail,
   .home-dual__intro,
   .home-dual__switcher,
@@ -256,7 +295,7 @@
 @media (max-width: 780px) {
   .home-dual { padding: 5.5rem 1rem 6rem; }
   .home-dual__layout { display: block; width: 100%; }
-  .home-dual__rail { min-height: 0; gap: 1rem; margin-bottom: 3.25rem; align-items: center; text-align: center; }
+  .home-dual__rail { min-height: 0; gap: 1rem; margin-bottom: 3.25rem; align-items: center; text-align: center; padding-right: 0; }
   .home-dual__rail::after { display: none; }
   .home-dual__rail svg { margin-bottom: 0.35rem; }
   .home-dual__rail-word { font-size: clamp(3.1rem, 12vw, 4.8rem); line-height: 0.88; }
