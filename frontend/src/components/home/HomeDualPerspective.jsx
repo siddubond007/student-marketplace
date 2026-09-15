@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, BriefcaseBusiness, GraduationCap, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './HomeDualPerspective.css';
@@ -82,10 +82,71 @@ function PerspectiveContent({ perspective }) {
 
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
+  const sectionRef = useRef(null);
   const groupId = useId();
 
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return undefined;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotion.matches) {
+      section.style.setProperty('--home-dual-reveal-intro', '1');
+      section.style.setProperty('--home-dual-reveal-switcher', '1');
+      section.style.setProperty('--home-dual-reveal-stage', '1');
+      return undefined;
+    }
+
+    let frame = 0;
+
+    const clamp = (value) => Math.min(1, Math.max(0, value));
+    const ease = (value) => {
+      const t = clamp(value);
+      return t * t * (3 - 2 * t);
+    };
+
+    const update = () => {
+      frame = 0;
+
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+      // The section begins its reveal when its top reaches ~90% of the viewport
+      // and finishes when it reaches ~22%. This gives the user enough scroll
+      // distance to see the content rise and fade in gradually.
+      const sectionProgress = clamp(
+        (viewportHeight * 0.90 - rect.top) / (viewportHeight * 0.68)
+      );
+
+      // Stagger the three layers: title first, controls second, large card last.
+      const intro = ease(sectionProgress / 0.45);
+      const switcher = ease((sectionProgress - 0.20) / 0.42);
+      const stage = ease((sectionProgress - 0.40) / 0.60);
+
+      section.style.setProperty('--home-dual-reveal-intro', intro.toFixed(4));
+      section.style.setProperty('--home-dual-reveal-switcher', switcher.toFixed(4));
+      section.style.setProperty('--home-dual-reveal-stage', stage.toFixed(4));
+    };
+
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    document.addEventListener('scroll', requestUpdate, { passive: true, capture: true });
+    window.addEventListener('resize', requestUpdate);
+
+    return () => {
+      window.removeEventListener('scroll', requestUpdate);
+      document.removeEventListener('scroll', requestUpdate, true);
+      window.removeEventListener('resize', requestUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
-    <section className="home-dual" aria-labelledby={`${groupId}-title`}>
+    <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
       <div className="home-dual__intro">
         <div className="home-dual__eyebrow">
           <Sparkles aria-hidden="true" />
@@ -123,11 +184,9 @@ export default function HomeDualPerspective() {
       <div className="home-dual__stage">
         <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
-
           <div className="home-dual__card-layer home-dual__card-layer--client">
             <PerspectiveContent perspective={PERSPECTIVES.client} />
           </div>
-
           <div className="home-dual__card-layer home-dual__card-layer--student">
             <PerspectiveContent perspective={PERSPECTIVES.student} />
           </div>
