@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useId, useState } from 'react';
 import { ArrowRight, BriefcaseBusiness, GraduationCap, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './HomeDualPerspective.css';
@@ -82,83 +82,10 @@ function PerspectiveContent({ perspective }) {
 
 export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
-  const sectionRef = useRef(null);
   const groupId = useId();
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return undefined;
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reduceMotion.matches) {
-      section.style.setProperty('--home-dual-reveal-intro', '1');
-      section.style.setProperty('--home-dual-reveal-switcher', '1');
-      section.style.setProperty('--home-dual-reveal-stage', '1');
-      return undefined;
-    }
-
-    let frame = 0;
-    let rafStarted = false;
-
-    const clamp = (value) => Math.min(1, Math.max(0, value));
-    const easeOut = (value) => 1 - Math.pow(1 - value, 3);
-
-    const updateReveal = () => {
-      frame = 0;
-      rafStarted = false;
-
-      const rect = section.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-      // Begin revealing while the section is still mostly below the viewport,
-      // then finish as the section rises through the viewport. This makes the
-      // reveal respond to every scroll amount instead of relying on a one-shot
-      // intersection event.
-      const progress = clamp((viewportHeight * 0.96 - rect.top) / (viewportHeight * 1.05));
-
-      const intro = easeOut(clamp(progress / 0.44));
-      const switcher = easeOut(clamp((progress - 0.16) / 0.30));
-      const stage = easeOut(clamp((progress - 0.32) / 0.56));
-
-      section.style.setProperty('--home-dual-reveal-intro', intro.toFixed(4));
-      section.style.setProperty('--home-dual-reveal-switcher', switcher.toFixed(4));
-      section.style.setProperty('--home-dual-reveal-stage', stage.toFixed(4));
-    };
-
-    const requestUpdate = () => {
-      if (rafStarted) return;
-      rafStarted = true;
-      frame = window.requestAnimationFrame(updateReveal);
-    };
-
-    // Capture scroll events at document level as well as window level so the
-    // reveal still follows the user's scroll when the app uses a nested scroll
-    // container.
-    document.addEventListener('scroll', requestUpdate, { passive: true, capture: true });
-    window.addEventListener('scroll', requestUpdate, { passive: true });
-    window.addEventListener('resize', requestUpdate);
-
-    updateReveal();
-
-    return () => {
-      document.removeEventListener('scroll', requestUpdate, true);
-      window.removeEventListener('scroll', requestUpdate);
-      window.removeEventListener('resize', requestUpdate);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  const selectPerspective = (next) => {
-    if (next === active) return;
-    setActive(next);
-  };
-
   return (
-    <section
-      ref={sectionRef}
-      className="home-dual"
-      aria-labelledby={`${groupId}-title`}
-    >
+    <section className="home-dual" aria-labelledby={`${groupId}-title`}>
       <div className="home-dual__intro">
         <div className="home-dual__eyebrow">
           <Sparkles aria-hidden="true" />
@@ -176,7 +103,7 @@ export default function HomeDualPerspective() {
           type="button"
           className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
           aria-pressed={active === 'client'}
-          onClick={() => selectPerspective('client')}
+          onClick={() => setActive('client')}
         >
           <BriefcaseBusiness aria-hidden="true" />
           <span>I’m Hiring</span>
@@ -186,7 +113,7 @@ export default function HomeDualPerspective() {
           type="button"
           className={`home-dual__switch ${active === 'student' ? 'is-active' : ''}`}
           aria-pressed={active === 'student'}
-          onClick={() => selectPerspective('student')}
+          onClick={() => setActive('student')}
         >
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
