@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
+import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { ArrowRight, BriefcaseBusiness, GraduationCap, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './HomeDualPerspective.css';
@@ -84,70 +85,43 @@ export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
   const sectionRef = useRef(null);
   const groupId = useId();
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start 92%', 'end 34%'],
+  });
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return undefined;
+  // One spring-smoothed progress value gives the reveal a continuous, liquid
+  // feel instead of directly snapping visual properties to wheel events.
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 78,
+    damping: 22,
+    mass: 0.82,
+    restSpeed: 0.001,
+    restDelta: 0.001,
+  });
 
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reducedMotion.matches) {
-      section.style.setProperty('--home-dual-reveal-intro', '1');
-      section.style.setProperty('--home-dual-reveal-switcher', '1');
-      section.style.setProperty('--home-dual-reveal-stage', '1');
-      return undefined;
-    }
+  const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-    let frame = 0;
+  const introY = useTransform(progress, [0, 0.14, 0.42], [150, 54, 0]);
+  const introOpacity = useTransform(progress, [0, 0.12, 0.30, 0.42], [0, 0.20, 0.82, 1]);
+  const introBlur = useTransform(progress, [0, 0.18, 0.38], ['7px', '2px', '0px']);
 
-    const clamp = (value) => Math.min(1, Math.max(0, value));
-    const ease = (value) => {
-      const t = clamp(value);
-      return t * t * (3 - 2 * t);
-    };
+  const switcherY = useTransform(progress, [0.16, 0.28, 0.58], [130, 48, 0]);
+  const switcherOpacity = useTransform(progress, [0.16, 0.28, 0.48, 0.58], [0, 0.18, 0.82, 1]);
+  const switcherBlur = useTransform(progress, [0.16, 0.34, 0.54], ['5px', '1px', '0px']);
 
-    const update = () => {
-      frame = 0;
-
-      const rect = section.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-      // The section begins its reveal when its top reaches ~90% of the viewport
-      // and finishes when it reaches ~22%. This gives the user enough scroll
-      // distance to see the content rise and fade in gradually.
-      const sectionProgress = clamp(
-        (viewportHeight * 0.90 - rect.top) / (viewportHeight * 0.68)
-      );
-
-      // Stagger the three layers: title first, controls second, large card last.
-      const intro = ease(sectionProgress / 0.45);
-      const switcher = ease((sectionProgress - 0.20) / 0.42);
-      const stage = ease((sectionProgress - 0.40) / 0.60);
-
-      section.style.setProperty('--home-dual-reveal-intro', intro.toFixed(4));
-      section.style.setProperty('--home-dual-reveal-switcher', switcher.toFixed(4));
-      section.style.setProperty('--home-dual-reveal-stage', stage.toFixed(4));
-    };
-
-    const requestUpdate = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener('scroll', requestUpdate, { passive: true });
-    document.addEventListener('scroll', requestUpdate, { passive: true, capture: true });
-    window.addEventListener('resize', requestUpdate);
-
-    return () => {
-      window.removeEventListener('scroll', requestUpdate);
-      document.removeEventListener('scroll', requestUpdate, true);
-      window.removeEventListener('resize', requestUpdate);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
+  const stageY = useTransform(progress, [0.34, 0.48, 0.80], [220, 70, 0]);
+  const stageOpacity = useTransform(progress, [0.34, 0.48, 0.68, 0.80], [0, 0.14, 0.78, 1]);
+  const stageScale = useTransform(progress, [0.34, 0.80], [0.965, 1]);
+  const stageBlur = useTransform(progress, [0.34, 0.52, 0.74], ['7px', '2px', '0px']);
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <div className="home-dual__intro">
+      <motion.div
+        className="home-dual__intro"
+        style={{ y: introY, opacity: introOpacity, filter: `blur(${introBlur.get()})` }}
+      >
         <div className="home-dual__eyebrow">
           <Sparkles aria-hidden="true" />
           <span>WHY THIS PLATFORM?</span>
@@ -157,9 +131,14 @@ export default function HomeDualPerspective() {
           Built for the people hiring for real needs and the students ready to
           turn practical skills into meaningful opportunities.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="home-dual__switcher" role="group" aria-label="Choose your perspective">
+      <motion.div
+        className="home-dual__switcher"
+        role="group"
+        aria-label="Choose your perspective"
+        style={{ y: switcherY, opacity: switcherOpacity, filter: `blur(${switcherBlur.get()})` }}
+      >
         <button
           type="button"
           className={`home-dual__switch ${active === 'client' ? 'is-active' : ''}`}
@@ -179,9 +158,12 @@ export default function HomeDualPerspective() {
           <GraduationCap aria-hidden="true" />
           <span>I’m a Student</span>
         </button>
-      </div>
+      </motion.div>
 
-      <div className="home-dual__stage">
+      <motion.div
+        className="home-dual__stage"
+        style={{ y: stageY, opacity: stageOpacity, scale: stageScale, filter: `blur(${stageBlur.get()})` }}
+      >
         <div className={`home-dual__card is-${active}`} aria-live="polite">
           <div className="home-dual__card-glow" aria-hidden="true" />
           <div className="home-dual__card-layer home-dual__card-layer--client">
@@ -191,7 +173,7 @@ export default function HomeDualPerspective() {
             <PerspectiveContent perspective={PERSPECTIVES.student} />
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
