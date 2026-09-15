@@ -39,133 +39,247 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-function createGalaxyParticle(width, height) {
-  const bandY = height * 0.54;
-  const bandSpread = height * 0.16;
-  const inBand = Math.random() < 0.72;
-  const x = Math.random() * width;
-  const normalizedX = x / Math.max(width, 1);
-  const centerLine = bandY + Math.sin(normalizedX * Math.PI * 2.2) * height * 0.05;
-  const y = inBand
-    ? centerLine + (Math.random() - 0.5) * bandSpread * (0.45 + Math.random() * 1.35)
-    : Math.random() * height;
+const STAR_PALETTE = [
+  { name: 'white', rgb: [238, 246, 255] },
+  { name: 'green', rgb: [148, 255, 191] },
+  { name: 'mint', rgb: [193, 255, 222] },
+  { name: 'purple', rgb: [208, 156, 255] },
+  { name: 'pink', rgb: [255, 152, 203] },
+  { name: 'orange', rgb: [255, 183, 105] },
+  { name: 'blue', rgb: [140, 198, 255] },
+];
 
-  const roll = Math.random();
-  let tint = 'white';
-  if (roll > 0.91) tint = 'warm';
-  else if (roll > 0.79) tint = 'blue';
-  else if (roll > 0.60) tint = 'ice';
+function createCosmicStar(width, height, bandBias = 0.62) {
+  const useBand = Math.random() < bandBias;
+  const angle = -0.27;
+  const bandThickness = height * 0.17;
+  const centerX = width * 0.60;
+  const centerY = height * 0.53;
+
+  let x;
+  let y;
+
+  if (useBand) {
+    const along = (Math.random() - 0.5) * width * 1.25;
+    const across = (Math.random() - 0.5) * bandThickness * (0.45 + Math.random() * 1.8);
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    x = centerX + along * cos - across * sin;
+    y = centerY + along * sin + across * cos;
+  } else {
+    x = Math.random() * width;
+    y = Math.random() * height;
+  }
+
+  const palette = STAR_PALETTE[Math.floor(Math.random() * STAR_PALETTE.length)];
+  const large = Math.random() < 0.045;
 
   return {
-    x,
-    y,
     baseX: x,
     baseY: y,
-    radius: randomBetween(0.35, 1.35),
-    alpha: randomBetween(0.18, inBand ? 0.9 : 0.58),
-    twinkle: randomBetween(0.45, 1.9),
+    x,
+    y,
+    radius: large ? randomBetween(1.05, 1.9) : randomBetween(0.35, 1.05),
+    alpha: large ? randomBetween(0.52, 0.92) : randomBetween(0.24, 0.78),
+    twinkle: randomBetween(0.45, 1.7),
     phase: Math.random() * Math.PI * 2,
-    drift: randomBetween(0.00015, 0.0008),
-    hue: tint,
-    inBand,
+    drift: randomBetween(0.000008, 0.000028),
+    hue: palette,
+    inBand: useBand,
+    swirl: randomBetween(-1, 1),
   };
 }
 
-function drawGalaxyBackdrop(ctx, width, height, particles, time) {
-  ctx.clearRect(0, 0, width, height);
+function createDustGrain(width, height) {
+  const angle = -0.27;
+  const centerX = width * 0.60;
+  const centerY = height * 0.53;
+  const along = (Math.random() - 0.5) * width * 1.22;
+  const across = (Math.random() - 0.5) * height * 0.26;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const palette = STAR_PALETTE[1 + Math.floor(Math.random() * (STAR_PALETTE.length - 1))];
 
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, 'rgba(1, 5, 12, 0.98)');
-  gradient.addColorStop(0.5, 'rgba(2, 8, 17, 0.93)');
-  gradient.addColorStop(1, 'rgba(1, 4, 10, 0.98)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+  return {
+    baseX: centerX + along * cos - across * sin,
+    baseY: centerY + along * sin + across * cos,
+    x: 0,
+    y: 0,
+    size: randomBetween(0.4, 1.25),
+    alpha: randomBetween(0.08, 0.34),
+    phase: Math.random() * Math.PI * 2,
+    drift: randomBetween(0.000004, 0.000018),
+    hue: palette,
+    wave: randomBetween(0.7, 1.8),
+  };
+}
 
+function rgba(rgb, alpha) {
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+function drawNebula(ctx, width, height, time) {
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  ctx.translate(width * 0.61, height * 0.51);
-  ctx.rotate(-0.17);
 
-  const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, width * 0.55);
-  halo.addColorStop(0, 'rgba(230, 240, 250, 0.13)');
-  halo.addColorStop(0.18, 'rgba(188, 214, 234, 0.09)');
-  halo.addColorStop(0.42, 'rgba(100, 145, 182, 0.045)');
-  halo.addColorStop(0.76, 'rgba(34, 67, 96, 0.014)');
-  halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = halo;
-  ctx.filter = 'blur(10px)';
-  ctx.fillRect(-width * 0.62, -height * 0.35, width * 1.24, height * 0.70);
+  const nebulae = [
+    { x: 0.58, y: 0.52, rx: 0.48, ry: 0.17, color: [52, 255, 155], alpha: 0.075, pulse: 0.010, drift: 0.000018 },
+    { x: 0.74, y: 0.34, rx: 0.25, ry: 0.16, color: [144, 88, 255], alpha: 0.035, pulse: 0.008, drift: -0.000014 },
+    { x: 0.39, y: 0.63, rx: 0.23, ry: 0.16, color: [255, 92, 174], alpha: 0.032, pulse: 0.009, drift: 0.000012 },
+    { x: 0.69, y: 0.70, rx: 0.24, ry: 0.14, color: [255, 165, 82], alpha: 0.024, pulse: 0.008, drift: -0.000011 },
+    { x: 0.18, y: 0.30, rx: 0.20, ry: 0.15, color: [93, 169, 255], alpha: 0.018, pulse: 0.007, drift: 0.00001 },
+  ];
 
-  const dust = ctx.createLinearGradient(-width * 0.55, 0, width * 0.55, 0);
-  dust.addColorStop(0, 'rgba(195, 221, 240, 0)');
-  dust.addColorStop(0.19, 'rgba(203, 227, 243, 0.035)');
-  dust.addColorStop(0.48, 'rgba(245, 249, 253, 0.12)');
-  dust.addColorStop(0.72, 'rgba(170, 204, 228, 0.045)');
-  dust.addColorStop(1, 'rgba(195, 221, 240, 0)');
-  ctx.fillStyle = dust;
-  ctx.filter = 'blur(18px)';
-  ctx.fillRect(-width * 0.58, -height * 0.11, width * 1.16, height * 0.22);
+  for (const cloud of nebulae) {
+    const driftX = Math.sin(time * cloud.drift + cloud.y * 8) * width * 0.008;
+    const driftY = Math.cos(time * cloud.drift * 0.8 + cloud.x * 7) * height * 0.006;
+    const pulse = 1 + Math.sin(time * cloud.pulse + cloud.x * 12) * 0.08;
+    const centerX = width * cloud.x + driftX;
+    const centerY = height * cloud.y + driftY;
+    const radius = Math.max(width, height) * cloud.rx * pulse;
 
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, width * 0.27);
-  core.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
-  core.addColorStop(0.18, 'rgba(234, 245, 253, 0.075)');
-  core.addColorStop(0.44, 'rgba(167, 203, 229, 0.025)');
-  core.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = core;
-  ctx.filter = 'blur(7px)';
-  ctx.fillRect(-width * 0.3, -height * 0.17, width * 0.6, height * 0.34);
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    gradient.addColorStop(0, rgba(cloud.color, cloud.alpha));
+    gradient.addColorStop(0.38, rgba(cloud.color, cloud.alpha * 0.48));
+    gradient.addColorStop(0.72, rgba(cloud.color, cloud.alpha * 0.10));
+    gradient.addColorStop(1, rgba(cloud.color, 0));
+    ctx.fillStyle = gradient;
+    ctx.filter = 'blur(18px)';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, radius, Math.max(radius * cloud.ry / cloud.rx, 1), -0.27, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const laneCenterX = width * 0.60;
+  const laneCenterY = height * 0.53;
+  const laneGradient = ctx.createRadialGradient(laneCenterX, laneCenterY, 0, laneCenterX, laneCenterY, width * 0.48);
+  laneGradient.addColorStop(0, 'rgba(182, 255, 211, 0.045)');
+  laneGradient.addColorStop(0.18, 'rgba(84, 245, 153, 0.035)');
+  laneGradient.addColorStop(0.44, 'rgba(43, 184, 116, 0.018)');
+  laneGradient.addColorStop(0.76, 'rgba(15, 75, 55, 0.008)');
+  laneGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = laneGradient;
+  ctx.filter = 'blur(22px)';
+  ctx.save();
+  ctx.translate(laneCenterX, laneCenterY);
+  ctx.rotate(-0.27);
+  ctx.fillRect(-width * 0.60, -height * 0.19, width * 1.20, height * 0.38);
   ctx.restore();
 
+  ctx.restore();
+}
+
+function drawCosmicField(ctx, width, height, stars, dust, mouse, time) {
+  ctx.clearRect(0, 0, width, height);
+
+  const background = ctx.createLinearGradient(0, 0, width, height);
+  background.addColorStop(0, '#02060b');
+  background.addColorStop(0.45, '#03100c');
+  background.addColorStop(1, '#02050a');
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, width, height);
+
+  drawNebula(ctx, width, height, time);
+
+  const interactionRadius = Math.min(250, Math.max(150, width * 0.14));
+  const interactionStrength = 56;
+  const relax = 0.032;
+  const ambientTime = time * 0.00008;
+
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  for (const particle of particles) {
-    const dx = Math.sin(time * particle.drift + particle.phase) * (particle.inBand ? 3.5 : 1.7);
-    const dy = Math.cos(time * particle.drift * 0.72 + particle.phase) * (particle.inBand ? 1.8 : 1.1);
-    const x = particle.baseX + dx;
-    const y = particle.baseY + dy;
-    const pulse = 0.72 + Math.sin(time * particle.twinkle + particle.phase) * 0.28;
-    const alpha = Math.max(0.06, particle.alpha * pulse);
 
-    let main = `rgba(239,247,255,${alpha})`;
-    let glow = `rgba(226,242,252,${alpha * 0.22})`;
-    if (particle.hue === 'warm') {
-      main = `rgba(255,195,132,${alpha * 0.86})`;
-      glow = `rgba(255,186,112,${alpha * 0.18})`;
-    } else if (particle.hue === 'blue') {
-      main = `rgba(148,198,236,${alpha * 0.9})`;
-      glow = `rgba(126,189,236,${alpha * 0.18})`;
-    } else if (particle.hue === 'ice') {
-      main = `rgba(206,231,246,${alpha})`;
-      glow = `rgba(188,220,241,${alpha * 0.20})`;
+  for (const star of stars) {
+    const ambientX = star.baseX + Math.sin(time * star.drift + star.phase) * (star.inBand ? 5 : 2.2);
+    const ambientY = star.baseY + Math.cos(time * star.drift * 0.82 + star.phase) * (star.inBand ? 2.4 : 1.3);
+
+    let targetX = ambientX;
+    let targetY = ambientY;
+
+    if (mouse.active) {
+      const dx = ambientX - mouse.x;
+      const dy = ambientY - mouse.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < interactionRadius && distance > 0.001) {
+        const falloff = 1 - distance / interactionRadius;
+        const force = falloff * falloff * interactionStrength;
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const tx = -ny * star.swirl * force * 0.32;
+        const ty = nx * star.swirl * force * 0.32;
+        targetX += nx * force + tx;
+        targetY += ny * force + ty;
+      }
     }
 
-    ctx.beginPath();
-    ctx.arc(x, y, particle.radius, 0, Math.PI * 2);
+    star.x += (targetX - star.x) * relax;
+    star.y += (targetY - star.y) * relax;
+
+    const pulse = 0.76 + Math.sin(time * star.twinkle * 0.0025 + star.phase) * 0.24;
+    const alpha = Math.max(0.05, star.alpha * pulse);
+    const main = rgba(star.hue.rgb, alpha);
+
+    if (star.radius > 1.15) {
+      ctx.shadowBlur = 13;
+      ctx.shadowColor = rgba(star.hue.rgb, alpha * 0.7);
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
     ctx.fillStyle = main;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
     ctx.fill();
-
-    if (particle.radius > 1.02) {
-      ctx.beginPath();
-      ctx.arc(x, y, particle.radius * 3.6, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-    }
   }
   ctx.restore();
 
-  // A few slow, elongated dust streaks to make the backdrop feel like a living deep field.
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  ctx.lineWidth = 0.55;
-  const streakCount = 26;
-  for (let i = 0; i < streakCount; i += 1) {
-    const t = i / streakCount;
-    const x = ((t * 1.17 + time * 0.000012 * (i % 2 ? 1 : -1)) % 1) * width;
-    const y = height * (0.44 + Math.sin(t * Math.PI * 2.6) * 0.11);
-    ctx.strokeStyle = `rgba(210,227,240,${0.035 + (i % 5) * 0.008})`;
+  ctx.translate(width * 0.60, height * 0.53);
+  ctx.rotate(-0.27);
+  const dustInteractionRadius = Math.min(280, Math.max(170, width * 0.17));
+
+  for (const grain of dust) {
+    const dx = Math.sin(time * grain.drift + grain.phase) * (10 + grain.wave * 4);
+    const dy = Math.cos(time * grain.drift * 0.72 + grain.phase) * 2.6;
+    let px = grain.baseX - width * 0.60 + dx;
+    let py = grain.baseY - height * 0.53 + dy;
+
+    if (mouse.active) {
+      const worldDx = px + width * 0.60 - mouse.x;
+      const worldDy = py + height * 0.53 - mouse.y;
+      const distance = Math.hypot(worldDx, worldDy);
+      if (distance < dustInteractionRadius && distance > 0.001) {
+        const falloff = 1 - distance / dustInteractionRadius;
+        const force = falloff * falloff * 42;
+        px += (worldDx / distance) * force;
+        py += (worldDy / distance) * force;
+      }
+    }
+
+    const pulse = 0.65 + Math.sin(time * grain.wave * 0.0017 + grain.phase) * 0.35;
+    ctx.fillStyle = rgba(grain.hue.rgb, grain.alpha * pulse);
+    ctx.beginPath();
+    ctx.arc(px, py, grain.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Very subtle flowing dust threads; these are deliberately dim so the copy remains dominant.
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.lineWidth = 0.45;
+  for (let i = 0; i < 48; i += 1) {
+    const p = i / 48;
+    const flow = (ambientTime * (0.55 + p * 0.25) + p) % 1;
+    const x = -width * 0.1 + flow * width * 1.2;
+    const y = height * (0.46 + Math.sin(flow * Math.PI * 2.2 + i) * 0.06);
+    const length = 12 + (i % 5) * 4;
+    const hue = STAR_PALETTE[1 + (i % (STAR_PALETTE.length - 1))];
+    ctx.strokeStyle = rgba(hue.rgb, 0.035 + (i % 4) * 0.008);
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x + 10 + (i % 4) * 3, y - 1.2);
+    ctx.lineTo(x + length, y - 1.3);
     ctx.stroke();
   }
   ctx.restore();
@@ -221,6 +335,7 @@ export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
   const sectionRef = useRef(null);
   const galaxyCanvasRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0, active: false });
   const groupId = useId();
   const reduceMotion = useReducedMotion();
 
@@ -263,46 +378,63 @@ export default function HomeDualPerspective() {
 
     let width = 0;
     let height = 0;
+    let dpr = 1;
     let frame = 0;
-    let particles = [];
+    let stars = [];
+    let dust = [];
     let disposed = false;
+    let lastDraw = 0;
 
-    const resize = () => {
+    const rebuild = () => {
       const rect = section.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = Math.max(rect.width, 1);
       height = Math.max(rect.height, 1);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!particles.length) {
-        const count = Math.min(980, Math.max(520, Math.floor((width * height) / 6200)));
-        particles = Array.from({ length: count }, () => createGalaxyParticle(width, height));
-      } else {
-        particles.forEach((particle) => {
-          particle.baseX = Math.min(Math.max(particle.baseX, 0), width);
-          particle.baseY = Math.min(Math.max(particle.baseY, 0), height);
-          particle.x = particle.baseX;
-          particle.y = particle.baseY;
-        });
-      }
+
+      const starCount = Math.min(2200, Math.max(1200, Math.floor((width * height) / 3400)));
+      const dustCount = Math.min(1250, Math.max(700, Math.floor((width * height) / 5200)));
+      stars = Array.from({ length: starCount }, () => createCosmicStar(width, height, 0.67));
+      dust = Array.from({ length: dustCount }, () => createDustGrain(width, height));
+    };
+
+    const updateMouse = (event) => {
+      const rect = section.getBoundingClientRect();
+      mouseRef.current.x = event.clientX - rect.left;
+      mouseRef.current.y = event.clientY - rect.top;
+      mouseRef.current.active = true;
+    };
+
+    const clearMouse = () => {
+      mouseRef.current.active = false;
     };
 
     const draw = (time) => {
       if (disposed) return;
-      drawGalaxyBackdrop(ctx, width, height, particles, time);
+      if (time - lastDraw < 16) {
+        frame = window.requestAnimationFrame(draw);
+        return;
+      }
+      lastDraw = time;
+      drawCosmicField(ctx, width, height, stars, dust, mouseRef.current, time);
       frame = window.requestAnimationFrame(draw);
     };
 
-    resize();
-    window.addEventListener('resize', resize);
+    rebuild();
+    section.addEventListener('pointermove', updateMouse, { passive: true });
+    section.addEventListener('pointerleave', clearMouse, { passive: true });
+    window.addEventListener('resize', rebuild);
     frame = window.requestAnimationFrame(draw);
 
     return () => {
       disposed = true;
-      window.removeEventListener('resize', resize);
+      section.removeEventListener('pointermove', updateMouse);
+      section.removeEventListener('pointerleave', clearMouse);
+      window.removeEventListener('resize', rebuild);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
