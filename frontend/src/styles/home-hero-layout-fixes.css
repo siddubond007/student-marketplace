@@ -3,88 +3,56 @@
   margin-top: -1rem !important;
 }
 
-/* Add a dense, lightweight static star bed underneath the existing animated canvas. */
+/* Keep the hero's existing canvas visuals; no sparse CSS star overlay. */
 .home-hero.home-hero--space::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-  opacity: 0.92 !important;
-  background-image:
-    radial-gradient(circle at 7% 12%, rgba(234, 246, 255, 0.52) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 19% 28%, rgba(190, 224, 247, 0.36) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 32% 9%, rgba(255, 206, 130, 0.30) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 44% 24%, rgba(202, 229, 250, 0.38) 0 0.9px, transparent 1.6px),
-    radial-gradient(circle at 58% 12%, rgba(232, 244, 255, 0.42) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 73% 31%, rgba(176, 216, 245, 0.34) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 87% 13%, rgba(246, 200, 128, 0.30) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 94% 42%, rgba(215, 236, 252, 0.46) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 11% 58%, rgba(213, 237, 252, 0.40) 0 0.9px, transparent 1.6px),
-    radial-gradient(circle at 26% 47%, rgba(166, 211, 241, 0.30) 0 0.7px, transparent 1.4px),
-    radial-gradient(circle at 39% 63%, rgba(238, 246, 255, 0.40) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 53% 52%, rgba(209, 232, 248, 0.34) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 67% 69%, rgba(231, 244, 255, 0.44) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 81% 55%, rgba(189, 224, 247, 0.34) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 93% 72%, rgba(241, 198, 126, 0.28) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 6% 86%, rgba(225, 241, 253, 0.40) 0 0.9px, transparent 1.6px),
-    radial-gradient(circle at 22% 79%, rgba(173, 216, 246, 0.32) 0 0.7px, transparent 1.4px),
-    radial-gradient(circle at 36% 93%, rgba(239, 247, 255, 0.45) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 51% 82%, rgba(203, 229, 247, 0.34) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 64% 95%, rgba(242, 201, 133, 0.28) 0 0.8px, transparent 1.5px),
-    radial-gradient(circle at 79% 85%, rgba(221, 239, 253, 0.42) 0 0.9px, transparent 1.6px),
-    radial-gradient(circle at 90% 94%, rgba(182, 219, 244, 0.34) 0 0.8px, transparent 1.5px);
-  background-size: 100% 100%;
+  content: none !important;
+  display: none !important;
 }
 
-/* One unified hand-drawn scroll illustration; keep it comfortably inside the viewport. */
-.home-hero__content::before {
-  content: "" !important;
-  position: absolute !important;
-  top: auto !important;
-  left: auto !important;
-  right: 2.8rem !important;
-  bottom: 1.65rem !important;
-  width: 245px !important;
-  height: 184px !important;
-  display: block !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: url('../components/home/HomeScrollCue.svg') center / contain no-repeat !important;
-  box-shadow: none !important;
-  transform: translate3d(0, 0, 0) !important;
-  transform-origin: center !important;
-  opacity: 0.92 !important;
-  pointer-events: none !important;
-  animation: home-hero-scroll-cue-bob 3.8s ease-in-out infinite !important;
-  will-change: transform, opacity;
-}
-
+/* The scroll cue is a real animated SVG asset, matching the hand-drawn reference style. */
+.home-hero__content::before,
 .home-hero__content::after {
   content: none !important;
   display: none !important;
   animation: none !important;
 }
 
-@keyframes home-hero-scroll-cue-bob {
+.home-hero__scroll-cue {
+  position: absolute;
+  right: clamp(2.75rem, 4.5vw, 5rem);
+  bottom: clamp(1.25rem, 2.8vh, 2.5rem);
+  z-index: 6;
+  display: block;
+  width: clamp(250px, 18vw, 315px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.98;
+  transform: translate3d(0, 0, 0);
+  transform-origin: center;
+  filter: drop-shadow(0 0 16px rgba(164, 213, 244, 0.12));
+  animation: home-hero-scroll-cue-float 4.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes home-hero-scroll-cue-float {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) !important;
-    opacity: 0.84 !important;
+    transform: translate3d(0, 0, 0) rotate(-0.4deg);
+    opacity: 0.92;
   }
 
   50% {
-    transform: translate3d(0, -3px, 0) !important;
-    opacity: 0.96 !important;
+    transform: translate3d(0, -4px, 0) rotate(0.4deg);
+    opacity: 1;
   }
 }
 
 @media (max-width: 1100px) {
-  .home-hero__content::before {
-    right: 2rem !important;
-    bottom: 1.35rem !important;
-    width: 215px !important;
-    height: 162px !important;
+  .home-hero__scroll-cue {
+    right: 2.25rem;
+    bottom: 1.15rem;
+    width: 245px;
   }
 }
 
@@ -93,17 +61,16 @@
     margin-top: -1rem !important;
   }
 
-  .home-hero__content::before {
-    right: 0.8rem !important;
-    bottom: 0.7rem !important;
-    width: 160px !important;
-    height: 122px !important;
+  .home-hero__scroll-cue {
+    right: 0.8rem;
+    bottom: 0.65rem;
+    width: 185px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero__content::before {
-    animation: none !important;
-    opacity: 0.9 !important;
+  .home-hero__scroll-cue {
+    animation: none;
+    opacity: 0.94;
   }
 }
