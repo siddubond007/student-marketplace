@@ -1,25 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 230" fill="none">
   <defs>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="2.4" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="cueGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <g filter="url(#glow)">
-    <path d="M70 34 C47 33 27 48 29 70 C31 93 56 108 82 104 C109 100 126 80 116 60 C107 41 83 37 63 45 C46 52 44 69 53 80 C63 93 84 91 91 77 C97 65 89 55 78 56 C68 57 65 67 70 73" stroke="#dceeff" stroke-opacity=".92" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 6"/>
+  <g opacity="0.98" filter="url(#cueGlow)">
+    <!-- hand-drawn orbit / doodle -->
+    <path d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100" stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8"/>
 
-    <path d="M78 73 C88 88 103 99 119 103 C128 106 136 110 139 117" stroke="#ffd36b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M131 110 L140 118 L130 123" stroke="#ffd36b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- playful downward curl -->
+    <path d="M73 100 C88 121 106 135 126 141 C147 147 163 157 166 175" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M154 165 L166 176 L151 183" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
 
-    <circle cx="170" cy="116" r="23" stroke="#ffd36b" stroke-width="2.8"/>
-    <circle cx="170" cy="116" r="14" stroke="#ffd36b" stroke-width="2.4" stroke-dasharray="4 5"/>
-    <circle cx="170" cy="116" r="4" fill="#fff2bf"/>
+    <!-- target / scroll destination -->
+    <g>
+      <animateTransform attributeName="transform" attributeType="XML" type="scale" values="1;1.045;1" dur="2.8s" repeatCount="indefinite"/>
+      <circle cx="224" cy="169" r="30" stroke="#ffd76b" stroke-width="3.5"/>
+      <circle cx="224" cy="169" r="19" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
+      <circle cx="224" cy="169" r="5.5" fill="#fff3bc"/>
+      <path d="M224 126 L224 136 M224 202 L224 212 M181 169 L191 169 M257 169 L267 169" stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
+      <path d="M196 140 L189 133 M252 140 L259 133 M196 198 L189 205 M252 198 L259 205" stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
 
-    <path d="M170 84 L170 91 M170 141 L170 148 M138 116 L145 116 M195 116 L202 116" stroke="#fff2bf" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M151 94 L146 89 M189 94 L194 89 M151 138 L146 143 M189 138 L194 143" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>
+    <!-- tiny hand-drawn accents -->
+    <path d="M287 120 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd76b">
+      <animate attributeName="opacity" values="0.35;1;0.35" dur="2.2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M271 196 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff">
+      <animate attributeName="opacity" values="0.45;1;0.45" dur="2.8s" repeatCount="indefinite" begin="0.5s"/>
+    </path>
+
+    <!-- gentle arrow motion -->
+    <path d="M166 176 L154 165" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round">
+      <animateTransform attributeName="transform" attributeType="XML" type="translate" values="0 0;0 3;0 0" dur="2.2s" repeatCount="indefinite"/>
+    </path>
   </g>
 
-  <text x="128" y="49" fill="#f5fbff" font-size="27" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-7 128 49)">Scroll</text>
-  <text x="145" y="73" fill="#ffd36b" font-size="15" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 145 73)">to explore</text>
+  <!-- handwritten-style lettering -->
+  <text x="145" y="62" fill="#f8fcff" font-size="39" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-7 145 62)">Scroll</text>
+  <text x="173" y="91" fill="#ffd76b" font-size="21" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 173 91)">to explore</text>
 </svg>
