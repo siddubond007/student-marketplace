@@ -1,49 +1,56 @@
-/* HP-01 hero: make the first visual touch the navbar and move the scroll cue to the far edge. */
+/* HP-01 hero layout and illustrated scroll-cue polish. */
 .home-hero.home-hero--space {
   margin-top: -1rem;
 }
 
+/* Replace the early CSS doodle with one unified illustrated SVG cue. */
 .home-hero__content::before {
+  content: "";
+  position: absolute;
+  top: auto;
   left: auto;
-  right: 1.35rem;
-  top: 52%;
-  transform: rotate(7deg);
-  animation-name: hero-scroll-edge-doodle;
+  right: 3.5rem;
+  bottom: 2.5rem;
+  width: 210px;
+  height: 158px;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: url('../components/home/HomeScrollCue.svg') center / contain no-repeat;
+  box-shadow: none;
+  transform: translate3d(0, 0, 0);
+  transform-origin: center;
+  opacity: 0.92;
+  pointer-events: none;
+  animation: home-hero-scroll-cue-bob 3.6s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .home-hero__content::after {
-  left: auto;
-  right: 0.55rem;
-  top: calc(52% + 3.35rem);
-  text-align: right;
-  transform: rotate(8deg) skewX(7deg);
-  transform-origin: right center;
-  animation-name: hero-scroll-edge-label;
+  content: none;
+  display: none;
+  animation: none;
 }
 
-@keyframes hero-scroll-edge-doodle {
+@keyframes home-hero-scroll-cue-bob {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(7deg);
-    opacity: 0.74;
+    transform: translate3d(0, 0, 0);
+    opacity: 0.84;
   }
 
   50% {
-    transform: translate3d(0, 9px, 0) rotate(-4deg) scale(1.06);
-    opacity: 1;
+    transform: translate3d(0, -4px, 0);
+    opacity: 0.98;
   }
 }
 
-@keyframes hero-scroll-edge-label {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(8deg) skewX(7deg);
-    opacity: 0.58;
-  }
-
-  50% {
-    transform: translate3d(-4px, 7px, 0) rotate(2deg) skewX(4deg);
-    opacity: 0.95;
+@media (max-width: 900px) {
+  .home-hero__content::before {
+    right: 1.8rem;
+    bottom: 2rem;
+    width: 180px;
+    height: 136px;
   }
 }
 
@@ -53,19 +60,16 @@
   }
 
   .home-hero__content::before {
-    right: 1rem;
-    top: 13%;
-  }
-
-  .home-hero__content::after {
-    right: 0.45rem;
-    top: calc(13% + 3rem);
+    right: 0.9rem;
+    bottom: 1rem;
+    width: 150px;
+    height: 114px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero__content::before,
-  .home-hero__content::after {
-    animation-name: none;
+  .home-hero__content::before {
+    animation: none;
+    opacity: 0.92;
   }
 }
