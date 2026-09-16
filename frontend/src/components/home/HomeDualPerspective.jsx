@@ -295,13 +295,12 @@ export default function HomeDualPerspective() {
 
   useEffect(() => {
     const section = sectionRef.current;
-    const canvas = galaxyCanvasRef.current;
+    const galaxyCanvas = galaxyCanvasRef.current;
     const nebulaCanvas = nebulaCanvasRef.current;
     const staticStarsCanvas = staticStarsCanvasRef.current;
     const staticDustCanvas = staticDustCanvasRef.current;
-    if (!section || !canvas || !nebulaCanvas || !staticStarsCanvas || !staticDustCanvas) return undefined;
-
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    if (!section || !galaxyCanvas || !nebulaCanvas || !staticStarsCanvas || !staticDustCanvas) return undefined;
+    const ctx = galaxyCanvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return undefined;
 
     let width = 0;
@@ -312,8 +311,8 @@ export default function HomeDualPerspective() {
     let disposed = false;
     let visible = false;
     let stars = [];
-    let dynamicStars = [];
     let dust = [];
+    let dynamicStars = [];
     let dynamicDust = [];
 
     const rebuild = () => {
@@ -321,23 +320,23 @@ export default function HomeDualPerspective() {
       width = Math.max(rect.width, 1);
       height = Math.max(rect.height, 1);
       dpr = Math.min(window.devicePixelRatio || 1, 1.25);
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
       const area = width * height;
       const starCount = clamp(Math.floor(area / 3600), 650, 1450);
       const dustCount = clamp(Math.floor(area / 8500), 220, 520);
       stars = Array.from({ length: starCount }, () => createCosmicStar(width, height, 0.48));
       dust = Array.from({ length: dustCount }, () => createDustGrain(width, height));
       dynamicStars = stars.filter((star) => star.animated || star.interactive || star.bright);
-      dynamicDust = dust.filter((grain) => !grain.quiet && Math.random() < 0.24);
+      dynamicDust = dust.filter((grain) => !grain.quiet);
 
       drawNebulaToCanvas(nebulaCanvas, width, height);
       prepareStaticStars(staticStarsCanvas, width, height, stars, dpr);
       prepareStaticDust(staticDustCanvas, width, height, dust, dpr);
+      galaxyCanvas.width = Math.floor(width * dpr);
+      galaxyCanvas.height = Math.floor(height * dpr);
+      galaxyCanvas.style.width = `${width}px`;
+      galaxyCanvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
     };
 
     const updatePointer = (event) => {
@@ -352,31 +351,23 @@ export default function HomeDualPerspective() {
       if (disposed) return;
       frame = 0;
       if (!visible) return;
-      if (time - lastDraw < 32) {
+      if (time - lastDraw < 33) {
         frame = window.requestAnimationFrame(draw);
         return;
       }
       lastDraw = time;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(nebulaCanvas, 0, 0, width, height);
-      ctx.globalCompositeOperation = 'screen';
       ctx.drawImage(staticStarsCanvas, 0, 0, width, height);
       ctx.drawImage(staticDustCanvas, 0, 0, width, height);
-
+      ctx.globalCompositeOperation = 'screen';
       const mouse = mouseRef.current;
       const interactionRadius = Math.min(280, Math.max(150, width * 0.13));
-
       for (const star of dynamicStars) {
         drawDynamicStar(ctx, star, time, mouse, interactionRadius);
       }
 
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.translate(width * 0.60, height * 0.53);
-      ctx.rotate(-0.27);
+      const dustRadius = 220;
       for (const grain of dynamicDust) {
         const dx = Math.sin(time * grain.drift + grain.phase) * (8 + grain.size * 4);
         const dy = Math.cos(time * grain.drift * 0.7 + grain.phase) * 2;
@@ -385,11 +376,10 @@ export default function HomeDualPerspective() {
         if (mouse.active) {
           const worldDx = px + width * 0.60 - mouse.x;
           const worldDy = py + height * 0.53 - mouse.y;
-          const radius = 220;
           const distSq = worldDx * worldDx + worldDy * worldDy;
-          if (distSq < radius * radius && distSq > 1) {
+          if (distSq < dustRadius * dustRadius && distSq > 1) {
             const distance = Math.sqrt(distSq);
-            const falloff = 1 - distance / radius;
+            const falloff = 1 - distance / dustRadius;
             const force = falloff * falloff * 30;
             px += (worldDx / distance) * force;
             py += (worldDy / distance) * force;
@@ -397,12 +387,11 @@ export default function HomeDualPerspective() {
         }
         ctx.fillStyle = rgba(grain.hue, grain.alpha);
         ctx.beginPath();
-        ctx.arc(px, py, grain.size, 0, Math.PI * 2);
+        ctx.arc(px + width * 0.60, py + height * 0.53, grain.size, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.restore();
-
       ctx.globalCompositeOperation = 'source-over';
+      ctx.filter = 'none';
       frame = window.requestAnimationFrame(draw);
     };
 
@@ -429,10 +418,10 @@ export default function HomeDualPerspective() {
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
-      <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
-      <canvas ref={staticStarsCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
-      <canvas ref={staticDustCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
-      <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
+      <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--nebula" aria-hidden="true" />
+      <canvas ref={staticStarsCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--stars" aria-hidden="true" />
+      <canvas ref={staticDustCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dust" aria-hidden="true" />
+      <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dynamic" aria-hidden="true" />
       <div className="home-dual__layout">
         <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, opacity: railOpacity, scale: railScale }}>
           <Sparkles aria-hidden="true" />
