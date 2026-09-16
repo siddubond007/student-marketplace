@@ -129,6 +129,7 @@ function drawNebulaToCanvas(canvas, width, height) {
     [0.72, 0.72, 0.25, 0.15, [249, 151, 80], 0.013],
     [0.14, 0.30, 0.22, 0.18, [76, 150, 247], 0.010],
   ];
+
   clouds.forEach(([x, y, rx, ry, color, alpha]) => {
     const cx = width * x;
     const cy = height * y;
@@ -159,6 +160,8 @@ function prepareStaticStars(canvas, width, height, stars, dpr) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
   ctx.globalCompositeOperation = 'screen';
+  ctx.shadowBlur = 0;
+
   stars.forEach((star) => {
     if (star.animated || star.interactive || star.bright) return;
     ctx.fillStyle = rgba(star.hue, star.alpha * 0.86);
@@ -182,6 +185,7 @@ function prepareStaticDust(canvas, width, height, dust, dpr) {
   ctx.save();
   ctx.translate(width * 0.60, height * 0.53);
   ctx.rotate(-0.27);
+
   dust.forEach((grain) => {
     if (!grain.quiet || Math.random() > 0.82) return;
     ctx.fillStyle = rgba(grain.hue, grain.alpha * 0.82);
@@ -189,6 +193,7 @@ function prepareStaticDust(canvas, width, height, dust, dpr) {
     ctx.arc(grain.baseX - width * 0.60, grain.baseY - height * 0.53, grain.size, 0, Math.PI * 2);
     ctx.fill();
   });
+
   ctx.restore();
   ctx.globalCompositeOperation = 'source-over';
 }
