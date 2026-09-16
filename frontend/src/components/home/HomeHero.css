@@ -13,6 +13,7 @@
   width: 100vw;
   min-height: max(640px, calc(100vh - 4.5rem));
   margin-left: calc(50% - 50vw);
+  margin-top: -1rem;
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -142,7 +143,8 @@
 .home-hero__content::before {
   content: "↓";
   position: absolute;
-  left: 1.45rem;
+  left: auto;
+  right: 2rem;
   top: 25%;
   width: 2.8rem;
   height: 2.8rem;
@@ -166,7 +168,8 @@
 .home-hero__content::after {
   content: "SCROLL TO EXPLORE";
   position: absolute;
-  left: 0.9rem;
+  left: auto;
+  right: 1.2rem;
   top: calc(25% + 3.35rem);
   color: rgba(216, 235, 251, 0.82);
   font-size: 0.55rem;
@@ -178,7 +181,7 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 0.24rem;
   transform: rotate(-8deg) skewX(-7deg);
-  transform-origin: left center;
+  transform-origin: right center;
   text-shadow: 0 0 12px rgba(184, 217, 244, 0.32);
   pointer-events: none;
   animation: hero-scroll-label 2.8s ease-in-out infinite;
