@@ -4,7 +4,7 @@
   position: absolute;
   top: 2.8rem;
   bottom: 4rem;
-  left: 360px;
+  left: 395px;
   width: 1px;
   pointer-events: none;
   z-index: 2;
@@ -28,7 +28,7 @@
   position: absolute;
   top: 2.8rem;
   bottom: 4rem;
-  left: 358px;
+  left: 393px;
   width: 5px;
   pointer-events: none;
   z-index: 1;
@@ -45,8 +45,8 @@
 }
 
 @media (max-width: 1100px) and (min-width: 781px) {
-  .home-dual__layout::before { left: 250px; }
-  .home-dual__layout::after { left: 248px; }
+  .home-dual__layout::before { left: 275px; }
+  .home-dual__layout::after { left: 273px; }
 }
 
 @media (max-width: 780px) {
