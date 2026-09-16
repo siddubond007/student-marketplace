@@ -91,19 +91,16 @@
   overflow: visible;
 }
 
-/* Independent left rail. The larger gap creates deliberate long vertical breathing room between each word. */
+/* Desktop: the rail is a fixed three-line composition. WHY aligns to the main heading's top line,
+   while THIS and PLATFORM? are deliberately separated vertically. */
 .home-dual__rail {
   position: absolute;
   top: 0;
   left: 0;
-  width: 310px;
+  width: 360px;
   min-height: 560px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 3.6rem;
-  padding: 0.15rem 1rem 0 0;
+  display: block;
+  padding: 0;
   margin: 0;
   overflow: visible;
   transform-origin: left top;
@@ -112,18 +109,21 @@
 }
 
 .home-dual__rail svg {
-  position: relative;
+  position: absolute;
+  top: 0.65rem;
+  left: 0.1rem;
   z-index: 1;
   width: 1.15rem;
   height: 1.15rem;
-  margin: 0 0 0.15rem 0.1rem;
+  margin: 0;
   color: #ffd45a;
   stroke: currentColor;
   flex: 0 0 auto;
 }
 
 .home-dual__rail-word {
-  position: relative;
+  position: absolute;
+  left: 0;
   z-index: 1;
   display: block;
   width: max-content;
@@ -145,6 +145,10 @@
   -webkit-text-fill-color: transparent;
   animation: home-dual-eyebrow-flow 8s ease-in-out infinite;
 }
+
+.home-dual__rail-word:nth-of-type(2) { top: 3.35rem; }
+.home-dual__rail-word:nth-of-type(3) { top: 10.6rem; }
+.home-dual__rail-word:nth-of-type(4) { top: 17.8rem; }
 
 @keyframes home-dual-eyebrow-flow {
   0%, 100% { background-position: 0% 50%; }
@@ -303,7 +307,7 @@
 
 @media (max-width: 1100px) {
   .home-dual { padding-inline: 2rem; }
-  .home-dual__rail { width: 250px; padding-right: 0.75rem; }
+  .home-dual__rail { width: 250px; }
   .home-dual__rail-word { font-size: clamp(2.75rem, 4.8vw, 3.8rem); }
   .home-dual__main { width: min(900px, calc(100% - 1rem)); }
 }
@@ -311,8 +315,9 @@
 @media (max-width: 780px) {
   .home-dual { padding: 5.5rem 1rem 6rem; }
   .home-dual__layout { display: block; width: 100%; }
-  .home-dual__rail { position: relative; top: auto; left: auto; width: auto; min-height: 0; gap: 0.85rem; margin: 0 0 3.25rem; padding: 0; align-items: center; text-align: center; }
-  .home-dual__rail-word { font-size: clamp(3rem, 12vw, 4.8rem); line-height: 0.88; }
+  .home-dual__rail { position: relative; top: auto; left: auto; width: auto; min-height: 0; height: auto; margin: 0 0 3.25rem; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 0.85rem; text-align: center; }
+  .home-dual__rail svg { position: relative; top: auto; left: auto; width: 1.15rem; height: 1.15rem; margin: 0; }
+  .home-dual__rail-word { position: relative; top: auto !important; left: auto; font-size: clamp(3rem, 12vw, 4.8rem); line-height: 0.88; }
   .home-dual__main { width: 100%; max-width: none; }
   .home-dual__switcher { margin-top: 2.4rem; }
   .home-dual__stage { margin-top: 3rem; }
