@@ -1,0 +1,71 @@
+/* HP-01 hero: make the first visual touch the navbar and move the scroll cue to the far edge. */
+.home-hero.home-hero--space {
+  margin-top: -1rem;
+}
+
+.home-hero__content::before {
+  left: auto;
+  right: 1.35rem;
+  top: 52%;
+  transform: rotate(7deg);
+  animation-name: hero-scroll-edge-doodle;
+}
+
+.home-hero__content::after {
+  left: auto;
+  right: 0.55rem;
+  top: calc(52% + 3.35rem);
+  text-align: right;
+  transform: rotate(8deg) skewX(7deg);
+  transform-origin: right center;
+  animation-name: hero-scroll-edge-label;
+}
+
+@keyframes hero-scroll-edge-doodle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(7deg);
+    opacity: 0.74;
+  }
+
+  50% {
+    transform: translate3d(0, 9px, 0) rotate(-4deg) scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes hero-scroll-edge-label {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(8deg) skewX(7deg);
+    opacity: 0.58;
+  }
+
+  50% {
+    transform: translate3d(-4px, 7px, 0) rotate(2deg) skewX(4deg);
+    opacity: 0.95;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero.home-hero--space {
+    margin-top: -1rem;
+  }
+
+  .home-hero__content::before {
+    right: 1rem;
+    top: 13%;
+  }
+
+  .home-hero__content::after {
+    right: 0.45rem;
+    top: calc(13% + 3rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__content::before,
+  .home-hero__content::after {
+    animation-name: none;
+  }
+}
