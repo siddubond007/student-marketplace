@@ -185,10 +185,10 @@ function drawDynamicStar(ctx, star, deltaSeconds, time, mouse, interactionRadius
   star.velocityX += steering * deltaSeconds;
   star.velocityY += Math.cos(time * 0.00013 + star.phase * 1.37) * star.velocityJitter * deltaSeconds;
 
-  if (star.x < -28) star.x = window.innerWidth + 20;
-  if (star.x > window.innerWidth + 28) star.x = -20;
-  if (star.y < -28) star.y = window.innerHeight + 20;
-  if (star.y > window.innerHeight + 28) star.y = -20;
+  if (star.x < -28) star.x = star.baseX > 0 ? -20 : window.innerWidth + 20;
+  if (star.x > window.innerWidth + 28) star.x = star.baseX < window.innerWidth ? 20 : -20;
+  if (star.y < -28) star.y = star.baseY > 0 ? -20 : window.innerHeight + 20;
+  if (star.y > window.innerHeight + 28) star.y = star.baseY < window.innerHeight ? 20 : -20;
 
   let renderX = star.x;
   let renderY = star.y;
@@ -317,6 +317,7 @@ export default function HomeDualPerspective() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       baseReady = true;
+      lastTime = 0;
     };
 
     const updatePointer = (event) => {
@@ -394,7 +395,7 @@ export default function HomeDualPerspective() {
       <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--nebula" aria-hidden="true" />
       <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dynamic" aria-hidden="true" />
       <div className="home-dual__layout">
-        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, opacity: railOpacity, scale: railScale }}>
+        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, y: introY, opacity: introOpacity, scale: railScale }}>
           <Sparkles aria-hidden="true" />
           <span className="home-dual__rail-word">WHY</span>
           <span className="home-dual__rail-word">THIS</span>
