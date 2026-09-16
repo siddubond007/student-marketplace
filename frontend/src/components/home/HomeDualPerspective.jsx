@@ -75,8 +75,13 @@ function createCosmicStar(width, height, bandBias = 0.48) {
     alpha: bright ? randomBetween(0.58, 0.95) : quiet ? randomBetween(0.14, 0.40) : randomBetween(0.30, 0.88),
     phase: Math.random() * Math.PI * 2,
     twinkleSpeed: randomBetween(0.0007, 0.0018),
-    driftX: randomBetween(-0.000015, 0.000015),
-    driftY: randomBetween(-0.00001, 0.00001),
+    // Each star gets its own very slow ambient motion. These are radians/millisecond,
+    // so the star visibly drifts from the moment the canvas starts animating instead
+    // of appearing frozen until the cursor interacts with it.
+    driftX: randomBetween(-0.00032, 0.00032),
+    driftY: randomBetween(-0.00024, 0.00024),
+    driftAmplitude: quiet ? randomBetween(0.9, 1.6) : bright ? randomBetween(3.8, 6.2) : randomBetween(2.2, 4.4),
+    driftAmplitudeY: quiet ? randomBetween(0.65, 1.15) : bright ? randomBetween(2.6, 4.5) : randomBetween(1.5, 3.2),
     hue: palette, bright, interactive, animated, quiet, swirl: randomBetween(-1, 1),
   };
 }
@@ -180,9 +185,12 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
   let x = star.baseX;
   let y = star.baseY;
 
-  const driftScale = star.quiet ? 1.0 : star.bright ? 2.8 : 1.8;
-  x += Math.sin(time * star.driftX + star.phase) * driftScale;
-  y += Math.cos(time * star.driftY + star.phase * 1.31) * driftScale * 0.72;
+  // Ambient drift is always active; it does not depend on mouse movement.
+  x += Math.sin(time * star.driftX + star.phase) * star.driftAmplitude;
+  y += Math.cos(time * star.driftY + star.phase * 1.31) * star.driftAmplitudeY;
+  // A second, slower component prevents the movement from looking like a synchronized sway.
+  x += Math.sin(time * star.driftX * 0.43 + star.phase * 2.17) * star.driftAmplitude * 0.32;
+  y += Math.cos(time * star.driftY * 0.39 + star.phase * 0.73) * star.driftAmplitudeY * 0.28;
 
   if (mouse.active) {
     const dx = x - mouse.x;
