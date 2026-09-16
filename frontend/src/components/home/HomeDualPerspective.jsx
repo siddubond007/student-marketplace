@@ -66,8 +66,8 @@ function createCosmicStar(width, height, bandBias = 0.48) {
   const quiet = isQuietContentZone(width, height, x, y);
   const palette = STAR_PALETTE[Math.floor(Math.random() * STAR_PALETTE.length)];
   const bright = Math.random() < (quiet ? 0.008 : 0.055);
-  const interactive = quiet ? Math.random() < 0.025 : Math.random() < 0.30;
-  const animated = bright || interactive || Math.random() < (quiet ? 0.05 : 0.13);
+  const interactive = true;
+  const animated = bright || Math.random() < (quiet ? 0.05 : 0.13);
 
   return {
     baseX: x, baseY: y, x, y,
@@ -185,7 +185,7 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
     y += Math.cos(time * star.driftY + star.phase) * (star.bright ? 2 : 1.0);
   }
 
-  if (star.interactive && mouse.active) {
+  if (mouse.active) {
     const dx = x - mouse.x;
     const dy = y - mouse.y;
     const distSq = dx * dx + dy * dy;
@@ -201,7 +201,7 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
     }
   }
 
-  const follow = star.interactive ? 0.10 : 0.055;
+  const follow = 0.10;
   star.x += (x - star.x) * follow;
   star.y += (y - star.y) * follow;
   const pulse = star.animated ? 0.78 + Math.sin(time * star.twinkleSpeed + star.phase) * 0.22 : 0.86;
@@ -300,7 +300,7 @@ export default function HomeDualPerspective() {
       const dustCount = clamp(Math.floor(area / 8500), 260, 520);
       stars = Array.from({ length: starCount }, () => createCosmicStar(width, height, 0.48));
       dust = Array.from({ length: dustCount }, () => createDustGrain(width, height));
-      dynamicStars = stars.filter((star) => star.animated || star.interactive || star.bright);
+      dynamicStars = stars;
       dynamicDust = dust.filter((grain) => !grain.quiet);
       drawNebulaToCanvas(nebulaCanvas, width, height);
       drawStaticCosmosToCanvas(nebulaCanvas, width, height, stars, dust, dpr);
@@ -334,7 +334,7 @@ export default function HomeDualPerspective() {
       ctx.clearRect(0, 0, width, height);
       if (baseReady) ctx.drawImage(nebulaCanvas, 0, 0, width, height);
 
-      const interactionRadius = Math.min(320, Math.max(180, width * 0.17));
+      const interactionRadius = Math.min(420, Math.max(240, width * 0.22));
       const activeMouse = mouseRef.current.active;
       for (const star of dynamicStars) {
         drawDynamicStar(ctx, star, time, mouseRef.current, interactionRadius);
