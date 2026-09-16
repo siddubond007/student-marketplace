@@ -262,7 +262,8 @@ export default function HomeDualPerspective() {
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 112, damping: 27, mass: 0.72, restSpeed: 0.001, restDelta: 0.001 });
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
-  const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-56, -30, -8, 0]);
+  const railX = useTransform(progress, [0, 1], [0, 0]);
+  const railOpacity = useTransform(progress, [0, 0.08, 0.20, 0.35, 0.48], [0, 0.08, 0.38, 0.82, 1]);
   const railScale = useTransform(progress, [0, 0.25, 0.48], [0.98, 0.995, 1]);
   const introY = useTransform(progress, [0, 0.08, 0.20, 0.35], [150, 92, 24, 0]);
   const introOpacity = useTransform(progress, [0, 0.06, 0.16, 0.28, 0.35], [0, 0.06, 0.32, 0.82, 1]);
@@ -286,7 +287,7 @@ export default function HomeDualPerspective() {
     let dpr = 1;
     let frame = 0;
     let lastDraw = 0;
-    let previousTime = 0;
+    let lastTime = 0;
     let disposed = false;
     let visible = false;
     let stars = [];
@@ -316,7 +317,6 @@ export default function HomeDualPerspective() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       baseReady = true;
-      previousTime = 0;
     };
 
     const updatePointer = (event) => {
@@ -335,8 +335,8 @@ export default function HomeDualPerspective() {
         frame = window.requestAnimationFrame(draw);
         return;
       }
-      const deltaSeconds = previousTime ? Math.min((time - previousTime) / 1000, 0.08) : 0.016;
-      previousTime = time;
+      const deltaSeconds = lastTime ? Math.min(0.08, (time - lastTime) / 1000) : 1 / 30;
+      lastTime = time;
       lastDraw = time;
 
       ctx.clearRect(0, 0, width, height);
@@ -369,12 +369,11 @@ export default function HomeDualPerspective() {
       frame = window.requestAnimationFrame(draw);
     };
 
+    rebuild();
     const observer = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       if (visible && !frame) frame = window.requestAnimationFrame(draw);
     }, { rootMargin: '180px 0px' });
-
-    rebuild();
     observer.observe(section);
     section.addEventListener('pointermove', updatePointer, { passive: true });
     section.addEventListener('pointerleave', clearPointer, { passive: true });
@@ -395,7 +394,7 @@ export default function HomeDualPerspective() {
       <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--nebula" aria-hidden="true" />
       <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dynamic" aria-hidden="true" />
       <div className="home-dual__layout">
-        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, y: introY, opacity: introOpacity, scale: railScale }}>
+        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, opacity: railOpacity, scale: railScale }}>
           <Sparkles aria-hidden="true" />
           <span className="home-dual__rail-word">WHY</span>
           <span className="home-dual__rail-word">THIS</span>
