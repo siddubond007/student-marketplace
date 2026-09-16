@@ -1,0 +1,82 @@
+/* Home hero layout corrections: keep the hero flush with the navbar and keep the scroll cue as one compact unit. */
+
+main:has(.home-hero.home-hero--space) {
+  padding-top: 1rem !important;
+}
+
+.home-hero.home-hero--space {
+  margin-top: 0;
+}
+
+/* Desktop / tablet: right-bottom scroll cue, subtle motion only. */
+.home-hero__content::before {
+  left: auto !important;
+  right: 2rem !important;
+  top: auto !important;
+  bottom: 3.45rem !important;
+  width: 2.45rem !important;
+  height: 2.45rem !important;
+  transform: rotate(-2deg) !important;
+  animation: hero-scroll-doodle-settle 3.2s ease-in-out infinite !important;
+}
+
+.home-hero__content::after {
+  left: auto !important;
+  right: 0.95rem !important;
+  top: auto !important;
+  bottom: 1.55rem !important;
+  transform: rotate(-3deg) skewX(-4deg) !important;
+  transform-origin: right center !important;
+  animation: hero-scroll-label-settle 3.6s ease-in-out infinite !important;
+}
+
+@keyframes hero-scroll-doodle-settle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-2deg) !important;
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: translate3d(0, 3px, 0) rotate(0deg) !important;
+    opacity: 0.9;
+  }
+}
+
+@keyframes hero-scroll-label-settle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-3deg) skewX(-4deg) !important;
+    opacity: 0.62;
+  }
+
+  50% {
+    transform: translate3d(0, 2px, 0) rotate(-1deg) skewX(-2deg) !important;
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero.home-hero--space {
+    margin-top: 0;
+  }
+
+  .home-hero__content::before {
+    right: 1rem !important;
+    bottom: 3.25rem !important;
+    top: auto !important;
+  }
+
+  .home-hero__content::after {
+    right: 0.45rem !important;
+    bottom: 1.35rem !important;
+    top: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__content::before,
+  .home-hero__content::after {
+    animation: none !important;
+  }
+}
