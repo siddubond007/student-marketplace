@@ -10,29 +10,46 @@
   </defs>
 
   <g opacity="0.98" filter="url(#cueGlow)">
-    <path d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100" stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8"/>
+    <!-- loose hand-drawn spiral -->
+    <path
+      d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100"
+      stroke="#e8f6ff"
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-dasharray="5 8"
+    />
 
-    <!-- single continuous arrow pointing down-right toward the target -->
-    <path d="M73 100 C91 123 112 137 137 145 C161 153 178 162 188 176 C191 180 191 184 188 188" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M174 180 L188 188 L174 196" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- one continuous hand-drawn arrow, clearly flowing down-right -->
+    <path
+      d="M73 100 C94 122 117 136 143 145 C166 153 183 163 193 176"
+      stroke="#ffd76b"
+      stroke-width="4.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
 
-    <g>
-      <animateTransform attributeName="transform" attributeType="XML" type="scale" values="1;1.045;1" dur="2.8s" repeatCount="indefinite"/>
-      <circle cx="224" cy="169" r="30" stroke="#ffd76b" stroke-width="3.5"/>
-      <circle cx="224" cy="169" r="19" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
-      <circle cx="224" cy="169" r="5.5" fill="#fff3bc"/>
-      <path d="M224 126 L224 136 M224 202 L224 212 M181 169 L191 169 M257 169 L267 169" stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
-      <path d="M196 140 L189 133 M252 140 L259 133 M196 198 L189 205 M252 198 L259 205" stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
-    </g>
+    <!-- arrowhead aligned with the final down-right direction -->
+    <path
+      d="M181 173 L193 176 L187 187"
+      stroke="#ffd76b"
+      stroke-width="4.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
 
-    <path d="M287 120 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd76b">
-      <animate attributeName="opacity" values="0.35;1;0.35" dur="2.2s" repeatCount="indefinite"/>
-    </path>
-    <path d="M271 196 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff">
-      <animate attributeName="opacity" values="0.45;1;0.45" dur="2.8s" repeatCount="indefinite" begin="0.5s"/>
-    </path>
+    <!-- destination target -->
+    <circle cx="224" cy="169" r="30" stroke="#ffd76b" stroke-width="3.5"/>
+    <circle cx="224" cy="169" r="19" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
+    <circle cx="224" cy="169" r="5.5" fill="#fff3bc"/>
+    <path d="M224 126 L224 136 M224 202 L224 212 M181 169 L191 169 M257 169 L267 169" stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
+    <path d="M196 140 L189 133 M252 140 L259 133 M196 198 L189 205 M252 198 L259 205" stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- small hand-drawn accents -->
+    <path d="M287 120 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd76b"/>
+    <path d="M271 196 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff"/>
   </g>
 
+  <!-- handwritten-style lettering -->
   <text x="145" y="62" fill="#f8fcff" font-size="39" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-7 145 62)">Scroll</text>
   <text x="173" y="91" fill="#ffd76b" font-size="21" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 173 91)">to explore</text>
 </svg>
