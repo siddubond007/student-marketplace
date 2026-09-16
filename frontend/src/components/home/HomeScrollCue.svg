@@ -19,25 +19,25 @@
       stroke-dasharray="5 8"
     />
 
-    <!-- single flowing arrow: spiral to the lower-right destination -->
+    <!-- scroll arrow: leaves the spiral and deliberately travels downward -->
     <path
-      d="M73 100 C94 122 117 136 143 145 C169 154 190 159 205 166 C209 168 212 170 216 173"
+      d="M72 100 C77 118 84 136 96 151 C107 165 118 178 124 193"
       stroke="#ffd76b"
       stroke-width="4.2"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
 
-    <!-- clear arrowhead whose tip follows the same lower-right trajectory -->
+    <!-- arrowhead: tip is directly below the shaft, pointing DOWN -->
     <path
-      d="M202 162 L216 173 L200 177"
+      d="M114 184 L124 196 L134 184"
       stroke="#ffd76b"
       stroke-width="4.2"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
 
-    <!-- destination target, deliberately separated from the arrowhead -->
+    <!-- destination target remains a separate decorative destination cue -->
     <circle cx="247" cy="181" r="29" stroke="#ffd76b" stroke-width="3.5"/>
     <circle cx="247" cy="181" r="18" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
     <circle cx="247" cy="181" r="5.5" fill="#fff3bc"/>
