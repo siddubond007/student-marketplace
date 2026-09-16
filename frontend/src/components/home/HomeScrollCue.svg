@@ -13,9 +13,9 @@
     <!-- hand-drawn orbit / doodle -->
     <path d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100" stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8"/>
 
-    <!-- playful downward curl -->
-    <path d="M73 100 C88 121 106 135 126 141 C147 147 163 157 166 175" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M154 165 L166 176 L151 183" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- smooth hand-drawn downward curl + arrowhead -->
+    <path d="M73 100 C88 121 106 135 126 141 C147 147 163 157 166 175 C167 181 164 185 158 188" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M149 178 C153 182 156 185 158 188 C154 189 150 190 146 191" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
 
     <!-- target / scroll destination -->
     <g>
@@ -33,11 +33,6 @@
     </path>
     <path d="M271 196 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff">
       <animate attributeName="opacity" values="0.45;1;0.45" dur="2.8s" repeatCount="indefinite" begin="0.5s"/>
-    </path>
-
-    <!-- gentle arrow motion -->
-    <path d="M166 176 L154 165" stroke="#ffd76b" stroke-width="4.2" stroke-linecap="round">
-      <animateTransform attributeName="transform" attributeType="XML" type="translate" values="0 0;0 3;0 0" dur="2.2s" repeatCount="indefinite"/>
     </path>
   </g>
 
