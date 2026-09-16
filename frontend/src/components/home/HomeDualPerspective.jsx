@@ -66,7 +66,7 @@ function createCosmicStar(width, height, bandBias = 0.48) {
   const quiet = isQuietContentZone(width, height, x, y);
   const palette = STAR_PALETTE[Math.floor(Math.random() * STAR_PALETTE.length)];
   const bright = Math.random() < (quiet ? 0.008 : 0.055);
-  const interactive = !quiet && Math.random() < 0.10;
+  const interactive = quiet ? Math.random() < 0.025 : Math.random() < 0.30;
   const animated = bright || interactive || Math.random() < (quiet ? 0.05 : 0.13);
 
   return {
@@ -193,7 +193,7 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
     if (distSq < radiusSq && distSq > 1) {
       const distance = Math.sqrt(distSq);
       const falloff = 1 - distance / interactionRadius;
-      const force = falloff * falloff * 58;
+      const force = falloff * falloff * 72;
       const nx = dx / distance;
       const ny = dy / distance;
       x += nx * force - ny * star.swirl * force * 0.26;
@@ -334,21 +334,21 @@ export default function HomeDualPerspective() {
       ctx.clearRect(0, 0, width, height);
       if (baseReady) ctx.drawImage(nebulaCanvas, 0, 0, width, height);
 
-      const interactionRadius = Math.min(280, Math.max(150, width * 0.13));
+      const interactionRadius = Math.min(320, Math.max(180, width * 0.17));
       const activeMouse = mouseRef.current.active;
       for (const star of dynamicStars) {
         drawDynamicStar(ctx, star, time, mouseRef.current, interactionRadius);
       }
 
       if (activeMouse) {
-        const radiusSq = 220 * 220;
+        const radiusSq = 250 * 250;
         for (const grain of dynamicDust) {
           const dx = grain.baseX - mouseRef.current.x;
           const dy = grain.baseY - mouseRef.current.y;
           if (dx * dx + dy * dy > radiusSq) continue;
           const distance = Math.max(1, Math.hypot(dx, dy));
-          const falloff = 1 - distance / 220;
-          const force = falloff * falloff * 18;
+          const falloff = 1 - distance / 250;
+          const force = falloff * falloff * 22;
           const x = grain.baseX + (dx / distance) * force;
           const y = grain.baseY + (dy / distance) * force;
           ctx.fillStyle = rgba(grain.hue, grain.alpha * (0.65 + falloff * 0.35));
