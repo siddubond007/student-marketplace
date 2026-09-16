@@ -75,7 +75,6 @@ function createCosmicStar(width, height, bandBias = 0.48) {
     alpha: bright ? randomBetween(0.58, 0.95) : quiet ? randomBetween(0.14, 0.40) : randomBetween(0.30, 0.88),
     phase: Math.random() * Math.PI * 2,
     twinkleSpeed: randomBetween(0.0007, 0.0018),
-    // Persistent pixel-per-second velocity makes motion independent of the rAF timestamp scale.
     velocityX: randomBetween(-5.2, 5.2),
     velocityY: randomBetween(-3.6, 3.6),
     velocityJitter: randomBetween(0.10, 0.34),
@@ -179,19 +178,17 @@ function drawStaticCosmosToCanvas(canvas, width, height, stars, dust, dpr) {
 }
 
 function drawDynamicStar(ctx, star, deltaSeconds, time, mouse, interactionRadius) {
-  // Every star has persistent ambient velocity from its first rendered frame.
   star.x += star.velocityX * deltaSeconds;
   star.y += star.velocityY * deltaSeconds;
 
-  // Very gentle random steering keeps the field organic rather than making all paths straight.
   const steering = Math.sin(time * 0.00017 + star.phase) * star.velocityJitter;
   star.velocityX += steering * deltaSeconds;
   star.velocityY += Math.cos(time * 0.00013 + star.phase * 1.37) * star.velocityJitter * deltaSeconds;
 
-  if (star.x < -28) star.x = star.baseX > 0 ? -20 : window.innerWidth + 20;
-  if (star.x > window.innerWidth + 28) star.x = star.baseX < window.innerWidth ? 20 : -20;
-  if (star.y < -28) star.y = star.baseY > 0 ? -20 : window.innerHeight + 20;
-  if (star.y > window.innerHeight + 28) star.y = star.baseY < window.innerHeight ? 20 : -20;
+  if (star.x < -28) star.x = window.innerWidth + 20;
+  if (star.x > window.innerWidth + 28) star.x = -20;
+  if (star.y < -28) star.y = window.innerHeight + 20;
+  if (star.y > window.innerHeight + 28) star.y = -20;
 
   let renderX = star.x;
   let renderY = star.y;
@@ -266,7 +263,6 @@ export default function HomeDualPerspective() {
   const progress = reduceMotion ? scrollYProgress : smoothProgress;
 
   const railX = useTransform(progress, [0, 0.16, 0.34, 0.52], [-56, -30, -8, 0]);
-  const railOpacity = useTransform(progress, [0, 0.08, 0.20, 0.35, 0.48], [0, 0.08, 0.38, 0.82, 1]);
   const railScale = useTransform(progress, [0, 0.25, 0.48], [0.98, 0.995, 1]);
   const introY = useTransform(progress, [0, 0.08, 0.20, 0.35], [150, 92, 24, 0]);
   const introOpacity = useTransform(progress, [0, 0.06, 0.16, 0.28, 0.35], [0, 0.06, 0.32, 0.82, 1]);
@@ -290,7 +286,9 @@ export default function HomeDualPerspective() {
     let dpr = 1;
     let frame = 0;
     let lastDraw = 0;
+    let previousTime = 0;
     let disposed = false;
+    let visible = false;
     let stars = [];
     let dust = [];
     let dynamicStars = [];
@@ -318,6 +316,7 @@ export default function HomeDualPerspective() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       baseReady = true;
+      previousTime = 0;
     };
 
     const updatePointer = (event) => {
@@ -331,11 +330,13 @@ export default function HomeDualPerspective() {
     const draw = (time) => {
       if (disposed) return;
       frame = 0;
+      if (!visible) return;
       if (time - lastDraw < 33) {
         frame = window.requestAnimationFrame(draw);
         return;
       }
-      const deltaSeconds = lastDraw ? Math.min((time - lastDraw) / 1000, 0.08) : 1 / 30;
+      const deltaSeconds = previousTime ? Math.min((time - previousTime) / 1000, 0.08) : 0.016;
+      previousTime = time;
       lastDraw = time;
 
       ctx.clearRect(0, 0, width, height);
@@ -368,17 +369,23 @@ export default function HomeDualPerspective() {
       frame = window.requestAnimationFrame(draw);
     };
 
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && !frame) frame = window.requestAnimationFrame(draw);
+    }, { rootMargin: '180px 0px' });
+
     rebuild();
-    frame = window.requestAnimationFrame(draw);
-    window.addEventListener('resize', rebuild);
+    observer.observe(section);
     section.addEventListener('pointermove', updatePointer, { passive: true });
     section.addEventListener('pointerleave', clearPointer, { passive: true });
+    window.addEventListener('resize', rebuild);
 
     return () => {
       disposed = true;
-      window.removeEventListener('resize', rebuild);
+      observer.disconnect();
       section.removeEventListener('pointermove', updatePointer);
       section.removeEventListener('pointerleave', clearPointer);
+      window.removeEventListener('resize', rebuild);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
@@ -388,7 +395,7 @@ export default function HomeDualPerspective() {
       <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--nebula" aria-hidden="true" />
       <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dynamic" aria-hidden="true" />
       <div className="home-dual__layout">
-        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, opacity: railOpacity, scale: railScale }}>
+        <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, y: introY, opacity: introOpacity, scale: railScale }}>
           <Sparkles aria-hidden="true" />
           <span className="home-dual__rail-word">WHY</span>
           <span className="home-dual__rail-word">THIS</span>
