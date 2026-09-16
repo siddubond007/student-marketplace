@@ -180,10 +180,9 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
   let x = star.baseX;
   let y = star.baseY;
 
-  if (star.animated) {
-    x += Math.sin(time * star.driftX + star.phase) * (star.bright ? 4 : 1.7);
-    y += Math.cos(time * star.driftY + star.phase) * (star.bright ? 2 : 1.0);
-  }
+  const driftScale = star.quiet ? 1.0 : star.bright ? 2.8 : 1.8;
+  x += Math.sin(time * star.driftX + star.phase) * driftScale;
+  y += Math.cos(time * star.driftY + star.phase * 1.31) * driftScale * 0.72;
 
   if (mouse.active) {
     const dx = x - mouse.x;
