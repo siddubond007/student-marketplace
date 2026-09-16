@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" fill="none">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)">
+    <path d="M70 34 C47 33 27 48 29 70 C31 93 56 108 82 104 C109 100 126 80 116 60 C107 41 83 37 63 45 C46 52 44 69 53 80 C63 93 84 91 91 77 C97 65 89 55 78 56 C68 57 65 67 70 73" stroke="#dceeff" stroke-opacity=".92" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 6"/>
+
+    <path d="M78 73 C88 88 103 99 119 103 C128 106 136 110 139 117" stroke="#ffd36b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M131 110 L140 118 L130 123" stroke="#ffd36b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <circle cx="170" cy="116" r="23" stroke="#ffd36b" stroke-width="2.8"/>
+    <circle cx="170" cy="116" r="14" stroke="#ffd36b" stroke-width="2.4" stroke-dasharray="4 5"/>
+    <circle cx="170" cy="116" r="4" fill="#fff2bf"/>
+
+    <path d="M170 84 L170 91 M170 141 L170 148 M138 116 L145 116 M195 116 L202 116" stroke="#fff2bf" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M151 94 L146 89 M189 94 L194 89 M151 138 L146 143 M189 138 L194 143" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <text x="128" y="49" fill="#f5fbff" font-size="27" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-7 128 49)">Scroll</text>
+  <text x="145" y="73" fill="#ffd36b" font-size="15" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 145 73)">to explore</text>
+</svg>
