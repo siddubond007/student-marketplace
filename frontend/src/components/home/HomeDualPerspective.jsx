@@ -75,13 +75,10 @@ function createCosmicStar(width, height, bandBias = 0.48) {
     alpha: bright ? randomBetween(0.58, 0.95) : quiet ? randomBetween(0.14, 0.40) : randomBetween(0.30, 0.88),
     phase: Math.random() * Math.PI * 2,
     twinkleSpeed: randomBetween(0.0007, 0.0018),
-    // Each star gets its own very slow ambient motion. These are radians/millisecond,
-    // so the star visibly drifts from the moment the canvas starts animating instead
-    // of appearing frozen until the cursor interacts with it.
-    driftX: randomBetween(-0.00032, 0.00032),
-    driftY: randomBetween(-0.00024, 0.00024),
-    driftAmplitude: quiet ? randomBetween(0.9, 1.6) : bright ? randomBetween(3.8, 6.2) : randomBetween(2.2, 4.4),
-    driftAmplitudeY: quiet ? randomBetween(0.65, 1.15) : bright ? randomBetween(2.6, 4.5) : randomBetween(1.5, 3.2),
+    // Persistent pixel-per-second velocity makes motion independent of the rAF timestamp scale.
+    velocityX: randomBetween(-5.2, 5.2),
+    velocityY: randomBetween(-3.6, 3.6),
+    velocityJitter: randomBetween(0.10, 0.34),
     hue: palette, bright, interactive, animated, quiet, swirl: randomBetween(-1, 1),
   };
 }
@@ -181,20 +178,27 @@ function drawStaticCosmosToCanvas(canvas, width, height, stars, dust, dpr) {
   ctx.globalCompositeOperation = 'source-over';
 }
 
-function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
-  let x = star.baseX;
-  let y = star.baseY;
+function drawDynamicStar(ctx, star, deltaSeconds, time, mouse, interactionRadius) {
+  // Every star has persistent ambient velocity from its first rendered frame.
+  star.x += star.velocityX * deltaSeconds;
+  star.y += star.velocityY * deltaSeconds;
 
-  // Ambient drift is always active; it does not depend on mouse movement.
-  x += Math.sin(time * star.driftX + star.phase) * star.driftAmplitude;
-  y += Math.cos(time * star.driftY + star.phase * 1.31) * star.driftAmplitudeY;
-  // A second, slower component prevents the movement from looking like a synchronized sway.
-  x += Math.sin(time * star.driftX * 0.43 + star.phase * 2.17) * star.driftAmplitude * 0.32;
-  y += Math.cos(time * star.driftY * 0.39 + star.phase * 0.73) * star.driftAmplitudeY * 0.28;
+  // Very gentle random steering keeps the field organic rather than making all paths straight.
+  const steering = Math.sin(time * 0.00017 + star.phase) * star.velocityJitter;
+  star.velocityX += steering * deltaSeconds;
+  star.velocityY += Math.cos(time * 0.00013 + star.phase * 1.37) * star.velocityJitter * deltaSeconds;
+
+  if (star.x < -28) star.x = star.baseX > 0 ? -20 : window.innerWidth + 20;
+  if (star.x > window.innerWidth + 28) star.x = star.baseX < window.innerWidth ? 20 : -20;
+  if (star.y < -28) star.y = star.baseY > 0 ? -20 : window.innerHeight + 20;
+  if (star.y > window.innerHeight + 28) star.y = star.baseY < window.innerHeight ? 20 : -20;
+
+  let renderX = star.x;
+  let renderY = star.y;
 
   if (mouse.active) {
-    const dx = x - mouse.x;
-    const dy = y - mouse.y;
+    const dx = renderX - mouse.x;
+    const dy = renderY - mouse.y;
     const distSq = dx * dx + dy * dy;
     const radiusSq = interactionRadius * interactionRadius;
     if (distSq < radiusSq && distSq > 1) {
@@ -203,19 +207,16 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
       const force = falloff * falloff * 72;
       const nx = dx / distance;
       const ny = dy / distance;
-      x += nx * force - ny * star.swirl * force * 0.26;
-      y += ny * force + nx * star.swirl * force * 0.26;
+      renderX += nx * force - ny * star.swirl * force * 0.26;
+      renderY += ny * force + nx * star.swirl * force * 0.26;
     }
   }
 
-  const follow = 0.10;
-  star.x += (x - star.x) * follow;
-  star.y += (y - star.y) * follow;
   const pulse = star.animated ? 0.78 + Math.sin(time * star.twinkleSpeed + star.phase) * 0.22 : 0.86;
   const alpha = Math.max(0.035, star.alpha * pulse);
   ctx.fillStyle = rgba(star.hue, alpha);
   ctx.beginPath();
-  ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+  ctx.arc(renderX, renderY, star.radius, 0, Math.PI * 2);
   ctx.fill();
 
   if (star.bright) {
@@ -223,10 +224,10 @@ function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
     ctx.strokeStyle = rgba(star.hue, alpha * 0.30);
     ctx.lineWidth = 0.45;
     ctx.beginPath();
-    ctx.moveTo(star.x - arm, star.y);
-    ctx.lineTo(star.x + arm, star.y);
-    ctx.moveTo(star.x, star.y - arm);
-    ctx.lineTo(star.x, star.y + arm);
+    ctx.moveTo(renderX - arm, renderY);
+    ctx.lineTo(renderX + arm, renderY);
+    ctx.moveTo(renderX, renderY - arm);
+    ctx.lineTo(renderX, renderY + arm);
     ctx.stroke();
   }
 }
@@ -290,7 +291,6 @@ export default function HomeDualPerspective() {
     let frame = 0;
     let lastDraw = 0;
     let disposed = false;
-    let visible = false;
     let stars = [];
     let dust = [];
     let dynamicStars = [];
@@ -331,11 +331,11 @@ export default function HomeDualPerspective() {
     const draw = (time) => {
       if (disposed) return;
       frame = 0;
-      if (!visible) return;
       if (time - lastDraw < 33) {
         frame = window.requestAnimationFrame(draw);
         return;
       }
+      const deltaSeconds = lastDraw ? Math.min((time - lastDraw) / 1000, 0.08) : 1 / 30;
       lastDraw = time;
 
       ctx.clearRect(0, 0, width, height);
@@ -344,7 +344,7 @@ export default function HomeDualPerspective() {
       const interactionRadius = Math.min(420, Math.max(240, width * 0.22));
       const activeMouse = mouseRef.current.active;
       for (const star of dynamicStars) {
-        drawDynamicStar(ctx, star, time, mouseRef.current, interactionRadius);
+        drawDynamicStar(ctx, star, deltaSeconds, time, mouseRef.current, interactionRadius);
       }
 
       if (activeMouse) {
@@ -365,26 +365,20 @@ export default function HomeDualPerspective() {
         }
       }
 
-      if (frame === 0) frame = window.requestAnimationFrame(draw);
+      frame = window.requestAnimationFrame(draw);
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      if (visible && !frame) frame = window.requestAnimationFrame(draw);
-    }, { rootMargin: '180px 0px' });
-
     rebuild();
-    observer.observe(section);
+    frame = window.requestAnimationFrame(draw);
+    window.addEventListener('resize', rebuild);
     section.addEventListener('pointermove', updatePointer, { passive: true });
     section.addEventListener('pointerleave', clearPointer, { passive: true });
-    window.addEventListener('resize', rebuild);
 
     return () => {
       disposed = true;
-      observer.disconnect();
+      window.removeEventListener('resize', rebuild);
       section.removeEventListener('pointermove', updatePointer);
       section.removeEventListener('pointerleave', clearPointer);
-      window.removeEventListener('resize', rebuild);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
