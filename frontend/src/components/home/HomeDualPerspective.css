@@ -91,16 +91,19 @@
   overflow: visible;
 }
 
-/* Desktop: the rail is a fixed three-line composition. WHY aligns to the main heading's top line,
-   while THIS and PLATFORM? are deliberately separated vertically. */
+/* Desktop rail: stable left anchor with large, deliberate spacing between the three words. */
 .home-dual__rail {
   position: absolute;
   top: 0;
   left: 0;
   width: 360px;
   min-height: 560px;
-  display: block;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 3.6rem;
+  padding: 0.15rem 1rem 0 0;
   margin: 0;
   overflow: visible;
   transform-origin: left top;
@@ -109,21 +112,18 @@
 }
 
 .home-dual__rail svg {
-  position: absolute;
-  top: 0.65rem;
-  left: 0.1rem;
+  position: relative;
   z-index: 1;
   width: 1.15rem;
   height: 1.15rem;
-  margin: 0;
+  margin: 0 0 0.15rem 0.1rem;
   color: #ffd45a;
   stroke: currentColor;
   flex: 0 0 auto;
 }
 
 .home-dual__rail-word {
-  position: absolute;
-  left: 0;
+  position: relative;
   z-index: 1;
   display: block;
   width: max-content;
@@ -145,10 +145,6 @@
   -webkit-text-fill-color: transparent;
   animation: home-dual-eyebrow-flow 8s ease-in-out infinite;
 }
-
-.home-dual__rail-word:nth-of-type(2) { top: 3.35rem; }
-.home-dual__rail-word:nth-of-type(3) { top: 10.6rem; }
-.home-dual__rail-word:nth-of-type(4) { top: 17.8rem; }
 
 @keyframes home-dual-eyebrow-flow {
   0%, 100% { background-position: 0% 50%; }
@@ -324,4 +320,34 @@
   .home-dual__card-body { padding: 1.55rem 0 1.25rem; }
   .home-dual__items { grid-template-columns: 1fr; }
   .home-dual__switch { min-width: 0; padding-inline: 0.85rem; }
+}
+
+/* APPROVED DESKTOP RAIL ALIGNMENT — keep the left rail independent from the reveal transform. */
+@media (min-width: 781px) {
+  .home-dual__rail {
+    top: 0;
+    left: 0;
+    width: 360px;
+    min-height: 560px;
+    display: block;
+    padding: 0;
+  }
+
+  .home-dual__rail svg {
+    position: absolute;
+    top: -0.15rem;
+    left: 0.1rem;
+    margin: 0;
+  }
+
+  .home-dual__rail-word {
+    position: absolute;
+    left: 0;
+  }
+
+  /* WHY lines up horizontally and vertically with the first heading line. */
+  .home-dual__rail > .home-dual__rail-word:nth-child(2) { top: 0; }
+  /* THIS and PLATFORM? keep the long, intentional vertical rhythm from the reference. */
+  .home-dual__rail > .home-dual__rail-word:nth-child(3) { top: 7.25rem; }
+  .home-dual__rail > .home-dual__rail-word:nth-child(4) { top: 14.5rem; }
 }
