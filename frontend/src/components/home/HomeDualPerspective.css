@@ -3,7 +3,7 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  padding: 7rem 2.5rem 8rem;
+  padding: 3.25rem 2.5rem 8rem;
   border-top: 1px solid rgba(190, 211, 229, 0.08);
   border-bottom: 1px solid rgba(190, 211, 229, 0.07);
   background: #01050a;
