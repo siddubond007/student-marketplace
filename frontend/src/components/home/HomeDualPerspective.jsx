@@ -102,19 +102,37 @@ function createDustGrain(width, height) {
   };
 }
 
-function drawNebula(ctx, width, height, time) {
-  ctx.save();
+function drawNebulaToCanvas(canvas, width, height) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  ctx.globalCompositeOperation = 'source-over';
+
+  const background = ctx.createLinearGradient(0, 0, width, height);
+  background.addColorStop(0, '#01050a');
+  background.addColorStop(0.48, '#02090b');
+  background.addColorStop(1, '#010408');
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, width, height);
+
   ctx.globalCompositeOperation = 'screen';
   const clouds = [
-    [0.56, 0.52, 0.50, 0.20, [45, 238, 139], 0.038, 0.000012],
-    [0.76, 0.30, 0.28, 0.16, [133, 78, 235], 0.017, -0.000010],
-    [0.38, 0.66, 0.25, 0.18, [239, 78, 160], 0.016, 0.000009],
-    [0.72, 0.72, 0.25, 0.15, [249, 151, 80], 0.013, -0.000008],
-    [0.14, 0.30, 0.22, 0.18, [76, 150, 247], 0.010, 0.000007],
+    [0.56, 0.52, 0.50, 0.20, [45, 238, 139], 0.038],
+    [0.76, 0.30, 0.28, 0.16, [133, 78, 235], 0.017],
+    [0.38, 0.66, 0.25, 0.18, [239, 78, 160], 0.016],
+    [0.72, 0.72, 0.25, 0.15, [249, 151, 80], 0.013],
+    [0.14, 0.30, 0.22, 0.18, [76, 150, 247], 0.010],
   ];
-  clouds.forEach(([x, y, rx, ry, color, alpha, drift], index) => {
-    const cx = width * x + Math.sin(time * drift + index) * width * 0.006;
-    const cy = height * y + Math.cos(time * drift * 0.8 + index) * height * 0.004;
+
+  clouds.forEach(([x, y, rx, ry, color, alpha]) => {
+    const cx = width * x;
+    const cy = height * y;
     const radius = Math.max(width, height) * rx;
     const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
     gradient.addColorStop(0, rgba(color, alpha));
@@ -127,104 +145,106 @@ function drawNebula(ctx, width, height, time) {
     ctx.ellipse(cx, cy, radius, Math.max(radius * ry / rx, 1), -0.27, 0, Math.PI * 2);
     ctx.fill();
   });
-  ctx.restore();
+
+  ctx.filter = 'none';
+  ctx.globalCompositeOperation = 'source-over';
 }
 
-function drawCosmicField(ctx, width, height, stars, dust, mouse, time) {
+function prepareStaticStars(canvas, width, height, stars, dpr) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
-  const background = ctx.createLinearGradient(0, 0, width, height);
-  background.addColorStop(0, '#01050a');
-  background.addColorStop(0.48, '#02090b');
-  background.addColorStop(1, '#010408');
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-  drawNebula(ctx, width, height, time);
-
-  const interactionRadius = Math.min(280, Math.max(150, width * 0.13));
-  const interactionStrength = 58;
-  const activeMouse = mouse.active;
-  ctx.save();
   ctx.globalCompositeOperation = 'screen';
   ctx.shadowBlur = 0;
 
-  for (const star of stars) {
-    let x = star.x;
-    let y = star.y;
-    if (star.animated) {
-      x = star.baseX + Math.sin(time * star.driftX + star.phase) * (star.bright ? 4 : 1.7);
-      y = star.baseY + Math.cos(time * star.driftY + star.phase) * (star.bright ? 2 : 1.0);
-    }
-    if (activeMouse && star.interactive) {
-      const dx = x - mouse.x;
-      const dy = y - mouse.y;
-      const distSq = dx * dx + dy * dy;
-      if (distSq < interactionRadius * interactionRadius && distSq > 1) {
-        const distance = Math.sqrt(distSq);
-        const falloff = 1 - distance / interactionRadius;
-        const force = falloff * falloff * interactionStrength;
-        const nx = dx / distance;
-        const ny = dy / distance;
-        x += nx * force - ny * star.swirl * force * 0.26;
-        y += ny * force + nx * star.swirl * force * 0.26;
-      }
-    }
-    star.x += (x - star.x) * (star.interactive ? 0.08 : 0.045);
-    star.y += (y - star.y) * (star.interactive ? 0.08 : 0.045);
-    const pulse = star.animated ? 0.78 + Math.sin(time * star.twinkleSpeed + star.phase) * 0.22 : 0.86;
-    const alpha = Math.max(0.035, star.alpha * pulse);
-    if (star.bright) {
-      ctx.shadowBlur = 9;
-      ctx.shadowColor = rgba(star.hue, alpha * 0.65);
-    } else {
-      ctx.shadowBlur = 0;
-    }
-    ctx.fillStyle = rgba(star.hue, alpha);
+  stars.forEach((star) => {
+    if (star.animated || star.interactive || star.bright) return;
+    ctx.fillStyle = rgba(star.hue, star.alpha * 0.86);
     ctx.beginPath();
-    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+    ctx.arc(star.baseX, star.baseY, star.radius, 0, Math.PI * 2);
     ctx.fill();
-    if (star.bright) {
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = rgba(star.hue, alpha * 0.26);
-      ctx.lineWidth = 0.45;
-      const arm = star.radius * 3.0;
-      ctx.beginPath();
-      ctx.moveTo(star.x - arm, star.y);
-      ctx.lineTo(star.x + arm, star.y);
-      ctx.moveTo(star.x, star.y - arm);
-      ctx.lineTo(star.x, star.y + arm);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
+  });
+  ctx.globalCompositeOperation = 'source-over';
+}
 
-  ctx.save();
+function prepareStaticDust(canvas, width, height, dust, dpr) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
   ctx.globalCompositeOperation = 'screen';
+  ctx.save();
   ctx.translate(width * 0.60, height * 0.53);
   ctx.rotate(-0.27);
-  for (const grain of dust) {
-    const dx = Math.sin(time * grain.drift + grain.phase) * (8 + grain.size * 4);
-    const dy = Math.cos(time * grain.drift * 0.7 + grain.phase) * 2;
-    let px = grain.baseX - width * 0.60 + dx;
-    let py = grain.baseY - height * 0.53 + dy;
-    if (activeMouse && !grain.quiet) {
-      const worldDx = px + width * 0.60 - mouse.x;
-      const worldDy = py + height * 0.53 - mouse.y;
-      const distSq = worldDx * worldDx + worldDy * worldDy;
-      const radius = 220;
-      if (distSq < radius * radius && distSq > 1) {
-        const distance = Math.sqrt(distSq);
-        const falloff = 1 - distance / radius;
-        const force = falloff * falloff * 30;
-        px += (worldDx / distance) * force;
-        py += (worldDy / distance) * force;
-      }
-    }
-    ctx.fillStyle = rgba(grain.hue, grain.alpha);
+
+  dust.forEach((grain) => {
+    if (!grain.quiet || Math.random() > 0.82) return;
+    ctx.fillStyle = rgba(grain.hue, grain.alpha * 0.82);
     ctx.beginPath();
-    ctx.arc(px, py, grain.size, 0, Math.PI * 2);
+    ctx.arc(grain.baseX - width * 0.60, grain.baseY - height * 0.53, grain.size, 0, Math.PI * 2);
     ctx.fill();
-  }
+  });
+
   ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawDynamicStar(ctx, star, time, mouse, interactionRadius) {
+  let x = star.baseX;
+  let y = star.baseY;
+
+  if (star.animated) {
+    x += Math.sin(time * star.driftX + star.phase) * (star.bright ? 4 : 1.7);
+    y += Math.cos(time * star.driftY + star.phase) * (star.bright ? 2 : 1.0);
+  }
+
+  if (star.interactive && mouse.active) {
+    const dx = x - mouse.x;
+    const dy = y - mouse.y;
+    const distSq = dx * dx + dy * dy;
+    const radiusSq = interactionRadius * interactionRadius;
+    if (distSq < radiusSq && distSq > 1) {
+      const distance = Math.sqrt(distSq);
+      const falloff = 1 - distance / interactionRadius;
+      const force = falloff * falloff * 58;
+      const nx = dx / distance;
+      const ny = dy / distance;
+      x += nx * force - ny * star.swirl * force * 0.26;
+      y += ny * force + nx * star.swirl * force * 0.26;
+    }
+  }
+
+  const follow = star.interactive ? 0.10 : 0.055;
+  star.x += (x - star.x) * follow;
+  star.y += (y - star.y) * follow;
+
+  const pulse = star.animated ? 0.78 + Math.sin(time * star.twinkleSpeed + star.phase) * 0.22 : 0.86;
+  const alpha = Math.max(0.035, star.alpha * pulse);
+  ctx.fillStyle = rgba(star.hue, alpha);
+  ctx.beginPath();
+  ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (star.bright) {
+    const arm = star.radius * 2.8;
+    ctx.strokeStyle = rgba(star.hue, alpha * 0.30);
+    ctx.lineWidth = 0.45;
+    ctx.beginPath();
+    ctx.moveTo(star.x - arm, star.y);
+    ctx.lineTo(star.x + arm, star.y);
+    ctx.moveTo(star.x, star.y - arm);
+    ctx.lineTo(star.x, star.y + arm);
+    ctx.stroke();
+  }
 }
 
 function PerspectiveContent({ perspective }) {
@@ -251,6 +271,9 @@ export default function HomeDualPerspective() {
   const [active, setActive] = useState('client');
   const sectionRef = useRef(null);
   const galaxyCanvasRef = useRef(null);
+  const nebulaCanvasRef = useRef(null);
+  const staticStarsCanvasRef = useRef(null);
+  const staticDustCanvasRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
   const groupId = useId();
   const reduceMotion = useReducedMotion();
@@ -273,8 +296,12 @@ export default function HomeDualPerspective() {
   useEffect(() => {
     const section = sectionRef.current;
     const canvas = galaxyCanvasRef.current;
-    if (!section || !canvas) return undefined;
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    const nebulaCanvas = nebulaCanvasRef.current;
+    const staticStarsCanvas = staticStarsCanvasRef.current;
+    const staticDustCanvas = staticDustCanvasRef.current;
+    if (!section || !canvas || !nebulaCanvas || !staticStarsCanvas || !staticDustCanvas) return undefined;
+
+    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return undefined;
 
     let width = 0;
@@ -285,7 +312,9 @@ export default function HomeDualPerspective() {
     let disposed = false;
     let visible = false;
     let stars = [];
+    let dynamicStars = [];
     let dust = [];
+    let dynamicDust = [];
 
     const rebuild = () => {
       const rect = section.getBoundingClientRect();
@@ -297,11 +326,18 @@ export default function HomeDualPerspective() {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
       const area = width * height;
       const starCount = clamp(Math.floor(area / 3600), 650, 1450);
       const dustCount = clamp(Math.floor(area / 8500), 220, 520);
       stars = Array.from({ length: starCount }, () => createCosmicStar(width, height, 0.48));
       dust = Array.from({ length: dustCount }, () => createDustGrain(width, height));
+      dynamicStars = stars.filter((star) => star.animated || star.interactive || star.bright);
+      dynamicDust = dust.filter((grain) => !grain.quiet && Math.random() < 0.24);
+
+      drawNebulaToCanvas(nebulaCanvas, width, height);
+      prepareStaticStars(staticStarsCanvas, width, height, stars, dpr);
+      prepareStaticDust(staticDustCanvas, width, height, dust, dpr);
     };
 
     const updatePointer = (event) => {
@@ -316,12 +352,57 @@ export default function HomeDualPerspective() {
       if (disposed) return;
       frame = 0;
       if (!visible) return;
-      if (time - lastDraw < 33) {
+      if (time - lastDraw < 32) {
         frame = window.requestAnimationFrame(draw);
         return;
       }
       lastDraw = time;
-      drawCosmicField(ctx, width, height, stars, dust, mouseRef.current, time);
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(nebulaCanvas, 0, 0, width, height);
+      ctx.globalCompositeOperation = 'screen';
+      ctx.drawImage(staticStarsCanvas, 0, 0, width, height);
+      ctx.drawImage(staticDustCanvas, 0, 0, width, height);
+
+      const mouse = mouseRef.current;
+      const interactionRadius = Math.min(280, Math.max(150, width * 0.13));
+
+      for (const star of dynamicStars) {
+        drawDynamicStar(ctx, star, time, mouse, interactionRadius);
+      }
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.translate(width * 0.60, height * 0.53);
+      ctx.rotate(-0.27);
+      for (const grain of dynamicDust) {
+        const dx = Math.sin(time * grain.drift + grain.phase) * (8 + grain.size * 4);
+        const dy = Math.cos(time * grain.drift * 0.7 + grain.phase) * 2;
+        let px = grain.baseX - width * 0.60 + dx;
+        let py = grain.baseY - height * 0.53 + dy;
+        if (mouse.active) {
+          const worldDx = px + width * 0.60 - mouse.x;
+          const worldDy = py + height * 0.53 - mouse.y;
+          const radius = 220;
+          const distSq = worldDx * worldDx + worldDy * worldDy;
+          if (distSq < radius * radius && distSq > 1) {
+            const distance = Math.sqrt(distSq);
+            const falloff = 1 - distance / radius;
+            const force = falloff * falloff * 30;
+            px += (worldDx / distance) * force;
+            py += (worldDy / distance) * force;
+          }
+        }
+        ctx.fillStyle = rgba(grain.hue, grain.alpha);
+        ctx.beginPath();
+        ctx.arc(px, py, grain.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      ctx.globalCompositeOperation = 'source-over';
       frame = window.requestAnimationFrame(draw);
     };
 
@@ -348,6 +429,9 @@ export default function HomeDualPerspective() {
 
   return (
     <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
+      <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
+      <canvas ref={staticStarsCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
+      <canvas ref={staticDustCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
       <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas" aria-hidden="true" />
       <div className="home-dual__layout">
         <motion.aside className="home-dual__rail" aria-label="Why this platform" style={{ x: railX, opacity: railOpacity, scale: railScale }}>
