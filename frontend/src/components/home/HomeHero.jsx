@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import HomeScrollCue from './HomeScrollCue.svg';
 import './HomeHero.css';
 
 const STAR_COUNT = 360;
@@ -776,6 +777,13 @@ export default function HomeHero() {
             </Link>
           </div>
         </div>
+
+        <img
+          src={HomeScrollCue}
+          alt="Scroll to explore"
+          className="home-hero__scroll-cue"
+          draggable="false"
+        />
       </div>
     </section>
   );
