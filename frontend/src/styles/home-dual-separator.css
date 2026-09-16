@@ -1,0 +1,57 @@
+/* HP-02 cosmic separator — visually divides the left rail from the main perspective content. */
+.home-dual__layout::before {
+  content: "";
+  position: absolute;
+  top: 2.8rem;
+  bottom: 4rem;
+  left: 360px;
+  width: 1px;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(208, 224, 238, 0.16) 6%,
+    rgba(255, 231, 177, 0.52) 14%,
+    rgba(236, 245, 250, 0.38) 48%,
+    rgba(255, 221, 157, 0.46) 84%,
+    rgba(208, 224, 238, 0.10) 94%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 5px rgba(255, 224, 166, 0.34),
+    0 0 16px rgba(231, 241, 248, 0.13);
+}
+
+.home-dual__layout::after {
+  content: "";
+  position: absolute;
+  top: 2.8rem;
+  bottom: 4rem;
+  left: 358px;
+  width: 5px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 225, 169, 0.22) 16%,
+    rgba(225, 240, 250, 0.10) 50%,
+    rgba(255, 218, 152, 0.18) 84%,
+    transparent 100%
+  );
+  filter: blur(4px);
+  opacity: 0.7;
+}
+
+@media (max-width: 1100px) and (min-width: 781px) {
+  .home-dual__layout::before { left: 250px; }
+  .home-dual__layout::after { left: 248px; }
+}
+
+@media (max-width: 780px) {
+  .home-dual__layout::before,
+  .home-dual__layout::after {
+    display: none;
+  }
+}
