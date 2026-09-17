@@ -9,6 +9,7 @@ import './styles/home-hero-layout-tuning.css'
 import './styles/home-dual-layout-tuning.css'
 import './styles/home-dual-client-pitch.js'
 import './styles/home-dual-client-heading-accent.css'
+import './styles/home-dual-visual-polish.css'
 import App from './App.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
