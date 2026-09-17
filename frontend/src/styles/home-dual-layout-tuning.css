@@ -1,11 +1,16 @@
-/* HP-02 layout tuning: make Why This Platform continue directly from the hero. */
+/* HP-02 layout tuning: the Why This Platform section begins only after the full hero. */
 .home-dual.home-dual--layout-tuned {
   width: 100vw !important;
   max-width: none !important;
   margin-left: calc(50% - 50vw) !important;
-  margin-top: -6rem !important;
+  margin-top: 0 !important;
   border-top-color: rgba(190, 211, 229, 0.14) !important;
   border-radius: 0 !important;
+}
+
+/* Cancel the page-level space-y gap for this section without pulling it upward over the hero. */
+.space-y-24 > .home-dual.home-dual--layout-tuned {
+  margin-top: 0 !important;
 }
 
 /* Full-bleed section with intentional interior breathing room. */
@@ -38,7 +43,7 @@
 
 @media (max-width: 780px) {
   .home-dual.home-dual--layout-tuned {
-    margin-top: -6rem !important;
+    margin-top: 0 !important;
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__rail {
