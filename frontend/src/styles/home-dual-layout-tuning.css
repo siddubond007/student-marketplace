@@ -1,4 +1,4 @@
-/* HP-02 layout tuning: make Why This Platform continue directly from the hero. */
+/* HP-02 layout tuning: one-screen Why This Platform composition. */
 .home-dual.home-dual--layout-tuned {
   width: 100vw !important;
   max-width: none !important;
@@ -6,136 +6,255 @@
   margin-top: 0 !important;
   border-top-color: rgba(190, 211, 229, 0.14) !important;
   border-radius: 0 !important;
-  padding-top: 2.2rem !important;
-  padding-bottom: 3.2rem !important;
+  padding-top: 1.55rem !important;
+  padding-bottom: 1.9rem !important;
+  box-sizing: border-box;
+  min-height: calc(100vh - 4.5rem);
 }
 
-/* Full-bleed section with intentional interior breathing room. */
 .home-dual.home-dual--layout-tuned .home-dual__layout {
   width: 100%;
   max-width: none;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-/* Keep the approved rail and divider relationship while giving the main content its own right-side column. */
+/* Give the rail its own wider left zone and move it closer to the page edge. */
 .home-dual.home-dual--layout-tuned .home-dual__rail {
-  left: 4rem;
+  left: 3.15rem;
+  transform-origin: left center;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__rail-word {
+  font-size: clamp(2.75rem, 3.2vw, 3.55rem);
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__separator {
-  left: 437px !important;
+  left: 415px !important;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__main {
-  width: min(940px, calc(100% - 500px));
-  max-width: 940px;
-  margin: 0 0 0 475px;
+  width: min(980px, calc(100% - 470px));
+  max-width: 980px;
+  margin: 0 0 0 450px;
 }
 
+/* Keep the intro compact enough that the complete client pitch fits below it. */
 .home-dual.home-dual--layout-tuned .home-dual__intro h2 {
-  font-size: clamp(2.15rem, 3.9vw, 3.85rem);
-  line-height: 1.01;
+  font-size: clamp(2rem, 3.45vw, 3.35rem);
+  line-height: 0.99;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__intro p {
-  margin-top: 0.7rem;
-  max-width: 660px;
-  line-height: 1.55;
+  margin-top: 0.55rem;
+  max-width: 700px;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__switcher {
-  margin-top: 1.65rem;
+  margin-top: 1.15rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__switch {
+  padding: 0.64rem 0.92rem;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__stage {
-  margin-top: 2rem;
+  margin-top: 1.35rem;
   width: 100%;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__card {
   width: 100%;
-  max-width: 940px;
+  max-width: 980px;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card-top {
+  font-size: 0.68rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__role-icon {
+  width: 2rem;
+  height: 2rem;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__card-body {
-  padding: 1.15rem 0 0.9rem 2.25rem;
+  padding: 0.8rem 0 0.55rem 1.8rem;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__card-body h3 {
-  max-width: 760px;
-  font-size: clamp(1.9rem, 3.15vw, 2.9rem);
-  line-height: 1.03;
+  max-width: 900px;
+  font-size: clamp(1.7rem, 2.65vw, 2.5rem);
+  line-height: 1.02;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__card-body > p {
-  max-width: 780px;
-  margin-top: 0.8rem;
-  font-size: 0.9rem;
-  line-height: 1.58;
-}
-
-.home-dual.home-dual--layout-tuned .home-dual__items {
-  gap: 0.7rem;
-  margin-top: 1.3rem;
-}
-
-.home-dual.home-dual--layout-tuned .home-dual__item {
-  padding: 0.85rem;
-}
-
-.home-dual.home-dual--layout-tuned .home-dual__item p {
-  margin-top: 0.35rem;
-  font-size: 0.71rem;
+  max-width: 900px;
+  margin-top: 0.55rem;
+  font-size: 0.83rem;
   line-height: 1.48;
 }
 
-.home-dual.home-dual--layout-tuned .home-dual__cta {
-  margin-top: 1.05rem;
-  padding: 0.72rem 0.95rem;
+/* Five-point client pitch: use the full right-side width with a compact 3 + 2 grid. */
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch {
+  width: 100%;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-headline {
+  max-width: 900px;
+  font-size: clamp(1.8rem, 2.6vw, 2.45rem);
+  line-height: 1.02;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-subtext {
+  max-width: 900px;
+  margin-top: 0.55rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card {
+  grid-column: span 2;
+  padding: 0.8rem 0.82rem 0.85rem;
+  border-radius: 0.85rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(5) {
+  grid-column: 4 / span 2;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card h4 {
+  margin-top: 0.55rem;
+  font-size: 0.79rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-card p {
+  margin-top: 0.28rem;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-trust-banner {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.72rem;
+  padding: 0.68rem 0.8rem;
+  border-radius: 0.85rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-trust-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-trust-item strong {
+  font-size: 0.69rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-trust-item span {
+  margin-top: 0.2rem;
+  font-size: 0.64rem;
+  line-height: 1.42;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-actions {
+  margin-top: 0.72rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__client-pitch-cta {
+  padding: 0.64rem 0.82rem;
+  font-size: 0.72rem;
 }
 
 .home-dual.home-dual--layout-tuned .home-dual__card-footer {
-  padding-top: 0.8rem;
+  padding-top: 0.58rem;
+  font-size: 0.68rem;
 }
 
 @media (max-width: 1100px) and (min-width: 781px) {
   .home-dual.home-dual--layout-tuned {
-    padding-top: 2rem !important;
-    padding-bottom: 3rem !important;
+    padding-top: 1.4rem !important;
+    padding-bottom: 1.6rem !important;
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__rail {
-    left: 2.5rem;
+    left: 2rem;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__rail-word {
+    font-size: clamp(2.45rem, 4.1vw, 3.35rem);
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__separator {
-    left: 317px !important;
+    left: 300px !important;
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__main {
-    width: min(700px, calc(100% - 370px));
+    width: min(700px, calc(100% - 345px));
     max-width: 700px;
-    margin-left: 355px;
+    margin-left: 330px;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card,
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(4),
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(5) {
+    grid-column: auto;
   }
 }
 
 @media (max-width: 780px) {
   .home-dual.home-dual--layout-tuned {
-    margin-top: 0 !important;
-    padding-top: 3.5rem !important;
-    padding-bottom: 4.5rem !important;
+    min-height: 0;
+    padding-top: 3rem !important;
+    padding-bottom: 3.75rem !important;
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__layout {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__rail {
+    left: auto;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__separator {
+    display: none;
   }
 
   .home-dual.home-dual--layout-tuned .home-dual__main {
     width: 100%;
     max-width: none;
     margin-left: 0;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card,
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(4),
+  .home-dual.home-dual--layout-tuned .home-dual__client-pitch-card:nth-child(5) {
+    grid-column: auto;
   }
 }
