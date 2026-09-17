@@ -102,10 +102,6 @@ function injectStyles() {
   line-height: 1.58;
 }
 
-.home-dual__client-pitch-card--wide {
-  grid-column: 2 / span 4 !important;
-}
-
 .home-dual__client-trust-banner {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -237,17 +233,17 @@ function createPitch() {
       <article class="home-dual__client-pitch-card">
         <span class="home-dual__client-pitch-card-icon">${iconMarkup('users')}</span>
         <h4>Portfolio-Driven Talent</h4>
-        <p>Tap into students and freshers building authentic portfolios through practical project work and real opportunities.</p>
+        <p>Tap into vetted students and freshers aged 16–26 who are actively building authentic portfolios through practical project work.</p>
       </article>
       <article class="home-dual__client-pitch-card">
         <span class="home-dual__client-pitch-card-icon">${iconMarkup('shield')}</span>
         <h4>Ironclad Accountability</h4>
-        <p>Built-in progressive strikes penalize missed deadlines and can suspend freelancers who repeatedly fail to deliver.</p>
+        <p>Missed deadlines trigger the built-in progressive strike system, with repeated failures able to lead to freelancer suspension.</p>
       </article>
       <article class="home-dual__client-pitch-card">
         <span class="home-dual__client-pitch-card-icon">${iconMarkup('star')}</span>
         <h4>Zero-Risk Escrow</h4>
-        <p>Budgets are held in escrow and released only after the 5-day review window begins once the final deliverable is received.</p>
+        <p>Your budget is held in escrow and released only after the built-in 5-day review window following final deliverable receipt.</p>
       </article>
       <article class="home-dual__client-pitch-card">
         <span class="home-dual__client-pitch-card-icon">${iconMarkup('sliders')}</span>
