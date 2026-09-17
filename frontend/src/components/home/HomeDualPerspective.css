@@ -1,0 +1,353 @@
+/* HP-02 dual perspective — cosmic composition + spring scroll reveal */
+.home-dual {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 3.25rem 2.5rem 8rem;
+  border-top: 1px solid rgba(190, 211, 229, 0.08);
+  border-bottom: 1px solid rgba(190, 211, 229, 0.07);
+  background: #01050a;
+  box-shadow: none;
+}
+
+/* Very soft atmospheric color only; the canvas carries the visible cosmic field. */
+.home-dual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 58% 18% at 61% 53%, rgba(55, 235, 145, 0.02), transparent 72%),
+    radial-gradient(ellipse 25% 17% at 76% 34%, rgba(166, 91, 255, 0.012), transparent 75%),
+    radial-gradient(ellipse 24% 16% at 35% 60%, rgba(255, 107, 176, 0.011), transparent 76%),
+    radial-gradient(ellipse 24% 17% at 70% 71%, rgba(255, 172, 86, 0.010), transparent 78%),
+    radial-gradient(circle at 6% 12%, rgba(255, 255, 255, 0.56) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 11% 29%, rgba(148, 255, 191, 0.48) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 5% 52%, rgba(140, 198, 255, 0.52) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 14% 72%, rgba(255, 183, 105, 0.50) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 22% 88%, rgba(255, 152, 203, 0.46) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 25% 16%, rgba(193, 255, 222, 0.42) 0 0.9px, transparent 1.7px),
+    radial-gradient(circle at 31% 91%, rgba(208, 156, 255, 0.46) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 44% 8%, rgba(140, 198, 255, 0.38) 0 0.9px, transparent 1.6px),
+    radial-gradient(circle at 57% 6%, rgba(255, 183, 105, 0.38) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 70% 9%, rgba(238, 246, 255, 0.46) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 83% 13%, rgba(208, 156, 255, 0.44) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 94% 22%, rgba(255, 152, 203, 0.44) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 89% 42%, rgba(148, 255, 191, 0.43) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 95% 62%, rgba(140, 198, 255, 0.47) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 91% 82%, rgba(255, 183, 105, 0.45) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 77% 94%, rgba(255, 152, 203, 0.42) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 63% 96%, rgba(193, 255, 222, 0.42) 0 0.9px, transparent 1.6px),
+    radial-gradient(circle at 47% 93%, rgba(208, 156, 255, 0.44) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 34% 78%, rgba(140, 198, 255, 0.40) 0 0.9px, transparent 1.6px),
+    radial-gradient(circle at 2% 93%, rgba(238, 246, 255, 0.48) 0 1px, transparent 1.7px);
+}
+
+/* Only a faint green dust haze here; no bright white wash and no rings. */
+.home-dual::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 8% at 61% 53%, rgba(104, 255, 182, 0.012), transparent 74%),
+    radial-gradient(ellipse 78% 5% at 61% 53%, rgba(48, 200, 123, 0.007), transparent 82%);
+  filter: blur(22px);
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  transform: rotate(-15deg) scale(1.08);
+  animation: home-dual-milky-drift 44s ease-in-out infinite alternate;
+}
+
+@keyframes home-dual-milky-drift {
+  0% { transform: rotate(-15deg) translate3d(-0.8%, 0, 0) scale(1.08); }
+  100% { transform: rotate(-13deg) translate3d(0.8%, 0.7%, 0) scale(1.10); }
+}
+
+.home-dual__galaxy-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.home-dual__galaxy-canvas--nebula { z-index: 0; }
+.home-dual__galaxy-canvas--static-stars { z-index: 2; }
+.home-dual__galaxy-canvas--static-dust { z-index: 2; }
+.home-dual__galaxy-canvas--dynamic { z-index: 2; }
+
+.home-dual__layout {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: block;
+  overflow: visible;
+}
+
+/* Desktop rail: stable left anchor with large, deliberate spacing between the three words. */
+.home-dual__rail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 360px;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 3.6rem;
+  padding: 0.15rem 1rem 0 0;
+  margin: 0;
+  overflow: visible;
+  transform-origin: left top;
+  will-change: transform, opacity;
+  z-index: 4;
+}
+
+.home-dual__rail svg {
+  position: relative;
+  z-index: 1;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0 0 0.15rem 0.1rem;
+  color: #ffd45a;
+  stroke: currentColor;
+  flex: 0 0 auto;
+}
+
+.home-dual__rail-word {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  white-space: nowrap;
+  padding-right: 0.32em;
+  box-sizing: content-box;
+  font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: clamp(3.15rem, 3.75vw, 4rem);
+  line-height: 0.86;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  text-align: left;
+  background: linear-gradient(108deg, #fff3a6 0%, #ffe268 25%, #ffc42c 50%, #fff0a1 73%, #ffba34 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: home-dual-eyebrow-flow 8s ease-in-out infinite;
+}
+
+@keyframes home-dual-eyebrow-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.home-dual__main {
+  position: relative;
+  z-index: 3;
+  width: min(900px, calc(100% - 2rem));
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.home-dual__intro {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+.home-dual__intro h2 {
+  margin: 0;
+  color: #f5f8fc;
+  font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: clamp(2.25rem, 4.5vw, 4.35rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  font-weight: 900;
+  text-wrap: balance;
+}
+
+.home-dual__intro p {
+  max-width: 680px;
+  margin: 1.05rem auto 0;
+  color: #aebdca;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.home-dual__switcher {
+  position: relative;
+  z-index: 4;
+  display: inline-flex;
+  align-self: center;
+  gap: 0.45rem;
+  margin-top: 2.9rem;
+  padding: 0.38rem;
+  border: 1px solid rgba(191, 213, 231, 0.14);
+  border-radius: 1.1rem;
+  background: rgba(8, 17, 28, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 10px 32px rgba(0, 0, 0, 0.12);
+  will-change: transform, opacity;
+}
+
+.home-dual__switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 10.5rem;
+  padding: 0.76rem 1rem;
+  border: 0;
+  border-radius: 0.82rem;
+  background: transparent;
+  color: #93a6b6;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.home-dual__switch svg { width: 1rem; height: 1rem; }
+.home-dual__switch:hover:not(:disabled) { color: #eaf3fa; }
+.home-dual__switch:focus-visible { outline: 3px solid rgba(220, 236, 255, 0.85); outline-offset: 2px; }
+.home-dual__switch.is-active {
+  color: #07121e;
+  background: #dceeff;
+  box-shadow: 0 8px 24px rgba(178, 211, 238, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.home-dual__stage {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 3.7rem;
+  will-change: transform, opacity;
+}
+
+.home-dual__card {
+  position: relative;
+  display: grid;
+  width: min(100%, 900px);
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-dual__card-layer {
+  grid-area: 1 / 1;
+  position: relative;
+  min-width: 0;
+  transition: opacity 430ms cubic-bezier(0.22, 1, 0.36, 1), transform 430ms cubic-bezier(0.22, 1, 0.36, 1), filter 430ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform, filter;
+}
+
+.home-dual__card-layer--client { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); z-index: 3; pointer-events: auto; }
+.home-dual__card-layer--student { opacity: 0; transform: translate3d(8px, 5px, 0) scale(0.997); filter: blur(3px); z-index: 2; pointer-events: none; }
+.home-dual__card.is-student .home-dual__card-layer--client { opacity: 0; transform: translate3d(-8px, -4px, 0) scale(0.997); filter: blur(3px); pointer-events: none; }
+.home-dual__card.is-student .home-dual__card-layer--student { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); z-index: 4; pointer-events: auto; }
+
+.home-dual__card-content { position: relative; z-index: 1; }
+.home-dual__card-glow { display: none; }
+.home-dual__card-top { display: flex; align-items: center; gap: 0.75rem; color: #a9bfd1; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em; }
+.home-dual__role-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; border: 1px solid rgba(208, 228, 244, 0.16); border-radius: 0.8rem; background: rgba(225, 240, 251, 0.055); color: #dceefe; }
+.home-dual__role-icon svg { width: 1.05rem; height: 1.05rem; }
+.home-dual__card-body { max-width: 900px; padding: 2rem 0 1.6rem 3.05rem; }
+.home-dual__card-body h3 { max-width: 820px; margin: 0; color: #f3f7fb; font-family: var(--home-font-display, 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif); font-size: clamp(2rem, 3.6vw, 3.25rem); line-height: 1.03; letter-spacing: -0.04em; font-weight: 900; }
+.home-dual__card-body > p { max-width: 820px; margin: 1rem 0 0; color: #afbeca; font-size: 0.97rem; line-height: 1.75; }
+.home-dual__items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
+.home-dual__item { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; padding: 1rem; border: 1px solid rgba(191, 213, 231, 0.09); border-radius: 1rem; background: rgba(255, 255, 255, 0.018); }
+.home-dual__item-number { width: 0.45rem; height: 0.45rem; margin-top: 0.45rem; border-radius: 50%; background: #d9edfd; box-shadow: 0 0 14px rgba(202, 228, 245, 0.34); }
+.home-dual__item h4 { margin: 0; color: #edf5fb; font-size: 0.84rem; font-weight: 800; }
+.home-dual__item p { margin: 0.45rem 0 0; color: #93a5b4; font-size: 0.76rem; line-height: 1.62; }
+
+.home-dual__cta { display: inline-flex; align-items: center; gap: 0.55rem; margin-top: 1.55rem; padding: 0.86rem 1.05rem; border: 1px solid rgba(201, 225, 243, 0.15); border-radius: 0.85rem; color: #e8f3fb; background: rgba(212, 234, 248, 0.055); font-size: 0.82rem; font-weight: 800; text-decoration: none; transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.home-dual__cta:hover { transform: translateY(-2px); border-color: rgba(210, 231, 246, 0.3); background: rgba(214, 235, 249, 0.09); }
+.home-dual__cta:focus-visible { outline: 3px solid rgba(220, 236, 255, 0.9); outline-offset: 3px; }
+.home-dual__cta svg { width: 1rem; height: 1rem; }
+.home-dual__card-footer { display: flex; align-items: center; gap: 0.7rem; padding-top: 1.15rem; border-top: 1px solid rgba(191, 213, 231, 0.08); color: #7f93a4; font-size: 0.74rem; }
+.home-dual__footer-line { width: 2.2rem; height: 1px; background: rgba(211, 232, 246, 0.35); }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-dual::before,
+  .home-dual::after { animation: none; }
+  .home-dual__rail,
+  .home-dual__intro,
+  .home-dual__switcher,
+  .home-dual__stage { opacity: 1; transform: none; }
+  .home-dual__rail-word { animation: none; }
+  .home-dual__card-layer { transition: none; }
+  .home-dual__card-layer--student,
+  .home-dual__card.is-student .home-dual__card-layer--client { transform: none; filter: none; }
+}
+
+@media (max-width: 1100px) {
+  .home-dual { padding-inline: 2rem; }
+  .home-dual__rail { width: 250px; }
+  .home-dual__rail-word { font-size: clamp(2.75rem, 4.8vw, 3.8rem); }
+  .home-dual__main { width: min(900px, calc(100% - 1rem)); }
+}
+
+@media (max-width: 780px) {
+  .home-dual { padding: 5.5rem 1rem 6rem; }
+  .home-dual__layout { display: block; width: 100%; }
+  .home-dual__rail { position: relative; top: auto; left: auto; width: auto; min-height: 0; height: auto; margin: 0 0 3.25rem; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 0.85rem; text-align: center; }
+  .home-dual__rail svg { position: relative; top: auto; left: auto; width: 1.15rem; height: 1.15rem; margin: 0; }
+  .home-dual__rail-word { position: relative; top: auto !important; left: auto; font-size: clamp(3rem, 12vw, 4.8rem); line-height: 0.88; }
+  .home-dual__main { width: 100%; max-width: none; }
+  .home-dual__switcher { margin-top: 2.4rem; }
+  .home-dual__stage { margin-top: 3rem; }
+  .home-dual__card-body { padding: 1.55rem 0 1.25rem; }
+  .home-dual__items { grid-template-columns: 1fr; }
+  .home-dual__switch { min-width: 0; padding-inline: 0.85rem; }
+}
+
+/* APPROVED DESKTOP RAIL ALIGNMENT — keep the left rail independent from the reveal transform. */
+@media (min-width: 781px) {
+  .home-dual__rail {
+    top: 0;
+    left: 0;
+    width: 360px;
+    min-height: 560px;
+    display: block;
+    padding: 0;
+  }
+
+  .home-dual__rail svg {
+    position: absolute;
+    top: -0.15rem;
+    left: 0.1rem;
+    margin: 0;
+  }
+
+  .home-dual__rail-word {
+    position: absolute;
+    left: 0;
+  }
+
+  /* WHY lines up horizontally and vertically with the first heading line. */
+  .home-dual__rail > .home-dual__rail-word:nth-child(2) { top: 0; }
+  /* THIS and PLATFORM? keep the long, intentional vertical rhythm from the reference. */
+  .home-dual__rail > .home-dual__rail-word:nth-child(3) { top: 7.25rem; }
+  .home-dual__rail > .home-dual__rail-word:nth-child(4) { top: 14.5rem; }
+}

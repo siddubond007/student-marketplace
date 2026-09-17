@@ -4,10 +4,11 @@ import API from '../services/api';
 import { 
   Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
-  Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell
+  Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell,
+  Sun, Moon
 } from 'lucide-react';
 
-export default function Navbar({ currentUser, onLogout }) {
+export default function Navbar({ currentUser, onLogout, themeMode = 'light', onToggleTheme }) {
   const [activeMenu, setActiveMenu] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -189,7 +190,28 @@ export default function Navbar({ currentUser, onLogout }) {
         </div>
 
         {/* Right Auth Controls */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          {/* Theme Toggle Button */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              type="button"
+              className={`p-2 sm:p-2.5 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+                themeMode === 'light'
+                  ? 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700 hover:text-amber-200'
+                  : 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80 hover:bg-indigo-900 hover:text-white'
+              }`}
+              title={themeMode === 'light' ? 'Switch to Dark Mode (Cosmic Space Theme)' : 'Switch to Light Mode (Daylight Modern Theme)'}
+              aria-label="Toggle Dark/Light Mode"
+            >
+              {themeMode === 'light' ? (
+                <Moon className="w-4 h-4 text-indigo-300" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-400" />
+              )}
+            </button>
+          )}
+
           <div className="hidden sm:flex items-center space-x-1 text-slate-400 text-xs font-bold">
             <Globe className="w-3.5 h-3.5" />
             <span>EN</span>

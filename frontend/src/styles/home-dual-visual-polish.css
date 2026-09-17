@@ -1,55 +1,65 @@
-/* HP-02 visual polish: readable card copy + fluid blue gradient rail. */
 .home-dual__client-pitch-card p {
-  color: #c1ced8 !important;
-  font-size: 0.76rem !important;
-  line-height: 1.62 !important;
-  opacity: 0.98 !important;
+  color: #eef6ff !important;
+  opacity: 0.96 !important;
+  font-size: 0.76rem;
+  line-height: 1.62;
 }
 
-.home-dual__client-trust-item span {
-  color: #b0bfca !important;
-  opacity: 0.98 !important;
+.home-dual__client-pitch-headline {
+  color: #f5f8fc;
+}
+
+.home-dual__client-pitch-card h4 {
+  color: #ffd84a !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffd84a !important;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), filter 260ms ease;
+}
+
+.home-dual__client-pitch-card:hover h4 {
+  transform: translate3d(3px, -1px, 0);
+  filter: drop-shadow(0 0 9px rgba(255, 216, 74, 0.2));
+}
+
+/* The rail is intentionally clean: remove the tiny decorative sparkle. */
+.home-dual__rail > svg {
+  display: none !important;
 }
 
 .home-dual__rail-word {
-  background: linear-gradient(
-    112deg,
-    #b9f2ff 0%,
-    #62c8ff 28%,
-    #4f8cff 52%,
-    #8f6cff 76%,
-    #69e0ff 100%
-  ) !important;
-  background-size: 260% 100% !important;
+  position: relative;
+  transform-origin: left center;
+  background: linear-gradient(105deg, #56d8ff 0%, #76b7ff 26%, #8f8cff 54%, #65e1d2 78%, #56d8ff 100%) !important;
+  background-size: 300% 100% !important;
+  background-position: 0% 50% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
-  animation: home-dual-rail-blue-flow 7s ease-in-out infinite !important;
-  transform-origin: left center;
-  transition:
-    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 520ms cubic-bezier(0.22, 1, 0.36, 1),
-    letter-spacing 520ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, filter;
-}
-
-@keyframes home-dual-rail-blue-flow {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1), filter 560ms ease;
 }
 
 .home-dual__rail-word:hover {
-  transform: translate3d(10px, -4px, 0) scale(1.045) skewX(-2deg) rotate(-0.7deg) !important;
-  filter:
-    drop-shadow(0 0 10px rgba(98, 200, 255, 0.20))
-    drop-shadow(0 0 24px rgba(143, 108, 255, 0.14));
-  letter-spacing: -0.048em;
+  transform: translate3d(7px, 0, 0) scale(1.045);
+  filter: drop-shadow(0 0 10px rgba(88, 210, 255, 0.24)) drop-shadow(0 0 16px rgba(146, 129, 255, 0.16));
+  animation: home-dual-rail-water-flow 3.8s ease-in-out infinite;
+}
+
+@keyframes home-dual-rail-water-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-dual__rail-word {
-    animation: none !important;
-    transition: none !important;
+    transition: none;
+    animation: none;
   }
+  .home-dual__client-pitch-card,
+  .home-dual__client-pitch-cta { transition: none; }
+}
+
+@media (max-width: 780px) {
+  .home-dual__client-pitch-card p { font-size: 0.8rem; }
 }

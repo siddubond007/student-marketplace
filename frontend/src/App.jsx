@@ -30,6 +30,9 @@ const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem('skilllaunch_theme') || 'light';
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -43,6 +46,14 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setCurrentUser(null);
+  };
+
+  const handleToggleTheme = () => {
+    setThemeMode(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('skilllaunch_theme', next);
+      return next;
+    });
   };
 
   // A subtle loading fallback that matches your dark theme
@@ -67,14 +78,22 @@ export default function App() {
         </div>
 
         {/* Global Navbar - NOT lazy loaded so it appears instantly */}
-        <Navbar currentUser={currentUser} onLogout={handleLogout} />
+        <Navbar 
+          currentUser={currentUser} 
+          onLogout={handleLogout} 
+          themeMode={themeMode} 
+          onToggleTheme={handleToggleTheme} 
+        />
 
         {/* Main Content Area */}
         <main className="flex-1 w-full px-6 sm:px-8 lg:px-10 py-8 z-10">
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/post-job" element={<PostJobPage currentUser={currentUser} />} />
-              <Route path="/" element={<HomePage currentUser={currentUser} />} />
+              <Route 
+                path="/" 
+                element={<HomePage currentUser={currentUser} themeMode={themeMode} onToggleTheme={handleToggleTheme} />} 
+              />
               
               {/* 1. Dedicated Admin Console */}
               <Route path="/admin" element={<AdminDashboard currentUser={currentUser} />} />
