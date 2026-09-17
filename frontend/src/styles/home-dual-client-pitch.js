@@ -261,15 +261,34 @@ function enhanceClientPerspective(root) {
   return true;
 }
 
+function watchRoot(root) {
+  const rootObserver = new MutationObserver(() => enhanceClientPerspective(root));
+  rootObserver.observe(root, { childList: true, subtree: true });
+  enhanceClientPerspective(root);
+  return rootObserver;
+}
+
 function init() {
   injectStyles();
-  const root = document.querySelector('.home-dual');
-  if (!root) return;
-  enhanceClientPerspective(root);
 
-  const observer = new MutationObserver(() => enhanceClientPerspective(root));
-  observer.observe(root, { childList: true, subtree: true });
-  window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+  let rootObserver = null;
+  const pageObserver = new MutationObserver(() => {
+    const root = document.querySelector('.home-dual');
+    if (!root || rootObserver) return;
+    rootObserver = watchRoot(root);
+  });
+
+  const existingRoot = document.querySelector('.home-dual');
+  if (existingRoot) {
+    rootObserver = watchRoot(existingRoot);
+  } else if (document.body) {
+    pageObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  window.addEventListener('pagehide', () => {
+    pageObserver.disconnect();
+    rootObserver?.disconnect();
+  }, { once: true });
 }
 
 if (document.readyState === 'loading') {
