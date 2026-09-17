@@ -1,13 +1,12 @@
 import React from 'react';
-import { Sun, Moon, Sparkles } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import LightHomeHero from '../components/home/LightHomeHero';
 import LightHomeDualRole from '../components/home/LightHomeDualRole';
 import LightHomeCategories from '../components/home/LightHomeCategories';
 import LightHomeFeaturedTalent from '../components/home/LightHomeFeaturedTalent';
 import LightHomeTrustEscrow from '../components/home/LightHomeTrustEscrow';
 import LightHomeFooter from '../components/home/LightHomeFooter';
-import HomeHero from '../components/home/HomeHero';
-import HomeDualPerspective from '../components/home/HomeDualPerspective';
+import DarkHomePage from './DarkHomePage';
 import '../styles/home-light.css';
 
 export default function HomePage({ currentUser, themeMode = 'light', onToggleTheme }) {
@@ -26,13 +25,13 @@ export default function HomePage({ currentUser, themeMode = 'light', onToggleThe
         >
           {isDark ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
-              <span className="text-xs font-bold text-amber-200">Switch to Light Mode</span>
+              <Sun className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-amber-200">☀️ Switch to Light Mode</span>
             </>
           ) : (
             <>
               <Moon className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-bold text-indigo-200">Switch to Dark Cosmic Mode</span>
+              <span className="text-xs font-bold text-indigo-200">🌌 Switch to Dark Cosmic Mode</span>
             </>
           )}
         </button>
@@ -40,36 +39,12 @@ export default function HomePage({ currentUser, themeMode = 'light', onToggleThe
 
       {isDark ? (
         /* ═══════════════════════════════════════════════════════════════
-           DARK COSMIC THEME (Space Hero Graphics & Cursor Galaxy)
+           DARK COSMIC THEME: Exact hp-01-hero-visual-current Home Page
            ═══════════════════════════════════════════════════════════════ */
-        <div className="space-y-20 pb-16">
-          {/* 1. Cinematic Space Hero with interactive Star Atmosphere & Cursor Galaxy */}
-          <HomeHero currentUser={currentUser} />
-
-          {/* 2. Dual Perspective Interactive Comparison Rails */}
-          <HomeDualPerspective />
-
-          {/* 3. Skill & Category Discovery Grid */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <LightHomeCategories />
-          </div>
-
-          {/* 4. Verified Student Talent Showcase */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <LightHomeFeaturedTalent currentUser={currentUser} />
-          </div>
-
-          {/* 5. 5-Day Escrow Protection & Campus Trust Proof */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <LightHomeTrustEscrow />
-          </div>
-
-          {/* 6. Master Dark Footer */}
-          <LightHomeFooter />
-        </div>
+        <DarkHomePage currentUser={currentUser} />
       ) : (
         /* ═══════════════════════════════════════════════════════════════
-           LIGHT DAYLIGHT THEME (Clean Canvas, Constellation Mesh, Modern Cards)
+           LIGHT DAYLIGHT THEME: Modern Clean Daylight Home Page
            ═══════════════════════════════════════════════════════════════ */
         <div className="home-light-wrapper">
           {/* Soft Ambient Background Mesh */}

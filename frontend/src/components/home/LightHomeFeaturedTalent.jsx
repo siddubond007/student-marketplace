@@ -17,7 +17,7 @@ const FEATURED_GIGS = [
       rating: 5.0,
       reviewsCount: 48
     },
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
     price: '₹1,999',
     deliveryDays: '2 Days',
     category: 'Web Development'
@@ -33,7 +33,7 @@ const FEATURED_GIGS = [
       rating: 4.9,
       reviewsCount: 36
     },
-    image: 'https://images.unsplash.com/photo-1581291518655-9523c932deda?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=600&q=80',
     price: '₹1,499',
     deliveryDays: '1 Day',
     category: 'UI/UX Design'
@@ -65,7 +65,7 @@ const FEATURED_GIGS = [
       rating: 5.0,
       reviewsCount: 29
     },
-    image: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?auto=format&fit=crop&w=600&q=80',
     price: '₹2,499',
     deliveryDays: '3 Days',
     category: 'AI & Data'
@@ -113,6 +113,9 @@ export default function LightHomeFeaturedTalent() {
                   <img
                     src={gig.image}
                     alt={gig.title}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80';
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
                   <div className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-800 shadow-sm border border-slate-200/60">
