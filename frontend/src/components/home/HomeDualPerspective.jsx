@@ -391,7 +391,7 @@ export default function HomeDualPerspective() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="home-dual" aria-labelledby={`${groupId}-title`}>
+    <section ref={sectionRef} className="home-dual home-dual--layout-tuned" aria-labelledby={`${groupId}-title`}>
       <canvas ref={nebulaCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--nebula" aria-hidden="true" />
       <canvas ref={galaxyCanvasRef} className="home-dual__galaxy-canvas home-dual__galaxy-canvas--dynamic" aria-hidden="true" />
       <div className="home-dual__layout">
