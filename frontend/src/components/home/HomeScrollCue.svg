@@ -11,24 +11,36 @@
 
   <g opacity="0.98" filter="url(#cueGlow)">
     <path d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100"
-      stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8"/>
+      stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8">
+      <animate attributeName="stroke-dashoffset" values="0;-13;0" dur="6s" repeatCount="indefinite" />
+    </path>
 
-    <!-- arrow shaft + arrowhead are one locked-together animated unit -->
+    <!-- Arrow keeps one connected geometry and animates as a single unit. -->
     <g>
       <animateTransform attributeName="transform" attributeType="XML" type="translate"
         values="0 0;0 3;0 0" dur="3.8s" repeatCount="indefinite" calcMode="easeInOut"/>
+
+      <!-- shaft -->
       <path d="M72 100 C76 117 81 132 89 146 C97 160 107 174 117 187 C122 194 125 201 126 210"
-        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- tip is exactly the shaft endpoint: no gap, no offset -->
+        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"
+        pathLength="1" stroke-dasharray="1" stroke-dashoffset="1">
+        <animate attributeName="stroke-dashoffset" values="1;0;0;1" dur="4.8s" repeatCount="indefinite" calcMode="easeInOut"/>
+      </path>
+
+      <!-- arrowhead shares the exact shaft endpoint and appears after the stroke reaches it -->
       <path d="M114 198 L126 210 L138 198"
-        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"
+        opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0" dur="4.8s" repeatCount="indefinite" calcMode="easeInOut"/>
+      </path>
+
       <circle cx="126" cy="210" r="2.8" fill="#fff3bc">
-        <animate attributeName="r" values="2.8;4.2;2.8" dur="1.9s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="0.7;1;0.7" dur="1.9s" repeatCount="indefinite"/>
+        <animate attributeName="r" values="2.8;4.2;2.8" dur="1.9s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.65;1;0.65" dur="1.9s" repeatCount="indefinite" />
       </circle>
     </g>
 
-    <!-- separate destination wheel -->
+    <!-- destination wheel: restrained pulse only -->
     <g>
       <animateTransform attributeName="transform" attributeType="XML" type="scale"
         values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
