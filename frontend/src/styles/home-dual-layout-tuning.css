@@ -8,13 +8,32 @@
   border-radius: 0 !important;
 }
 
-/* Keep the approved internal composition while giving the full-width section clean edge breathing room. */
+/* Full-bleed section with intentional interior breathing room. */
 .home-dual.home-dual--layout-tuned .home-dual__layout {
   width: 100%;
   max-width: none;
-  padding-left: 2.5rem;
-  padding-right: 2.5rem;
+  padding-left: 0;
+  padding-right: 0;
   box-sizing: border-box;
+}
+
+/* Preserve the established left rail and separator relationship after the section becomes full width. */
+.home-dual.home-dual--layout-tuned .home-dual__rail {
+  left: 4rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__separator {
+  left: 437px !important;
+}
+
+@media (max-width: 1100px) and (min-width: 781px) {
+  .home-dual.home-dual--layout-tuned .home-dual__rail {
+    left: 2.5rem;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__separator {
+    left: 317px !important;
+  }
 }
 
 @media (max-width: 780px) {
@@ -22,8 +41,7 @@
     margin-top: -6rem !important;
   }
 
-  .home-dual.home-dual--layout-tuned .home-dual__layout {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+  .home-dual.home-dual--layout-tuned .home-dual__rail {
+    left: 1.25rem;
   }
 }
