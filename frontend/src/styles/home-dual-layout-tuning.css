@@ -1,4 +1,4 @@
-/* HP-02 layout tuning: the Why This Platform section begins only after the full hero. */
+/* HP-02 layout tuning: make Why This Platform continue directly from the hero. */
 .home-dual.home-dual--layout-tuned {
   width: 100vw !important;
   max-width: none !important;
@@ -6,11 +6,8 @@
   margin-top: 0 !important;
   border-top-color: rgba(190, 211, 229, 0.14) !important;
   border-radius: 0 !important;
-}
-
-/* Cancel the page-level space-y gap for this section without pulling it upward over the hero. */
-.space-y-24 > .home-dual.home-dual--layout-tuned {
-  margin-top: 0 !important;
+  padding-top: 2.2rem !important;
+  padding-bottom: 3.2rem !important;
 }
 
 /* Full-bleed section with intentional interior breathing room. */
@@ -22,7 +19,7 @@
   box-sizing: border-box;
 }
 
-/* Preserve the established left rail and separator relationship after the section becomes full width. */
+/* Keep the approved rail and divider relationship while giving the main content its own right-side column. */
 .home-dual.home-dual--layout-tuned .home-dual__rail {
   left: 4rem;
 }
@@ -31,7 +28,84 @@
   left: 437px !important;
 }
 
+.home-dual.home-dual--layout-tuned .home-dual__main {
+  width: min(940px, calc(100% - 500px));
+  max-width: 940px;
+  margin: 0 0 0 475px;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__intro h2 {
+  font-size: clamp(2.15rem, 3.9vw, 3.85rem);
+  line-height: 1.01;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__intro p {
+  margin-top: 0.7rem;
+  max-width: 660px;
+  line-height: 1.55;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__switcher {
+  margin-top: 1.65rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__stage {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card {
+  width: 100%;
+  max-width: 940px;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card-body {
+  padding: 1.15rem 0 0.9rem 2.25rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card-body h3 {
+  max-width: 760px;
+  font-size: clamp(1.9rem, 3.15vw, 2.9rem);
+  line-height: 1.03;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card-body > p {
+  max-width: 780px;
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1.58;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__items {
+  gap: 0.7rem;
+  margin-top: 1.3rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__item {
+  padding: 0.85rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__item p {
+  margin-top: 0.35rem;
+  font-size: 0.71rem;
+  line-height: 1.48;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__cta {
+  margin-top: 1.05rem;
+  padding: 0.72rem 0.95rem;
+}
+
+.home-dual.home-dual--layout-tuned .home-dual__card-footer {
+  padding-top: 0.8rem;
+}
+
 @media (max-width: 1100px) and (min-width: 781px) {
+  .home-dual.home-dual--layout-tuned {
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+  }
+
   .home-dual.home-dual--layout-tuned .home-dual__rail {
     left: 2.5rem;
   }
@@ -39,14 +113,29 @@
   .home-dual.home-dual--layout-tuned .home-dual__separator {
     left: 317px !important;
   }
+
+  .home-dual.home-dual--layout-tuned .home-dual__main {
+    width: min(700px, calc(100% - 370px));
+    max-width: 700px;
+    margin-left: 355px;
+  }
 }
 
 @media (max-width: 780px) {
   .home-dual.home-dual--layout-tuned {
     margin-top: 0 !important;
+    padding-top: 3.5rem !important;
+    padding-bottom: 4.5rem !important;
   }
 
-  .home-dual.home-dual--layout-tuned .home-dual__rail {
-    left: 1.25rem;
+  .home-dual.home-dual--layout-tuned .home-dual__layout {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__main {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
   }
 }
