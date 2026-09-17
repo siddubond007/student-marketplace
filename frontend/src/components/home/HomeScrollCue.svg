@@ -37,17 +37,19 @@
       </circle>
     </g>
 
-    <!-- destination wheel nudged slightly upward while preserving its horizontal placement -->
-    <g transform="translate(0 -8)">
-      <animateTransform attributeName="transform" attributeType="XML" type="scale"
-        values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
-      <circle cx="210" cy="185" r="29" stroke="#ffd76b" stroke-width="3.5"/>
-      <circle cx="210" cy="185" r="18" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
-      <circle cx="210" cy="185" r="5.5" fill="#fff3bc"/>
-      <path d="M210 142 L210 152 M210 218 L210 228 M167 185 L177 185 M243 185 L253 185"
-        stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
-      <path d="M182 156 L175 149 M238 156 L245 149 M182 214 L175 221 M238 214 L245 221"
-        stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- fixed upward offset wrapper; inner group owns the pulse so transforms do not conflict -->
+    <g transform="translate(0 -22)">
+      <g>
+        <animateTransform attributeName="transform" attributeType="XML" type="scale"
+          values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
+        <circle cx="210" cy="185" r="29" stroke="#ffd76b" stroke-width="3.5"/>
+        <circle cx="210" cy="185" r="18" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
+        <circle cx="210" cy="185" r="5.5" fill="#fff3bc"/>
+        <path d="M210 142 L210 152 M210 218 L210 228 M167 185 L177 185 M243 185 L253 185"
+          stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
+        <path d="M182 156 L175 149 M238 156 L245 149 M182 214 L175 221 M238 214 L245 221"
+          stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
     </g>
 
     <path d="M292 126 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd76b">
