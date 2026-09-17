@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import HomeHero from '../components/home/HomeHero';
 import HomeDualPerspective from '../components/home/HomeDualPerspective';
+import '../styles/home-foundation.css';
+import '../styles/home-dual-separator.css';
+import '../styles/home-hero-layout-fixes.css';
+import '../styles/home-hero-layout-tuning.css';
+import '../styles/home-dual-layout-tuning.css';
+import '../styles/home-dual-client-heading-accent.css';
+import '../styles/home-dual-visual-polish.css';
+import '../styles/home-dual-client-pitch.js';
+import '../styles/home-dual-motion-polish.js';
+import '../performance/home-motion-performance.js';
 import { 
   Sparkles, ShieldCheck, Flame, PlusCircle, FolderPlus, ArrowRight, Star, Zap, 
   Award, CheckCircle2, Play, Check, ArrowUpRight, Globe, Layers, PhoneCall,

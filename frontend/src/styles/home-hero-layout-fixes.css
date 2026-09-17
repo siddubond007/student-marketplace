@@ -1,0 +1,76 @@
+/* HP-01 hero layout and illustrated scroll-cue polish. */
+.home-hero.home-hero--space {
+  margin-top: -1rem !important;
+}
+
+/* Keep the hero's existing canvas visuals; no sparse CSS star overlay. */
+.home-hero.home-hero--space::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The scroll cue is a real animated SVG asset, matching the hand-drawn reference style. */
+.home-hero__content::before,
+.home-hero__content::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+.home-hero__scroll-cue {
+  position: absolute;
+  right: clamp(2.75rem, 4.5vw, 5rem);
+  bottom: clamp(1.25rem, 2.8vh, 2.5rem);
+  z-index: 6;
+  display: block;
+  width: clamp(250px, 18vw, 315px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.98;
+  transform: translate3d(0, 0, 0);
+  transform-origin: center;
+  filter: drop-shadow(0 0 16px rgba(164, 213, 244, 0.12));
+  animation: home-hero-scroll-cue-float 4.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes home-hero-scroll-cue-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-0.4deg);
+    opacity: 0.92;
+  }
+
+  50% {
+    transform: translate3d(0, -4px, 0) rotate(0.4deg);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1100px) {
+  .home-hero__scroll-cue {
+    right: 2.25rem;
+    bottom: 1.15rem;
+    width: 245px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-hero.home-hero--space {
+    margin-top: -1rem !important;
+  }
+
+  .home-hero__scroll-cue {
+    right: 0.8rem;
+    bottom: 0.65rem;
+    width: 185px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__scroll-cue {
+    animation: none;
+    opacity: 0.94;
+  }
+}
