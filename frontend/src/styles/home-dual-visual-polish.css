@@ -1,6 +1,6 @@
 .home-dual__client-pitch-card p {
-  color: #eef5fb !important;
-  opacity: 1 !important;
+  color: #eef6ff !important;
+  opacity: 0.96 !important;
   font-size: 0.76rem;
   line-height: 1.62;
 }
@@ -10,18 +10,15 @@
 }
 
 .home-dual__client-pitch-card h4 {
-  color: #ffe15a !important;
+  color: #ffd84a !important;
   background: none !important;
-  -webkit-background-clip: initial !important;
-  background-clip: initial !important;
-  -webkit-text-fill-color: currentColor !important;
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), color 260ms ease, filter 260ms ease;
+  -webkit-text-fill-color: #ffd84a !important;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), filter 260ms ease;
 }
 
 .home-dual__client-pitch-card:hover h4 {
-  transform: translate3d(2px, -1px, 0);
-  color: #fff08a !important;
-  filter: drop-shadow(0 0 8px rgba(255, 224, 90, 0.2));
+  transform: translate3d(3px, -1px, 0);
+  filter: drop-shadow(0 0 9px rgba(255, 216, 74, 0.2));
 }
 
 .home-dual__rail-word {
@@ -37,6 +34,19 @@
 .home-dual__rail-word:hover {
   transform: translate3d(10px, -2px, 0) rotate(-1.5deg) scale(1.035);
   filter: drop-shadow(0 0 12px rgba(92, 205, 255, 0.34)) drop-shadow(0 0 20px rgba(145, 118, 255, 0.18));
+}
+
+/* Keep the small yellow sparkle above WHY without letting it consume the rail's vertical spacing. */
+.home-dual__rail > svg {
+  position: absolute !important;
+  top: -0.72rem !important;
+  left: 0.1rem !important;
+  width: 0.7rem !important;
+  height: 0.7rem !important;
+  margin: 0 !important;
+  color: #ffd45a !important;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 5px rgba(255, 212, 90, 0.3));
 }
 
 @media (max-width: 780px) {
