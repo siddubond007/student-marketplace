@@ -1,0 +1,29 @@
+/* HP-02 layout tuning: make Why This Platform continue directly from the hero. */
+.home-dual.home-dual--layout-tuned {
+  width: 100vw !important;
+  max-width: none !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-top: -6rem !important;
+  border-top-color: rgba(190, 211, 229, 0.14) !important;
+  border-radius: 0 !important;
+}
+
+/* Keep the approved internal composition while giving the full-width section clean edge breathing room. */
+.home-dual.home-dual--layout-tuned .home-dual__layout {
+  width: 100%;
+  max-width: none;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 780px) {
+  .home-dual.home-dual--layout-tuned {
+    margin-top: -6rem !important;
+  }
+
+  .home-dual.home-dual--layout-tuned .home-dual__layout {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
