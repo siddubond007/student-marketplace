@@ -21,32 +21,43 @@
   filter: drop-shadow(0 0 9px rgba(255, 216, 74, 0.2));
 }
 
+/* The rail is intentionally clean: remove the tiny decorative sparkle. */
+.home-dual__rail > svg {
+  display: none !important;
+}
+
 .home-dual__rail-word {
-  background: linear-gradient(110deg, #74d8ff 0%, #8ea9ff 38%, #b68cff 68%, #62e7d2 100%) !important;
-  background-size: 220% 100% !important;
+  position: relative;
+  transform-origin: left center;
+  background: linear-gradient(105deg, #56d8ff 0%, #76b7ff 26%, #8f8cff 54%, #65e1d2 78%, #56d8ff 100%) !important;
+  background-size: 300% 100% !important;
+  background-position: 0% 50% !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
-  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), filter 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1), filter 560ms ease;
 }
 
 .home-dual__rail-word:hover {
-  transform: translate3d(10px, -2px, 0) rotate(-1.5deg) scale(1.035);
-  filter: drop-shadow(0 0 12px rgba(92, 205, 255, 0.34)) drop-shadow(0 0 20px rgba(145, 118, 255, 0.18));
+  transform: translate3d(7px, 0, 0) scale(1.045);
+  filter: drop-shadow(0 0 10px rgba(88, 210, 255, 0.24)) drop-shadow(0 0 16px rgba(146, 129, 255, 0.16));
+  animation: home-dual-rail-water-flow 3.8s ease-in-out infinite;
 }
 
-/* Keep the small yellow sparkle above WHY without letting it consume the rail's vertical spacing. */
-.home-dual__rail > svg {
-  position: absolute !important;
-  top: -0.72rem !important;
-  left: 0.1rem !important;
-  width: 0.7rem !important;
-  height: 0.7rem !important;
-  margin: 0 !important;
-  color: #ffd45a !important;
-  opacity: 0.95;
-  filter: drop-shadow(0 0 5px rgba(255, 212, 90, 0.3));
+@keyframes home-dual-rail-water-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-dual__rail-word {
+    transition: none;
+    animation: none;
+  }
+  .home-dual__client-pitch-card,
+  .home-dual__client-pitch-cta { transition: none; }
 }
 
 @media (max-width: 780px) {
