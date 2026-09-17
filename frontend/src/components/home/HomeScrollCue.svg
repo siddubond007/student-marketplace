@@ -15,7 +15,6 @@
       <animate attributeName="stroke-dashoffset" values="0;-13;0" dur="6s" repeatCount="indefinite" />
     </path>
 
-    <!-- Arrow remains a single connected downward-moving unit. -->
     <g>
       <animateTransform attributeName="transform" attributeType="XML" type="translate"
         values="0 0;0 3;0 0" dur="3.8s" repeatCount="indefinite" calcMode="easeInOut"/>
@@ -38,8 +37,8 @@
       </circle>
     </g>
 
-    <!-- destination wheel moved left and slightly inward so it sits naturally below/right of the arrow -->
-    <g>
+    <!-- destination wheel nudged slightly upward while preserving its horizontal placement -->
+    <g transform="translate(0 -8)">
       <animateTransform attributeName="transform" attributeType="XML" type="scale"
         values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
       <circle cx="210" cy="185" r="29" stroke="#ffd76b" stroke-width="3.5"/>
