@@ -872,3 +872,4 @@ export default function HomeHero() {
       </div>
     </section>
   );
+}
