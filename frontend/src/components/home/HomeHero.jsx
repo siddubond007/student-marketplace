@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, ChevronRight, Code2, GraduationCap, Palette, Search, ShieldCheck, Sparkles, Star, TrendingUp, Zap } from 'lucide-react';
 import HomeScrollCue from './HomeScrollCue.svg';
 import './HomeHero.css';
 
@@ -316,6 +316,8 @@ function drawAstronaut(ctx, astronaut) {
 
 export default function HomeHero() {
   const heroRef = useRef(null);
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
   const canvasRef = useRef(null);
   const milkyWayRef = useRef(null);
 
@@ -689,6 +691,16 @@ export default function HomeHero() {
     };
   }, []);
 
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/gigs?search=${encodeURIComponent(query)}` : '/gigs');
+  };
+
+  const handlePopularSearch = (tag) => {
+    navigate(`/gigs?search=${encodeURIComponent(tag)}`);
+  };
+
   return (
     <section
       ref={heroRef}
@@ -712,69 +724,142 @@ export default function HomeHero() {
         aria-hidden="true"
       />
 
-      <div className="home-hero__content">
-        <div className="home-hero__copy">
-          <div className="home-hero__eyebrow">
-            <Sparkles aria-hidden="true" />
-            <span>STUDENT TALENT • REAL OPPORTUNITIES</span>
+      <div className="home-hero__content home-hero__content--hybrid">
+        <div className="home-hero__hybrid-layout">
+          <div className="home-hero__hybrid-copy">
+            <div className="home-hero__announcement">
+              <span className="home-hero__announcement-dot" aria-hidden="true" />
+              <GraduationCap aria-hidden="true" />
+              <span>Student-first freelance marketplace • Ages 16–26</span>
+              <ChevronRight aria-hidden="true" />
+            </div>
+
+            <h1 id="home-hero-title" className="home-hero__hybrid-title">
+              Hire ambitious{' '}
+              <span className="home-hero__hybrid-accent">student talent</span>{' '}
+              for your next big project.
+            </h1>
+
+            <p className="home-hero__hybrid-lede">
+              Connect directly with motivated students and freshers for development,
+              design, editing, AI, and other practical tasks.
+            </p>
+
+            <form onSubmit={handleSearch} className="home-hero__search" role="search">
+              <Search aria-hidden="true" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Try ‘React Developer’, ‘Logo Design’, or ‘Video Editor’..."
+                aria-label="Search student services"
+              />
+              <button type="submit">
+                <span>Search</span>
+                <ArrowRight aria-hidden="true" />
+              </button>
+            </form>
+
+            <div className="home-hero__popular" aria-label="Popular searches">
+              <span className="home-hero__popular-label">
+                <TrendingUp aria-hidden="true" />
+                Popular:
+              </span>
+              {[
+                'Full-Stack Web',
+                'Figma UI/UX',
+                'Shorts/Reels Edit',
+                'Python AI & ML',
+                'Content Writing',
+                'React & Node'
+              ].map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handlePopularSearch(tag)}
+                  className="home-hero__popular-chip"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            <div className="home-hero__trust-row">
+              <div>
+                <strong>Student-first talent</strong>
+                <span>Practical skills and portfolio-led work</span>
+              </div>
+              <div>
+                <strong>Flexible project fit</strong>
+                <span>Fixed-price services or custom briefs</span>
+              </div>
+              <div>
+                <strong>Protected workflow</strong>
+                <span>5-day review window after delivery</span>
+              </div>
+            </div>
+
+            <div className="home-hero__actions">
+              <Link
+                to="/register"
+                className="home-hero__button home-hero__button--primary"
+              >
+                Hire a Student
+                <ArrowRight aria-hidden="true" />
+              </Link>
+
+              <Link
+                to="/register"
+                className="home-hero__button home-hero__button--secondary"
+              >
+                Earn Money Freelancing
+              </Link>
+            </div>
           </div>
 
-          <h1 id="home-hero-title">
-            Hire the best student freelancers for any project, online.
-          </h1>
+          <div className="home-hero__hybrid-visual" aria-label="Student talent and workflow highlights">
+            <div className="home-hero__hybrid-glow" aria-hidden="true" />
 
-          <p className="home-hero__lede">
-            A student-focused marketplace where real skills become real
-            opportunities.
-          </p>
+            <article className="home-hero__talent-card home-hero__talent-card--one">
+              <div className="home-hero__talent-topline">
+                <div className="home-hero__talent-icon">
+                  <Code2 aria-hidden="true" />
+                </div>
+                <span className="home-hero__talent-badge">PORTFOLIO-LED</span>
+              </div>
+              <h2>Student talent for practical work</h2>
+              <p>Development, AI and technical tasks from students building real project experience.</p>
+              <div className="home-hero__talent-meta">
+                <span><Zap aria-hidden="true" /> Modular tasks</span>
+                <span>Explore gigs <ArrowRight aria-hidden="true" /></span>
+              </div>
+            </article>
 
-          <ul className="home-hero__points">
-            <li>
-              <span aria-hidden="true" />
-              <span>
-                Explore skills across design, development, content, and more.
-              </span>
-            </li>
+            <article className="home-hero__talent-card home-hero__talent-card--two">
+              <div className="home-hero__talent-topline">
+                <div className="home-hero__talent-icon home-hero__talent-icon--violet">
+                  <Palette aria-hidden="true" />
+                </div>
+                <span className="home-hero__talent-badge home-hero__talent-badge--violet">FLEXIBLE HIRING</span>
+              </div>
+              <h2>Choose how you hire</h2>
+              <p>Buy predefined service packages or post a custom project and receive targeted bids.</p>
+              <div className="home-hero__talent-meta">
+                <span><Star aria-hidden="true" /> Fixed-price or custom</span>
+                <span>Start <ArrowRight aria-hidden="true" /></span>
+              </div>
+            </article>
 
-            <li>
-              <span aria-hidden="true" />
-              <span>
-                Compare capabilities, profiles, and project fit before you
-                choose.
-              </span>
-            </li>
-
-            <li>
-              <span aria-hidden="true" />
-              <span>
-                Post a project when you need talent, or showcase what you can
-                do.
-              </span>
-            </li>
-
-            <li>
-              <span aria-hidden="true" />
-              <span>
-                Turn practical student skills into real project opportunities.
-              </span>
-            </li>
-          </ul>
-
-          <div className="home-hero__actions">
-            <Link
-              to="/register"
-              className="home-hero__button home-hero__button--primary"
-            >
-              Hire a Student
-              <ArrowRight aria-hidden="true" />
-            </Link>
-
-            <Link
-              to="/register"
-              className="home-hero__button home-hero__button--secondary"
-            >
-              Earn Money Freelancing
-            </Link>
+            <div className="home-hero__protection-card">
+              <div className="home-hero__protection-icon">
+                <ShieldCheck aria-hidden="true" />
+              </div>
+              <div>
+                <strong>5-Day Review Window</strong>
+                <span>Review the final delivery before funds move through the protected workflow.</span>
+              </div>
+              <ChevronRight aria-hidden="true" />
+            </div>
           </div>
         </div>
 
