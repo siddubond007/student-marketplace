@@ -694,11 +694,11 @@ export default function HomeHero() {
   const handleSearch = (event) => {
     event.preventDefault();
     const query = searchQuery.trim();
-    navigate(query ? \`/gigs?search=\${encodeURIComponent(query)}\` : '/gigs');
+    navigate(query ? `/gigs?search=${encodeURIComponent(query)}` : '/gigs');
   };
 
   const handlePopularSearch = (tag) => {
-    navigate(\`/gigs?search=\${encodeURIComponent(tag)}\`);
+    navigate(`/gigs?search=${encodeURIComponent(tag)}`);
   };
 
   return (
