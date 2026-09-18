@@ -4,10 +4,11 @@ import { ArrowRight, ChevronRight, Code2, GraduationCap, Palette, Search, Shield
 import HomeScrollCue from './HomeScrollCue.svg';
 import './HomeHero.css';
 
-const STAR_COUNT = 360;
+const STAR_COUNT = 340;
 const ASTEROID_COUNT = 7;
 const ASTRONAUT_COUNT = 6;
 const PLANET_COUNT = 4;
+const SHOOTING_STAR_COUNT = 4;
 const TRAIL_LENGTH = 28;
 
 const randomBetween = (min, max) => min + Math.random() * (max - min);
@@ -73,41 +74,101 @@ function makeAsteroid(width, height) {
   };
 }
 
-function makeAstronaut(width, height) {
+function makeAstronaut(width, height, index = 0) {
+  const placements = [
+    { x: 0.94, y: 0.11, size: 21 },
+    { x: 0.59, y: 0.73, size: 18 },
+    { x: 0.025, y: 0.86, size: 21 },
+    { x: 0.52, y: 0.34, size: 18 },
+    { x: 0.90, y: 0.43, size: 18 },
+    { x: 0.67, y: 0.63, size: 17 },
+  ];
+  const placement = placements[index % placements.length];
+
   return {
-    x: randomBetween(width * 0.46, width * 0.97),
-    y: randomBetween(height * 0.12, height * 0.88),
+    x: width * placement.x + randomBetween(-10, 10),
+    y: height * placement.y + randomBetween(-9, 9),
     vx: randomBetween(-0.018, 0.018),
     vy: randomBetween(-0.014, 0.014),
     rotation: randomBetween(-0.08, 0.08),
     rotationSpeed: randomBetween(-0.00045, 0.00045),
-    size: randomBetween(13, 20),
+    size: placement.size,
     attraction: 0,
     releaseTimer: 0,
     driftPhase: Math.random() * Math.PI * 2,
   };
 }
 
+
+function makeShootingStar(width, height, index = 0) {
+  const placements = [
+    { x: 0.57, y: 0.32, vx: 0.95, vy: 0.48, color: 'rgba(174, 124, 255,' },
+    { x: 0.83, y: 0.64, vx: -0.78, vy: 0.42, color: 'rgba(220, 245, 255,' },
+    { x: 0.96, y: 0.48, vx: -0.68, vy: 0.36, color: 'rgba(155, 210, 255,' },
+    { x: 0.16, y: 0.79, vx: 0.65, vy: -0.34, color: 'rgba(255, 210, 145,' },
+  ];
+  const placement = placements[index % placements.length];
+
+  return {
+    x: width * placement.x,
+    y: height * placement.y,
+    vx: placement.vx,
+    vy: placement.vy,
+    length: randomBetween(28, 46),
+    width: randomBetween(1.1, 1.8),
+    opacity: randomBetween(0.34, 0.72),
+    color: placement.color,
+    phase: Math.random() * Math.PI * 2,
+    life: randomBetween(0, 1),
+  };
+}
+
+function drawShootingStar(ctx, streak, time) {
+  const pulse = 0.72 + Math.sin(time * 0.003 + streak.phase) * 0.28;
+  const tailX = streak.x - streak.vx * streak.length;
+  const tailY = streak.y - streak.vy * streak.length;
+
+  ctx.save();
+  const gradient = ctx.createLinearGradient(tailX, tailY, streak.x, streak.y);
+  gradient.addColorStop(0, `${streak.color}${0.02 * pulse})`);
+  gradient.addColorStop(0.58, `${streak.color}${0.12 * pulse})`);
+  gradient.addColorStop(1, `${streak.color}${streak.opacity * pulse})`);
+
+  ctx.strokeStyle = gradient;
+  ctx.lineWidth = streak.width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.lineTo(streak.x, streak.y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(streak.x, streak.y, streak.width * 1.7, 0, Math.PI * 2);
+  ctx.fillStyle = `${streak.color}${Math.min(1, streak.opacity * pulse)})`;
+  ctx.fill();
+  ctx.restore();
+}
+
 function makePlanet(width, height, index) {
   const presets = [
-    { size: 38, speed: 0.0028 },
-    { size: 22, speed: 0.0038 },
-    { size: 13, speed: 0.0052 },
-    { size: 8, speed: 0.0065 },
+    { x: 0.63, y: 0.13, size: 39, speed: 0.0028, ring: true, orbit: 18 },
+    { x: 0.78, y: 0.48, size: 14, speed: 0.0038, ring: false, orbit: 11 },
+    { x: 0.92, y: 0.27, size: 11, speed: 0.0052, ring: true, orbit: 9 },
+    { x: 0.97, y: 0.76, size: 8, speed: 0.0065, ring: false, orbit: 7 },
   ];
 
   const preset = presets[index % presets.length];
 
   return {
-    x: randomBetween(width * 0.5, width * 1.08),
-    y: randomBetween(height * 0.08, height * 0.92),
+    x: width * preset.x,
+    y: height * preset.y,
     baseX: 0,
     baseY: 0,
     size: preset.size,
     speed: preset.speed,
     phase: Math.random() * Math.PI * 2,
-    ring: index === 0 || index === 2,
-    orbit: randomBetween(8, 30),
+    ring: preset.ring,
+    orbit: preset.orbit,
     opacity: randomBetween(0.4, 0.78),
   };
 }
@@ -353,6 +414,7 @@ export default function HomeHero() {
     let astronauts = [];
     let planets = [];
     let trail = [];
+    let shootingStars = [];
 
     const pointer = pointerRef.current;
 
@@ -379,12 +441,16 @@ export default function HomeHero() {
           makeAsteroid(width, height)
         );
 
-        astronauts = Array.from({ length: ASTRONAUT_COUNT }, () =>
-          makeAstronaut(width, height)
+        astronauts = Array.from({ length: ASTRONAUT_COUNT }, (_, index) =>
+          makeAstronaut(width, height, index)
         );
 
         planets = Array.from({ length: PLANET_COUNT }, (_, index) =>
           makePlanet(width, height, index)
+        );
+
+        shootingStars = Array.from({ length: SHOOTING_STAR_COUNT }, (_, index) =>
+          makeShootingStar(width, height, index)
         );
       } else {
         stars.forEach((star) => {
@@ -392,7 +458,28 @@ export default function HomeHero() {
           if (star.y > height) star.y = height * 0.9;
         });
 
-        asteroids.forEach((asteroid) => {
+        shootingStars.forEach((streak) => {
+        if (!reducedMotion) {
+          streak.x += streak.vx;
+          streak.y += streak.vy;
+          streak.life += 0.024;
+
+          if (
+            streak.x < -90 ||
+            streak.x > width + 90 ||
+            streak.y < -90 ||
+            streak.y > height + 90 ||
+            streak.life > 1.3
+          ) {
+            const replacement = makeShootingStar(width, height, shootingStars.indexOf(streak));
+            Object.assign(streak, replacement);
+          }
+        }
+
+        drawShootingStar(ctx, streak, time);
+      });
+
+      asteroids.forEach((asteroid) => {
           if (asteroid.x > width + 120) asteroid.x = -60;
         });
 
@@ -519,7 +606,7 @@ export default function HomeHero() {
           astronaut.y < -80 ||
           astronaut.y > height + 80
         ) {
-          const replacement = makeAstronaut(width, height);
+          const replacement = makeAstronaut(width, height, astronauts.indexOf(astronaut));
           Object.assign(astronaut, replacement);
         }
       }
