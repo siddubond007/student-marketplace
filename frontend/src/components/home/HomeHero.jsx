@@ -24,9 +24,9 @@ function makeStar(width, height) {
   const colorRoll = Math.random();
 
   let kind = 'dot';
-  if (shapeRoll > 0.91) kind = 'sparkle';
-  else if (shapeRoll > 0.79) kind = 'cross';
-  else if (shapeRoll > 0.63) kind = 'diamond';
+  if (shapeRoll > 0.88) kind = 'sparkle';
+  else if (shapeRoll > 0.76) kind = 'cross';
+  else if (shapeRoll > 0.61) kind = 'diamond';
 
   let color = 'white';
   if (colorRoll > 0.94) color = 'orange';
@@ -41,8 +41,8 @@ function makeStar(width, height) {
     y,
     homeX: x,
     homeY: y,
-    radius: randomBetween(0.35, 1.5),
-    alpha: randomBetween(0.22, 0.92),
+    radius: randomBetween(0.45, 1.7),
+    alpha: randomBetween(0.25, 1),
     phase: Math.random() * Math.PI * 2,
     speed: randomBetween(0.0008, 0.0028),
     driftX: randomBetween(-0.018, 0.018),
