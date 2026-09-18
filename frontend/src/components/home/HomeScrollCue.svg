@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 230" fill="none">
   <defs>
     <filter id="cueGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feGaussianBlur stdDeviation="2.1" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
@@ -9,57 +9,66 @@
     </filter>
   </defs>
 
-  <g opacity="0.98" filter="url(#cueGlow)">
-    <path d="M76 46 C42 45 17 67 22 96 C27 126 61 145 98 139 C132 133 151 108 139 82 C128 58 96 52 69 62 C47 70 43 91 54 106 C66 122 91 119 100 102 C108 87 99 73 84 75 C70 76 65 89 72 100"
-      stroke="#e8f6ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 8">
-      <animate attributeName="stroke-dashoffset" values="0;-13;0" dur="6s" repeatCount="indefinite" />
-    </path>
+  <g filter="url(#cueGlow)">
+    <!-- animated hand-drawn scroll ring -->
+    <circle cx="88" cy="123" r="43"
+      stroke="#e8f6ff" stroke-width="3.2" stroke-linecap="round"
+      stroke-dasharray="5 8">
+      <animate attributeName="stroke-dashoffset" values="0;-13;0" dur="5.4s" repeatCount="indefinite"/>
+    </circle>
 
+    <!-- readable mouse symbol -->
     <g>
-      <animateTransform attributeName="transform" attributeType="XML" type="translate"
-        values="0 0;0 3;0 0" dur="3.8s" repeatCount="indefinite" calcMode="easeInOut"/>
-
-      <path d="M72 100 C76 117 81 132 89 146 C97 160 107 174 117 187 C122 194 125 201 126 210"
-        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"
-        pathLength="1" stroke-dasharray="1" stroke-dashoffset="1">
-        <animate attributeName="stroke-dashoffset" values="1;0;0;1" dur="4.8s" repeatCount="indefinite" calcMode="easeInOut"/>
-      </path>
-
-      <path d="M114 198 L126 210 L138 198"
-        stroke="#ffd76b" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"
-        opacity="0">
-        <animate attributeName="opacity" values="0;0;1;1;0" dur="4.8s" repeatCount="indefinite"/>
-      </path>
-
-      <circle cx="126" cy="210" r="2.8" fill="#fff3bc">
-        <animate attributeName="r" values="2.8;4.2;2.8" dur="1.9s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.65;1;0.65" dur="1.9s" repeatCount="indefinite" />
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0;0 4;0 0" dur="3.2s" repeatCount="indefinite"/>
+      <rect x="77" y="103" width="22" height="35" rx="11"
+        stroke="#f4fbff" stroke-width="2.8"/>
+      <line x1="88" y1="105" x2="88" y2="116"
+        stroke="#f4fbff" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="88" cy="112" r="2.3" fill="#fff5c9">
+        <animate attributeName="opacity" values="0.45;1;0.45" dur="1.7s" repeatCount="indefinite"/>
       </circle>
     </g>
 
-    <!-- fixed upward offset wrapper; inner group owns the pulse so transforms do not conflict -->
-    <g transform="translate(0 -22)">
-      <g>
-        <animateTransform attributeName="transform" attributeType="XML" type="scale"
-          values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
-        <circle cx="210" cy="185" r="29" stroke="#ffd76b" stroke-width="3.5"/>
-        <circle cx="210" cy="185" r="18" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
-        <circle cx="210" cy="185" r="5.5" fill="#fff3bc"/>
-        <path d="M210 142 L210 152 M210 218 L210 228 M167 185 L177 185 M243 185 L253 185"
-          stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
-        <path d="M182 156 L175 149 M238 156 L245 149 M182 214 L175 221 M238 214 L245 221"
-          stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
-      </g>
+    <!-- yellow hand-drawn path, always pointing downward -->
+    <path d="M105 151 C117 167 131 182 141 195 C147 203 151 209 153 216"
+      stroke="#ffd76b" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"
+      pathLength="1" stroke-dasharray="1" stroke-dashoffset="1">
+      <animate attributeName="stroke-dashoffset" values="1;0;0;1" dur="4.7s" repeatCount="indefinite" calcMode="easeInOut"/>
+    </path>
+
+    <!-- connected downward arrowhead -->
+    <path d="M140 205 L153 216 L164 203"
+      stroke="#ffd76b" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="4.7s" repeatCount="indefinite"/>
+    </path>
+
+    <circle cx="153" cy="216" r="3" fill="#fff3bc">
+      <animate attributeName="r" values="3;4.6;3" dur="1.9s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.65;1;0.65" dur="1.9s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- animated navigation wheel -->
+    <g>
+      <animateTransform attributeName="transform" type="scale"
+        values="1;1.035;1" dur="3.6s" repeatCount="indefinite"/>
+      <circle cx="214" cy="186" r="29" stroke="#ffd76b" stroke-width="3.5"/>
+      <circle cx="214" cy="186" r="18" stroke="#ffd76b" stroke-width="2.8" stroke-dasharray="5 6"/>
+      <circle cx="214" cy="186" r="5.5" fill="#fff3bc"/>
+      <path d="M214 143 L214 153 M214 219 L214 229 M171 186 L181 186 M247 186 L257 186"
+        stroke="#fff3bc" stroke-width="2.7" stroke-linecap="round"/>
+      <path d="M186 157 L179 150 M242 157 L249 150 M186 215 L179 222 M242 215 L249 222"
+        stroke="#ffd76b" stroke-width="2.5" stroke-linecap="round"/>
     </g>
 
     <path d="M292 126 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd76b">
       <animate attributeName="opacity" values="0.35;1;0.35" dur="2.8s" repeatCount="indefinite"/>
     </path>
-    <path d="M250 211 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff">
+    <path d="M252 211 l3 6 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#dff4ff">
       <animate attributeName="opacity" values="0.45;1;0.45" dur="3.2s" repeatCount="indefinite" begin="0.5s"/>
     </path>
   </g>
 
   <text x="145" y="62" fill="#f8fcff" font-size="39" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-7 145 62)">Scroll</text>
-  <text x="173" y="91" fill="#ffd76b" font-size="21" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 173 91)">to explore</text>
+  <text x="171" y="91" fill="#ffd76b" font-size="21" font-family="cursive" font-style="italic" font-weight="700" transform="rotate(-6 171 91)">to explore</text>
 </svg>
