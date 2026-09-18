@@ -1244,3 +1244,346 @@
     animation: none;
   }
 }
+
+
+/* ================================================================
+   HP-01 FINAL REFERENCE GEOMETRY PASS
+   Desktop 16:9 composition: larger left message, narrower right
+   cards, intentional center negative space, visible planet horizon.
+   ================================================================ */
+
+.home-hero.home-hero--space {
+  min-height: calc(100svh - 4.5rem);
+  height: calc(100svh - 4.5rem);
+  max-height: calc(100svh - 4.5rem);
+}
+
+.home-hero__content--hybrid {
+  height: 100%;
+  min-height: 0;
+  padding: 1rem 9vw 1rem 7.5vw;
+  align-items: flex-start;
+}
+
+.home-hero__content--hybrid::before,
+.home-hero__content--hybrid::after {
+  content: none !important;
+  display: none !important;
+}
+
+.home-hero__hybrid-layout {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 780px) 420px;
+  column-gap: 0;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.home-hero__hybrid-copy {
+  max-width: 780px;
+  padding-top: 0;
+}
+
+.home-hero__announcement {
+  min-height: 2.65rem;
+  padding: 0.44rem 0.92rem;
+  font-size: 0.72rem;
+}
+
+.home-hero__hybrid-title {
+  max-width: 810px;
+  margin-top: 1.2rem;
+  font-size: clamp(3.25rem, 5.18vw, 5.35rem);
+  line-height: 1.015;
+  letter-spacing: -0.055em;
+}
+
+.home-hero__hybrid-lede {
+  max-width: 720px;
+  margin-top: 1.38rem;
+  color: #c5d3df;
+  font-size: clamp(1rem, 1.2vw, 1.14rem);
+  line-height: 1.68;
+}
+
+.home-hero__search {
+  max-width: 755px;
+  margin-top: 1.5rem;
+  min-height: 4.18rem;
+}
+
+.home-hero__search > svg {
+  margin-left: 1rem;
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.home-hero__search button {
+  min-width: 7.55rem;
+  min-height: 3.3rem;
+  padding: 0 1.3rem;
+}
+
+.home-hero__popular {
+  max-width: 790px;
+  gap: 0.5rem;
+  margin-top: 0.88rem;
+}
+
+.home-hero__popular-chip {
+  min-height: 1.9rem;
+  padding-inline: 0.76rem;
+}
+
+.home-hero__trust-row {
+  max-width: 805px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.65rem;
+  margin-top: 1.48rem;
+  padding-top: 1.02rem;
+}
+
+.home-hero__trust-row strong {
+  font-size: 0.76rem;
+}
+
+.home-hero__trust-row span {
+  color: #9fb1c0;
+  font-size: 0.64rem;
+  line-height: 1.42;
+}
+
+.home-hero__actions {
+  margin-top: 1.68rem;
+  gap: 1rem;
+}
+
+.home-hero__button {
+  min-height: 3.65rem;
+  padding: 0.92rem 1.55rem;
+  border-radius: 1rem;
+  font-size: 0.95rem;
+}
+
+.home-hero__button--primary {
+  min-width: 11.75rem;
+}
+
+.home-hero__button--secondary {
+  min-width: 14.5rem;
+}
+
+.home-hero__hybrid-visual {
+  width: 420px;
+  min-height: 0;
+  margin-top: 1.62rem;
+  gap: 1.05rem;
+  justify-content: flex-start;
+}
+
+.home-hero__hybrid-glow {
+  inset: -1.5rem -2rem -2rem -3rem;
+  opacity: 0.8;
+}
+
+.home-hero__talent-card {
+  width: 420px;
+  min-height: 214px;
+  padding: 1.35rem 1.35rem 1.2rem;
+  border-radius: 1.28rem;
+}
+
+.home-hero__talent-card h2 {
+  margin-top: 1.08rem;
+  font-size: 1.28rem;
+}
+
+.home-hero__talent-card p {
+  max-width: 360px;
+  margin-top: 0.68rem;
+  color: #aebdcc;
+  font-size: 0.76rem;
+  line-height: 1.58;
+}
+
+.home-hero__talent-meta {
+  margin-top: 1.02rem;
+}
+
+.home-hero__protection-card {
+  width: 420px;
+  min-height: 98px;
+  margin-left: 0;
+  padding: 0.98rem 1.05rem;
+  border-radius: 1rem;
+}
+
+.home-hero__planet-arc {
+  left: 0;
+  bottom: -405px;
+  width: 100%;
+  height: 505px;
+  z-index: 3;
+  opacity: 1;
+  border-radius: 50% 50% 0 0 / 94% 94% 0 0;
+}
+
+.home-hero__planet-arc::before {
+  opacity: 0.86;
+  background:
+    repeating-linear-gradient(
+      168deg,
+      rgba(190, 194, 247, 0.06) 0 2px,
+      transparent 2px 16px
+    ),
+    radial-gradient(circle at 20% 17%, rgba(95, 147, 226, 0.25), transparent 26%),
+    radial-gradient(circle at 44% 22%, rgba(103, 112, 201, 0.2), transparent 22%),
+    radial-gradient(circle at 72% 17%, rgba(166, 107, 218, 0.2), transparent 25%);
+}
+
+.home-hero__planet-arc::after {
+  top: 0;
+  height: 16px;
+  filter: blur(3.5px);
+}
+
+.home-hero__scroll-cue {
+  width: clamp(245px, 20.2vw, 325px);
+  right: clamp(1.4rem, 4.7vw, 5rem);
+  bottom: clamp(-2rem, -1.75vh, -0.65rem);
+  z-index: 7;
+}
+
+@media (max-width: 1500px) {
+  .home-hero__content--hybrid {
+    padding-left: 6.5vw;
+    padding-right: 8vw;
+  }
+
+  .home-hero__hybrid-layout {
+    grid-template-columns: minmax(0, 1fr) 410px;
+  }
+
+  .home-hero__hybrid-visual,
+  .home-hero__talent-card,
+  .home-hero__protection-card {
+    width: 410px;
+  }
+}
+
+@media (max-width: 1250px) {
+  .home-hero__content--hybrid {
+    padding-left: 4.5vw;
+    padding-right: 5vw;
+  }
+
+  .home-hero__hybrid-layout {
+    grid-template-columns: minmax(0, 1fr) 390px;
+    column-gap: 3rem;
+  }
+
+  .home-hero__hybrid-visual,
+  .home-hero__talent-card,
+  .home-hero__protection-card {
+    width: 390px;
+  }
+
+  .home-hero__hybrid-title {
+    font-size: clamp(3rem, 5vw, 4.7rem);
+  }
+
+  .home-hero__scroll-cue {
+    width: clamp(225px, 18vw, 285px);
+  }
+}
+
+@media (max-width: 1000px) {
+  .home-hero.home-hero--space {
+    height: auto;
+    min-height: max(900px, calc(100svh - 4.5rem));
+    max-height: none;
+  }
+
+  .home-hero__content--hybrid {
+    height: auto;
+    min-height: inherit;
+    padding: 2.5rem 1.5rem 10rem;
+  }
+
+  .home-hero__hybrid-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .home-hero__hybrid-copy,
+  .home-hero__hybrid-visual,
+  .home-hero__talent-card,
+  .home-hero__protection-card {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  .home-hero__hybrid-visual {
+    margin-top: 0;
+  }
+
+  .home-hero__planet-arc {
+    bottom: -315px;
+  }
+
+  .home-hero__scroll-cue {
+    right: 1rem;
+    bottom: 0.35rem;
+    width: min(230px, 45vw);
+  }
+}
+
+@media (max-width: 560px) {
+  .home-hero.home-hero--space {
+    min-height: max(920px, calc(100svh - 4.5rem));
+  }
+
+  .home-hero__content--hybrid {
+    padding: 2rem 1rem 8.5rem;
+  }
+
+  .home-hero__hybrid-title {
+    font-size: clamp(2.35rem, 11vw, 3.35rem);
+  }
+
+  .home-hero__hybrid-lede {
+    font-size: 0.93rem;
+  }
+
+  .home-hero__search {
+    min-height: 3.7rem;
+  }
+
+  .home-hero__trust-row {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .home-hero__actions {
+    flex-direction: column;
+  }
+
+  .home-hero__button--primary,
+  .home-hero__button--secondary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .home-hero__scroll-cue {
+    width: min(205px, 50vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__hybrid-title .home-hero__hybrid-accent {
+    animation: none;
+  }
+}
