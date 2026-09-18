@@ -724,6 +724,8 @@ export default function HomeHero() {
         aria-hidden="true"
       />
 
+      <div className="home-hero__planet-arc" aria-hidden="true" />
+
       <div className="home-hero__content home-hero__content--hybrid">
         <div className="home-hero__hybrid-layout">
           <div className="home-hero__hybrid-copy">
