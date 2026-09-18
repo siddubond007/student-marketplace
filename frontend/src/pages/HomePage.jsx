@@ -16,6 +16,7 @@ export default function HomePage({ currentUser, themeMode = 'light', onToggleThe
     <div className="relative">
       
       {/* Floating Theme Switcher Badge (Bottom Right) */}
+      {!isDark && (
       <div className="fixed bottom-6 right-6 z-50 animate-bounce-subtle">
         <button
           onClick={onToggleTheme}
@@ -37,7 +38,8 @@ export default function HomePage({ currentUser, themeMode = 'light', onToggleThe
         </button>
       </div>
 
-      {isDark ? (
+
+      )}      {isDark ? (
         /* ═══════════════════════════════════════════════════════════════
            DARK COSMIC THEME: Exact hp-01-hero-visual-current Home Page
            ═══════════════════════════════════════════════════════════════ */
