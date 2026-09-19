@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import HomeHero from '../components/home/HomeHero';
 import HomeDualPerspective from '../components/home/HomeDualPerspective';
+import PartTimeProjectsPromo from '../components/PartTimeProjectsPromo';
 import '../styles/home-foundation.css';
 import '../styles/home-dual-separator.css';
 import '../styles/home-hero-layout-fixes.css';
@@ -40,6 +41,9 @@ export default function DarkHomePage({ currentUser }) {
 
       {/* ─── 2. DUAL PERSPECTIVE / WHY THIS PLATFORM ─── */}
       <HomeDualPerspective />
+
+      {/* ─── 2B. PERMANENT PART-TIME PROJECTS ENTRY POINT ─── */}
+      <PartTimeProjectsPromo themeMode="dark" />
 
       {/* ─── 3. "MAKE IT REAL" DUAL SMARTPHONE SHOWCASE (Screenshot 6) ─── */}
       <section className="glass-panel p-8 sm:p-14 rounded-3xl border border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
