@@ -63,6 +63,20 @@ const TEMPLATE_DEMO_CARDS = [
     phone: '+91 99887 66554',
     email: 'ananya@orbitcreative.in',
     address: '7 Residency Road, Chennai, TN 600002'
+  },
+  {
+    name: 'Vihaan Kapoor',
+    role: 'Product Designer',
+    phone: '+91 98111 22334',
+    email: 'vihaan@futuregrid.io',
+    address: '18 Cyber Park, Gurugram, HR 122002'
+  },
+  {
+    name: 'Meera Shah',
+    role: 'Creative Technologist',
+    phone: '+91 97654 11223',
+    email: 'meera@quantumstudio.ai',
+    address: '42 Indiranagar, Bengaluru, KA 560038'
   }
 ];
 
@@ -104,43 +118,94 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
 function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
   const templates = [
     {
+      name: 'Thynk Sky',
       shell: 'bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-900 border-sky-100',
       brand: 'text-slate-950',
       eyebrow: 'text-sky-700',
+      contact: 'text-slate-700',
+      meta: 'text-slate-500',
       accent: 'bg-sky-600',
       accentSoft: 'bg-sky-500/10 border-sky-200',
-      line: 'bg-sky-600',
-      meta: 'text-slate-500',
-      contact: 'text-slate-700',
       badge: 'bg-sky-600 text-white',
-      corner: 'bg-sky-200/45',
-      shape: 'bg-sky-600/10'
+      line: 'bg-sky-600',
+      ring: 'from-sky-400 via-cyan-300 to-indigo-500',
+      glow: 'bg-sky-300/25',
+      chip: 'bg-sky-50 text-sky-700 border-sky-100'
     },
     {
-      shell: 'bg-gradient-to-br from-[#0B1020] via-indigo-950 to-[#351047] text-white border-indigo-400/20',
+      name: 'Nova Pulse',
+      shell: 'bg-gradient-to-br from-[#070B16] via-indigo-950 to-[#351047] text-white border-indigo-400/20',
       brand: 'text-white',
       eyebrow: 'text-indigo-200',
+      contact: 'text-slate-100',
+      meta: 'text-indigo-200/70',
       accent: 'bg-fuchsia-400',
       accentSoft: 'bg-white/5 border-white/10',
-      line: 'bg-fuchsia-400',
-      meta: 'text-indigo-200/70',
-      contact: 'text-slate-100',
       badge: 'bg-fuchsia-400 text-slate-950',
-      corner: 'bg-fuchsia-400/20',
-      shape: 'bg-indigo-400/10'
+      line: 'bg-fuchsia-400',
+      ring: 'from-fuchsia-400 via-violet-400 to-cyan-300',
+      glow: 'bg-fuchsia-400/20',
+      chip: 'bg-white/5 text-fuchsia-200 border-white/10'
     },
     {
+      name: 'Pixel Prism',
       shell: 'bg-gradient-to-br from-amber-50 via-white to-violet-50 text-slate-900 border-violet-100',
       brand: 'text-slate-950',
       eyebrow: 'text-violet-700',
+      contact: 'text-slate-700',
+      meta: 'text-slate-500',
       accent: 'bg-violet-600',
       accentSoft: 'bg-violet-500/10 border-violet-200',
-      line: 'bg-violet-600',
-      meta: 'text-slate-500',
-      contact: 'text-slate-700',
       badge: 'bg-violet-600 text-white',
-      corner: 'bg-violet-200/45',
-      shape: 'bg-violet-500/10'
+      line: 'bg-violet-600',
+      ring: 'from-violet-500 via-fuchsia-400 to-amber-300',
+      glow: 'bg-violet-300/25',
+      chip: 'bg-violet-50 text-violet-700 border-violet-100'
+    },
+    {
+      name: 'Cyber Glass',
+      shell: 'bg-gradient-to-br from-[#06131A] via-[#0A2630] to-[#071B34] text-white border-cyan-300/20',
+      brand: 'text-white',
+      eyebrow: 'text-cyan-200',
+      contact: 'text-cyan-50',
+      meta: 'text-cyan-200/65',
+      accent: 'bg-cyan-300',
+      accentSoft: 'bg-cyan-300/10 border-cyan-200/20',
+      badge: 'bg-cyan-300 text-slate-950',
+      line: 'bg-cyan-300',
+      ring: 'from-cyan-300 via-emerald-300 to-blue-400',
+      glow: 'bg-cyan-300/20',
+      chip: 'bg-cyan-300/10 text-cyan-100 border-cyan-200/20'
+    },
+    {
+      name: 'Orbit Neon',
+      shell: 'bg-gradient-to-br from-[#090A13] via-[#12152B] to-[#261040] text-white border-pink-300/20',
+      brand: 'text-white',
+      eyebrow: 'text-pink-200',
+      contact: 'text-pink-50',
+      meta: 'text-pink-100/60',
+      accent: 'bg-pink-400',
+      accentSoft: 'bg-pink-400/10 border-pink-200/20',
+      badge: 'bg-pink-400 text-slate-950',
+      line: 'bg-pink-400',
+      ring: 'from-pink-400 via-orange-300 to-violet-400',
+      glow: 'bg-pink-400/20',
+      chip: 'bg-pink-400/10 text-pink-100 border-pink-200/20'
+    },
+    {
+      name: 'Quantum Mono',
+      shell: 'bg-gradient-to-br from-[#0B0D10] via-[#15181D] to-[#242A31] text-white border-white/15',
+      brand: 'text-white',
+      eyebrow: 'text-lime-200',
+      contact: 'text-slate-100',
+      meta: 'text-slate-400',
+      accent: 'bg-lime-300',
+      accentSoft: 'bg-lime-300/10 border-lime-200/20',
+      badge: 'bg-lime-300 text-slate-950',
+      line: 'bg-lime-300',
+      ring: 'from-lime-300 via-white to-cyan-300',
+      glow: 'bg-lime-300/15',
+      chip: 'bg-lime-300/10 text-lime-100 border-lime-200/15'
     }
   ];
 
@@ -158,82 +223,98 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
       : null
   );
 
+  const initials = data.name.split(' ').map(part => part[0]).slice(0, 2).join('');
+  const profileTag = templateIndex === 0 ? 'STUDIO 01' : templateIndex === 1 ? 'NODE 02' : templateIndex === 2 ? 'PRISM 03' : templateIndex === 3 ? 'GRID 04' : templateIndex === 4 ? 'ORBIT 05' : 'QNTM 06';
+
   return (
     <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-xl ${theme.shell}`}>
-      <div className={`absolute -right-16 -top-16 h-40 w-40 rounded-full blur-2xl ${theme.corner}`} />
-      <div className={`absolute -left-12 bottom-6 h-28 w-28 rounded-full blur-2xl ${theme.shape}`} />
-      {templateIndex === 1 && (
-        <div className="absolute right-8 bottom-8 h-28 w-28 rounded-full border border-fuchsia-300/20" />
-      )}
-      {templateIndex === 2 && (
-        <div className="absolute right-0 bottom-0 h-32 w-48 rounded-tl-[70px] bg-violet-500/10" />
-      )}
+      <div className={`absolute -right-14 -top-14 h-40 w-40 rounded-full blur-2xl ${theme.glow}`} />
+      <div className={`absolute right-[18%] top-[18%] h-24 w-24 rounded-full border border-white/10 opacity-50`} />
 
-      <div className="relative flex h-full flex-col p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className={`text-[8px] font-black uppercase tracking-[0.22em] ${theme.eyebrow}`}>
-              {templateIndex === 0 ? 'THYNK STUDIO' : templateIndex === 1 ? 'NOVA CREATIVE' : 'PIXEL HOUSE'}
+      <div className="relative flex h-full p-4 sm:p-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-start justify-between gap-3 pr-1">
+            <div className="min-w-0">
+              <div className={`text-[8px] font-black uppercase tracking-[0.24em] ${theme.eyebrow}`}>
+                {theme.name}
+              </div>
+              <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.18em] ${theme.meta}`}>
+                Editable identity card
+              </div>
             </div>
-            <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.18em] ${theme.meta}`}>
-              Editable visiting card
-            </div>
+            <span className={`shrink-0 rounded-full border px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>
+              {profileTag}
+            </span>
           </div>
-          <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>
-            Live template
-          </span>
-        </div>
 
-        <div className="mt-4">
-          <div className={`h-1 w-16 rounded-full ${theme.line}`} />
-          <div className={fieldClass('name')}>
-            <div className={`mt-3 min-h-[2.2rem] text-[clamp(1rem,3.7vw,1.7rem)] font-black leading-none tracking-tight ${theme.brand}`}>
-              {data.name || '\u00A0'}
-              {cursor('name')}
+          <div className="mt-4 max-w-[68%]">
+            <div className={`h-1 w-14 rounded-full ${theme.line}`} />
+            <div className={fieldClass('name')}>
+              <div className={`mt-3 min-h-[2rem] text-[clamp(1rem,3.35vw,1.65rem)] font-black leading-none tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{cursor('name')}
+              </div>
             </div>
-          </div>
-          <div className={fieldClass('role')}>
-            <div className={`mt-1 min-h-[1rem] text-[clamp(0.58rem,1.8vw,0.82rem)] font-semibold ${theme.eyebrow}`}>
-              {data.role || '\u00A0'}
-              {cursor('role')}
-            </div>
-          </div>
-        </div>
-
-        <div className={`mt-3 h-px w-full ${theme.line} opacity-15`} />
-
-        <div className="absolute inset-x-4 bottom-8 grid gap-0.5">
-          <div className={fieldClass('phone')}>
-            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.48rem,1.42vw,0.68rem)] font-semibold ${theme.contact}`}>
-              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
-                <Phone className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-              </span>
-              <span className="min-w-0 flex-1 truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
+            <div className={fieldClass('role')}>
+              <div className={`mt-1 min-h-[1rem] text-[clamp(0.55rem,1.7vw,0.8rem)] font-semibold ${theme.eyebrow}`}>
+                {data.role || '\u00A0'}{cursor('role')}
+              </div>
             </div>
           </div>
 
-          <div className={fieldClass('email')}>
-            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.46rem,1.34vw,0.66rem)] font-semibold ${theme.contact}`}>
-              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
-                <Mail className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-              </span>
-              <span className="min-w-0 flex-1 truncate">{data.email || '\u00A0'}{cursor('email')}</span>
+          <div className={`mt-auto w-[70%] grid gap-0.5 ${theme.contact}`}>
+            <div className={fieldClass('phone')}>
+              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.46rem,1.34vw,0.64rem)] font-semibold">
+                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
+                  <Phone className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+                </span>
+                <span className="min-w-0 truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
+              </div>
+            </div>
+
+            <div className={fieldClass('email')}>
+              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.44rem,1.28vw,0.62rem)] font-semibold">
+                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
+                  <Mail className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+                </span>
+                <span className="min-w-0 truncate">{data.email || '\u00A0'}{cursor('email')}</span>
+              </div>
+            </div>
+
+            <div className={fieldClass('address')}>
+              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.42rem,1.2vw,0.59rem)] font-semibold leading-tight">
+                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
+                  <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+                </span>
+                <span className="min-w-0 truncate">{data.address || '\u00A0'}{cursor('address')}</span>
+              </div>
             </div>
           </div>
 
-          <div className={fieldClass('address')}>
-            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.43rem,1.18vw,0.6rem)] font-semibold leading-tight ${theme.contact}`}>
-              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
-                <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-              </span>
-              <span className="min-w-0 flex-1 truncate">{data.address || '\u00A0'}{cursor('address')}</span>
-            </div>
+          <div className={`mt-1 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
+            <span>Reusable • editable</span>
+            <span>PixelCards</span>
           </div>
         </div>
 
-        <div className={`absolute inset-x-4 bottom-1.5 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
-          <span>Reusable • editable • print-ready</span>
-          <span>PixelCards</span>
+        <div className="relative w-[31%] min-w-[82px]">
+          <div className="absolute right-1 top-1/2 -translate-y-1/2">
+            <div className={`relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br ${theme.ring} p-[2px] shadow-[0_0_32px_rgba(99,102,241,0.22)]`}>
+              <div className={`flex h-full w-full items-center justify-center rounded-full ${templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5 ? 'bg-[#090D18]' : 'bg-white'}`}>
+                <div className={`relative flex h-[58px] w-[58px] items-center justify-center rounded-full border ${theme.accentSoft}`}>
+                  <span className={`text-[15px] font-black tracking-tight ${theme.brand}`}>{initials}</span>
+                  <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 ${templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5 ? 'border-[#090D18] bg-emerald-400' : 'border-white bg-emerald-500'} animate-pulse`} />
+                </div>
+              </div>
+            </div>
+
+            <div className={`mt-2 text-center text-[6px] font-black uppercase tracking-[0.16em] ${theme.meta}`}>
+              Profile / Creator
+            </div>
+          </div>
+
+          <div className={`absolute bottom-1 right-0 rounded-full border px-2 py-1 text-[6px] font-black uppercase tracking-[0.12em] ${theme.chip}`}>
+            Verified
+          </div>
         </div>
       </div>
     </div>
@@ -381,7 +462,7 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                       className={`relative overflow-hidden rounded-2xl ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}
                     >
                       <BusinessCardTemplate
-                        templateIndex={demoIndex % 3}
+                        templateIndex={demoIndex % 6}
                         data={typedDemoCard}
                         activeField={activeDemoField}
                         isTyping={!isExiting && cycleElapsed >= 600 && cycleElapsed < 5800}
