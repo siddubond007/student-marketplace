@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -33,9 +33,68 @@ const WORKFLOW = [
   ['06', 'Earn', 'Future usage and revenue accounting can connect back to eligible creators.']
 ];
 
+const DEMO_CARDS = [
+  {
+    brand: 'Studio North',
+    name: 'Aarav Mehta',
+    role: 'Creative Director',
+    phone: '+91 90000 00000',
+    email: 'hello@example.com'
+  },
+  {
+    brand: 'Nova Works',
+    name: 'Ishita Rao',
+    role: 'Brand Strategist',
+    phone: '+91 98765 43210',
+    email: 'hello@novaworks.in'
+  },
+  {
+    brand: 'Pixel House',
+    name: 'Kiran Varma',
+    role: 'Founder & Designer',
+    phone: '+91 91234 56789',
+    email: 'studio@pixelhouse.in'
+  },
+  {
+    brand: 'Orbit Creative',
+    name: 'Ananya Reddy',
+    role: 'Visual Designer',
+    phone: '+91 99887 66554',
+    email: 'hi@orbitcreative.in'
+  }
+];
+
+const DEMO_FIELDS = ['name', 'role', 'phone', 'email'];
+const DEMO_FIELD_LABELS = {
+  name: 'NAME',
+  role: 'ROLE',
+  phone: 'PHONE',
+  email: 'EMAIL'
+};
+
 export default function PixelCardsProjectPage({ themeMode = 'light' }) {
   const dark = themeMode === 'dark';
   const [activeSide, setActiveSide] = useState('students');
+  const [demoIndex, setDemoIndex] = useState(0);
+  const [demoFieldIndex, setDemoFieldIndex] = useState(0);
+
+  useEffect(() => {
+    const cardTimer = window.setInterval(() => {
+      setDemoIndex(current => (current + 1) % DEMO_CARDS.length);
+    }, 3200);
+
+    const fieldTimer = window.setInterval(() => {
+      setDemoFieldIndex(current => (current + 1) % DEMO_FIELDS.length);
+    }, 800);
+
+    return () => {
+      window.clearInterval(cardTimer);
+      window.clearInterval(fieldTimer);
+    };
+  }, []);
+
+  const demoCard = DEMO_CARDS[demoIndex];
+  const activeDemoField = DEMO_FIELDS[demoFieldIndex];
 
   const page = dark ? 'bg-[#020617] text-white' : 'bg-slate-50 text-slate-900';
   const muted = dark ? 'text-slate-400' : 'text-slate-600';
@@ -127,27 +186,82 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-500"><BadgeCheck className="h-3.5 w-3.5" /> Print-ready</span>
                 </div>
 
-                <div className="mt-5 aspect-[1.1/1] rounded-2xl border overflow-hidden relative bg-gradient-to-br from-indigo-950 via-violet-900 to-pink-900">
-                  <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-pink-400/30 blur-3xl" />
-                  <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-indigo-300/20 blur-2xl" />
-                  <div className="relative h-full p-6 flex flex-col justify-between">
-                    <div className="text-[9px] text-indigo-100 uppercase tracking-[0.2em] font-black">Studio North</div>
-                    <div>
-                      <div className="text-3xl font-black text-white">Aarav Mehta</div>
-                      <div className="mt-1 text-xs text-indigo-100/80">Creative Director</div>
+                <div className="mt-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                      <span className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">Live template demo</span>
                     </div>
-                    <div className="text-[9px] text-indigo-100/80">+91 90000 00000 • hello@example.com</div>
+                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Auto-editing</span>
+                  </div>
+
+                  <div className="relative aspect-[1.1/1] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-950 via-violet-900 to-pink-900 shadow-2xl">
+                    <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-pink-400/30 blur-3xl" />
+                    <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-indigo-300/20 blur-2xl" />
+                    <div className="relative h-full p-6 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="text-[9px] text-indigo-100 uppercase tracking-[0.2em] font-black">{demoCard.brand}</div>
+                        <div className="rounded-full border border-white/15 bg-black/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-white/70">
+                          Editable
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className={`transition-all duration-500 ${activeDemoField === 'name' ? 'scale-[1.02] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.18)]' : 'text-white/90'}`}>
+                          <div className="text-3xl font-black tracking-tight">{demoCard.name}</div>
+                          {activeDemoField === 'name' && (
+                            <div className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.14em] text-white/80">
+                              Editing {DEMO_FIELD_LABELS[activeDemoField]}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className={`mt-2 transition-all duration-500 ${activeDemoField === 'role' ? 'translate-x-1 text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.18)]' : 'text-indigo-100/80'}`}>
+                          <div className="text-xs">{demoCard.role}</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-[9px] text-indigo-100/85">
+                        <div className={`transition-all duration-500 ${activeDemoField === 'phone' ? 'translate-x-1 text-white' : ''}`}>
+                          {demoCard.phone}
+                        </div>
+                        <div className={`transition-all duration-500 ${activeDemoField === 'email' ? 'translate-x-1 text-white' : ''}`}>
+                          {demoCard.email}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      key={demoFieldIndex}
+                      className="h-full w-1/4 rounded-full bg-gradient-to-r from-cyan-300 via-indigo-400 to-pink-400 animate-[demo-fill_800ms_linear]"
+                    />
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="text-[8px] font-bold text-slate-500">Preview updates automatically</span>
+                    <span className="text-[8px] font-black uppercase tracking-[0.14em] text-indigo-300">
+                      Editing {DEMO_FIELD_LABELS[activeDemoField]}
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {['Name', 'Role', 'Phone'].map(field => (
-                    <div key={field} className={`rounded-xl border px-3 py-2 ${dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                      <div className={`text-[8px] uppercase tracking-wider font-black ${muted}`}>{field}</div>
+                    <div key={field} className={`rounded-xl border px-3 py-2 transition-all duration-500 ${activeDemoField === field.toLowerCase() ? 'border-indigo-400/40 bg-indigo-500/10 ring-1 ring-indigo-400/20' : dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className={`text-[8px] uppercase tracking-wider font-black ${activeDemoField === field.toLowerCase() ? 'text-indigo-300' : muted}`}>{field}</div>
                       <div className={`mt-1 text-[9px] font-bold ${dark ? 'text-slate-200' : 'text-slate-700'}`}>Editable</div>
                     </div>
                   ))}
                 </div>
+
+                <style>{`
+                  @keyframes demo-fill {
+                    from { width: 0%; }
+                    to { width: 100%; }
+                  }
+                `}</style>
               </div>
             </div>
           </div>
