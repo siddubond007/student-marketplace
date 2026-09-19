@@ -148,8 +148,8 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
   const fieldIsActive = field => isTyping && activeField === field;
   const fieldClass = field => (
     fieldIsActive(field)
-      ? 'rounded-xl border border-current/15 bg-black/[0.04] px-2.5 py-1.5 shadow-sm scale-[1.01]'
-      : 'px-2.5 py-1.5'
+      ? 'px-0.5 py-1 transition-all duration-300'
+      : 'px-0.5 py-1'
   );
 
   const cursor = field => (
@@ -202,7 +202,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
 
         <div className={`mt-3 h-px w-full ${theme.line} opacity-15`} />
 
-        <div className="absolute inset-x-4 bottom-7 grid gap-0.5">
+        <div className="absolute inset-x-4 bottom-8 grid gap-0.5">
           <div className={fieldClass('phone')}>
             <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.48rem,1.42vw,0.68rem)] font-semibold ${theme.contact}`}>
               <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
@@ -231,7 +231,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           </div>
         </div>
 
-        <div className={`absolute inset-x-4 bottom-1 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
+        <div className={`absolute inset-x-4 bottom-1.5 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
           <span>Reusable • editable • print-ready</span>
           <span>PixelCards</span>
         </div>
@@ -370,9 +370,9 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   <div className="mb-3 flex items-center justify-between">
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                      <span className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">Live template demo</span>
+                      <span className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">Template in action</span>
                     </div>
-                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Type • replace • publish</span>
+                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Auto customization</span>
                   </div>
 
                   <div className="relative overflow-visible">
@@ -422,7 +422,7 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                         />
                       </div>
                       <div className="mt-1 text-[8px] font-bold text-slate-500">
-                        Template fields are typed automatically • card dissolves into particles • next design loads
+                        Watch the template fill, finish, dissolve, and transform
                       </div>
                     </div>
                     <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.14em] text-indigo-300">
