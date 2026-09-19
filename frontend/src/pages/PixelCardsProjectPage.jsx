@@ -383,30 +383,52 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
 
   if (templateIndex === 6) {
     return (
-      <div className="relative aspect-[1.58/1] overflow-hidden rounded-2xl border border-indigo-300/20 bg-gradient-to-br from-[#060913] via-[#11162B] to-[#1A1231] text-white shadow-2xl">
-        <div className="absolute left-0 top-0 h-full w-[29%] border-r border-white/10 bg-white/[0.02]" />
-        <div className="relative flex h-full p-4">
-          <div className="flex w-[30%] min-w-[96px] flex-col items-center justify-between py-1">
-            <div className="w-full rounded-xl border border-white/10 bg-white/[0.035] p-2"><div className="grid grid-cols-5 gap-1">{Array.from({ length: 25 }, (_, index) => <span key={index} className={['h-1.5 w-1.5 rounded-sm', index % 5 === 0 ? 'bg-indigo-300' : 'bg-white/10'].join(' ')} />)}</div><div className="mt-2 text-center text-[5px] font-black uppercase tracking-[0.11em] text-indigo-200/70">Scan to view profile</div></div>
-            <ProfileRing templateIndex={6} initials={initials} />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col pl-4">
-            <div className="ml-auto text-[5px] font-black uppercase tracking-[0.18em] text-indigo-200/60">Skill profile / 07</div>
-            <div className="relative mt-7 flex min-h-0 flex-1 flex-col justify-center">
-              <div className="relative z-10 max-w-[74%]">
-                <div className="text-[clamp(1.05rem,3.1vw,1.6rem)]"><CardName value={data.name} active={active('name')} tone="bg-indigo-200" /></div>
-                {lightRole('text-indigo-300')}
-                <div className="mt-3 flex flex-wrap gap-1.5">{['AI / ML', 'Data Science', 'Web Development', 'Technical Writing'].map(skill => <span key={skill} className="rounded-lg border border-indigo-200/10 bg-indigo-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.08em] text-indigo-100/70">{skill}</span>)}</div>
-              </div>
-              <div className="pointer-events-none absolute right-[5%] top-1/2 -translate-y-1/2 h-[9rem] w-[9rem] rounded-full border border-indigo-300/10">
-                <div className="absolute inset-[18%] rounded-full border border-indigo-300/10" />
-                <div className="absolute inset-[35%] rounded-full border border-violet-300/15" />
-                <div className="absolute inset-[49%] rounded-full bg-indigo-300/30 blur-md" />
-                <div className="absolute left-1/2 top-1/2 h-[180%] w-px -translate-x-1/2 -translate-y-1/2 rotate-45 bg-gradient-to-b from-transparent via-indigo-300/25 to-transparent" />
-                <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-300 shadow-[0_0_20px_rgba(129,140,248,0.65)]" />
-              </div>
+      <div className="relative aspect-[1.58/1] overflow-hidden rounded-2xl border border-indigo-300/20 bg-gradient-to-br from-[#050813] via-[#10162B] to-[#1B1230] text-white shadow-2xl">
+        <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(135deg,rgba(129,140,248,.08)_1px,transparent_1px),linear-gradient(45deg,rgba(56,189,248,.05)_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute -right-16 -top-14 h-40 w-40 rounded-full border-[14px] border-indigo-300/8" />
+        <div className="absolute left-0 bottom-0 h-32 w-48 rounded-tr-[5rem] bg-indigo-500/6" />
+        <div className="relative flex h-full flex-col p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[8px] font-black uppercase tracking-[0.27em] text-indigo-200">SKILLAUNCH</div>
+              <div className="mt-1 text-[5px] font-bold uppercase tracking-[0.18em] text-slate-400">Digital creator identity</div>
             </div>
-            <div className="mt-3">{contact('dark')}</div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden sm:flex items-end gap-[2px] opacity-70">
+                {Array.from({ length: 12 }, (_, index) => <span key={index} className={['w-[2px] rounded-full', index % 3 === 0 ? 'h-4 bg-indigo-300' : 'h-2 bg-white/25'].join(' ')} />)}
+              </div>
+              <span className="rounded-full border border-indigo-200/15 bg-indigo-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.13em] text-indigo-200/80">Digital ID</span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid min-h-0 flex-1 grid-cols-[1fr_auto] items-center gap-4">
+            <div className="min-w-0 self-center">
+              <div className="flex flex-wrap gap-1.5">
+                {['AI / ML', 'DATA', 'WEB', 'OPEN'].map(skill => <span key={skill} className="rounded-full border border-indigo-200/10 bg-white/[0.035] px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-indigo-100/75">{skill}</span>)}
+              </div>
+              <div className="mt-4 text-[clamp(1.12rem,3.2vw,1.7rem)] font-black leading-none tracking-tight">
+                {data.name || '\u00A0'}{active('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-indigo-200" />}
+              </div>
+              {lightRole('text-indigo-300')}
+              <div className="mt-3 h-px w-20 bg-gradient-to-r from-indigo-300/60 to-transparent" />
+              <div className="mt-2 text-[5px] font-black uppercase tracking-[0.18em] text-slate-500">Student • Creator • Freelancer</div>
+            </div>
+
+            <div className="relative flex shrink-0 flex-col items-center justify-center">
+              <div className="absolute -inset-5 rounded-full bg-indigo-500/10 blur-2xl" />
+              <ProfileRing templateIndex={6} initials={initials} large />
+              <div className="relative mt-1 rounded-full border border-indigo-200/10 bg-white/[0.03] px-2 py-1 text-[5px] font-black uppercase tracking-[0.13em] text-indigo-200/75">Verified creator</div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-[0.9fr_1.1fr] gap-3 border-t border-white/10 pt-3">
+            <div className="grid min-w-0 gap-1.5">
+              <ContactRow icon={Phone} data={data.phone} isActive={active('phone')} tone="dark" />
+              <ContactRow icon={Mail} data={data.email} isActive={active('email')} tone="dark" />
+            </div>
+            <div className="min-w-0 border-l border-white/10 pl-3">
+              <ContactRow icon={MapPin} data={data.address} isActive={active('address')} tone="dark" />
+            </div>
           </div>
         </div>
       </div>
