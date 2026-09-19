@@ -384,10 +384,8 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
   if (templateIndex === 6) {
     return (
       <div className="relative aspect-[1.58/1] overflow-hidden rounded-2xl border border-indigo-300/20 bg-gradient-to-br from-[#050813] via-[#10162B] to-[#1C1232] text-white shadow-2xl">
-        <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(135deg,rgba(129,140,248,.08)_1px,transparent_1px),linear-gradient(45deg,rgba(56,189,248,.05)_1px,transparent_1px)] [background-size:24px_24px]" />
-        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full border-[14px] border-indigo-300/8" />
-        <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-indigo-300/7" />
-
+        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(135deg,rgba(129,140,248,.07)_1px,transparent_1px),linear-gradient(45deg,rgba(56,189,248,.045)_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full border-[10px] border-indigo-300/7" />
         <div className="relative flex h-full flex-col p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -395,49 +393,52 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
               <div className="mt-1 text-[5px] font-bold uppercase tracking-[0.18em] text-slate-400">Digital creator identity</div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden sm:flex items-end gap-[2px] opacity-60">
-                {Array.from({ length: 10 }, (_, index) => <span key={index} className={['w-[2px] rounded-full', index % 3 === 0 ? 'h-4 bg-indigo-300' : 'h-2 bg-white/25'].join(' ')} />)}
+              <div className="hidden sm:flex items-end gap-[2px] opacity-55">
+                {Array.from({ length: 8 }, (_, index) => <span key={index} className={['w-[2px] rounded-full', index % 3 === 0 ? 'h-4 bg-indigo-300' : 'h-2 bg-white/25'].join(' ')} />)}
               </div>
               <span className="rounded-full border border-indigo-200/15 bg-indigo-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.13em] text-indigo-200/80">Digital ID</span>
             </div>
           </div>
 
-          <div className="mt-4 flex min-h-0 flex-1 items-center gap-4">
+          <div className="mt-3 flex min-h-0 flex-1 items-center gap-5">
             <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {['AI / ML', 'DATA', 'WEB', 'OPEN'].map(skill => (
-                  <span key={skill} className="rounded-full border border-indigo-200/10 bg-white/[0.035] px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-indigo-100/75">{skill}</span>
+              <div className="flex flex-wrap gap-1.5">
+                {['AI / ML', 'DATA', 'WEB'].map(skill => (
+                  <span key={skill} className="rounded-full border border-indigo-200/10 bg-white/[0.04] px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-indigo-100/75">{skill}</span>
                 ))}
               </div>
-              <div className="text-[clamp(1.05rem,3.1vw,1.6rem)] font-black leading-none tracking-tight">
+
+              <div className="mt-4 text-[clamp(1.08rem,3.2vw,1.68rem)] font-black leading-none tracking-tight">
                 {data.name || '\u00A0'}{active('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-indigo-200" />}
               </div>
               {lightRole('text-indigo-300')}
+
               <div className="mt-3 flex items-center gap-2">
-                <span className="h-px w-12 bg-indigo-300/50" />
-                <span className="text-[5px] font-black uppercase tracking-[0.16em] text-slate-500">Student • Creator • Freelancer</span>
+                <span className="h-px w-10 bg-indigo-300/45" />
+                <span className="text-[5px] font-black uppercase tracking-[0.15em] text-slate-500">Student • Creator • Freelancer</span>
               </div>
             </div>
 
-            <div className="relative flex shrink-0 flex-col items-center justify-center pr-1">
-              <div className="absolute -inset-3 rounded-full bg-indigo-500/12 blur-2xl" />
+            <div className="relative flex shrink-0 flex-col items-center justify-center pr-2">
+              <div className="absolute -inset-2 rounded-full bg-indigo-500/8 blur-xl" />
               <ProfileRing templateIndex={6} initials={initials} large />
-              <div className="relative mt-1 rounded-full border border-indigo-200/10 bg-white/[0.035] px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-indigo-200/75">Verified creator</div>
+              <div className="relative mt-1 rounded-full border border-indigo-200/10 bg-white/[0.035] px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-indigo-200/70">Verified</div>
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+          <div className="mt-3 grid grid-cols-[0.95fr_1.05fr] gap-3 border-t border-white/10 pt-3">
             <div className="min-w-0">
-              <div className="mb-1 text-[5px] font-black uppercase tracking-[0.14em] text-indigo-200/45">Phone</div>
-              <ContactRow icon={Phone} data={data.phone} isActive={active('phone')} tone="dark" />
+              <div className="mb-1 text-[5px] font-black uppercase tracking-[0.14em] text-indigo-200/45">Direct contact</div>
+              <div className="grid gap-1.5">
+                <ContactRow icon={Phone} data={data.phone} isActive={active('phone')} tone="dark" />
+                <ContactRow icon={Mail} data={data.email} isActive={active('email')} tone="dark" />
+              </div>
             </div>
-            <div className="min-w-0 border-l border-white/10 pl-2">
-              <div className="mb-1 text-[5px] font-black uppercase tracking-[0.14em] text-indigo-200/45">Email</div>
-              <ContactRow icon={Mail} data={data.email} isActive={active('email')} tone="dark" />
-            </div>
-            <div className="min-w-0 border-l border-white/10 pl-2">
+            <div className="min-w-0 border-l border-white/10 pl-3">
               <div className="mb-1 text-[5px] font-black uppercase tracking-[0.14em] text-indigo-200/45">Location</div>
-              <ContactRow icon={MapPin} data={data.address} isActive={active('address')} tone="dark" />
+              <div className="max-w-full">
+                <ContactRow icon={MapPin} data={data.address} isActive={active('address')} tone="dark" />
+              </div>
             </div>
           </div>
         </div>
@@ -637,7 +638,7 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                       type="button"
                       aria-label="Previous template"
                       onClick={() => goToDemoTemplate(-1)}
-                      className="absolute left-[-3rem] top-1/2 z-30 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-cyan-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300/40"
+                      className="absolute left-[-2.75rem] top-1/2 z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-cyan-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300/40"
                     >
                       <ChevronLeft className="h-4.5 w-4.5" />
                     </button>
@@ -659,7 +660,7 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                       type="button"
                       aria-label="Next template"
                       onClick={() => goToDemoTemplate(1)}
-                      className="absolute right-[-3rem] top-1/2 z-30 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-pink-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-pink-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-300/40"
+                      className="absolute right-[-2.75rem] top-1/2 z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-pink-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-pink-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-300/40"
                     >
                       <ChevronRight className="h-4.5 w-4.5" />
                     </button>
