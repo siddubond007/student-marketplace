@@ -369,7 +369,7 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                     >
                       <BusinessCardTemplate
                         templateIndex={demoIndex % 3}
-                        data={demoCard}
+                        data={typedDemoCard}
                         activeField={activeDemoField}
                         isTyping={!isExiting && cycleElapsed >= 600 && cycleElapsed < 5800}
                       />
