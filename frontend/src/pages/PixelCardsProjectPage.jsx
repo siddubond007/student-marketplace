@@ -221,12 +221,12 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
             </div>
           </div>
 
-          <div className={`relative -top-1 ${fieldClass('address')}`}>
-            <div className={`flex min-h-[1.1rem] items-start gap-2 text-[clamp(0.45rem,1.3vw,0.64rem)] font-semibold leading-snug ${theme.contact}`}>
-              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+          <div className={`relative -top-2 ${fieldClass('address')}`}>
+            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.44rem,1.25vw,0.62rem)] font-semibold leading-tight ${theme.contact}`}>
+              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
                 <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
               </span>
-              <span className="line-clamp-2">{data.address || '\u00A0'}{cursor('address')}</span>
+              <span className="truncate">{data.address || '\u00A0'}{cursor('address')}</span>
             </div>
           </div>
         </div>
