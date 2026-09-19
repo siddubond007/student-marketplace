@@ -193,13 +193,84 @@ export default function Navbar({ currentUser, onLogout, themeMode = 'light', onT
             </div>
 
             {/* 4. PART-TIME PROJECTS */}
-            <Link
-              to="/part-time-projects"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-indigo-500/25 bg-indigo-950/30 text-indigo-200 hover:text-white hover:border-indigo-400/50 hover:bg-indigo-900/50 transition font-black"
+            <div
+              className="relative py-6"
+              onMouseEnter={() => setActiveMenu('part-time')}
+              onMouseLeave={() => setActiveMenu(null)}
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
-              <span>Part-Time Projects</span>
-            </Link>
+              <Link
+                to="/part-time-projects"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-indigo-500/25 bg-indigo-950/30 text-indigo-200 hover:text-white hover:border-indigo-400/50 hover:bg-indigo-900/50 transition font-black"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+                <span>Part-Time Projects</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </Link>
+
+              {activeMenu === 'part-time' && (
+                <div className="absolute top-16 left-0 w-[760px] max-w-[calc(100vw-2rem)] bg-slate-950/95 backdrop-blur-xl border border-indigo-500/20 shadow-2xl p-4 rounded-3xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between gap-4 px-2 pb-3">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">Part-Time Projects</div>
+                      <p className="text-[11px] text-slate-400 mt-1">Flexible student opportunities and long-term collaborations.</p>
+                    </div>
+                    <Link to="/part-time-projects" className="text-[10px] font-black text-indigo-300 hover:text-white shrink-0">Open hub →</Link>
+                  </div>
+
+                  <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory">
+                    {[
+                      {
+                        title: '24/7 Jobs',
+                        copy: 'Explore flexible opportunities and discover projects designed for student schedules.',
+                        icon: Zap,
+                        path: '/part-time-projects',
+                        tone: 'indigo'
+                      },
+                      {
+                        title: 'Collaborated Projects',
+                        copy: 'Explore permanent partner-led projects such as PixelCards and future collaborations.',
+                        icon: Layers,
+                        path: '/part-time-projects',
+                        tone: 'violet'
+                      },
+                      {
+                        title: 'How It Works',
+                        copy: 'See how students create, submit, publish and participate in long-term project ecosystems.',
+                        icon: ArrowRight,
+                        path: '/part-time-projects',
+                        tone: 'emerald'
+                      },
+                      {
+                        title: 'Earn With Us',
+                        copy: 'Understand the planned path from student project work to future usage-based earnings.',
+                        icon: WalletCards,
+                        path: '/part-time-projects',
+                        tone: 'pink'
+                      }
+                    ].map(({ title, copy, icon: Icon, path, tone }) => (
+                      <Link
+                        key={title}
+                        to={path}
+                        className={`group min-w-[230px] snap-start rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-indigo-400/50 hover:bg-slate-900 ${tone === 'indigo' ? 'border-indigo-500/20 bg-indigo-950/25' : tone === 'violet' ? 'border-violet-500/20 bg-violet-950/20' : tone === 'emerald' ? 'border-emerald-500/20 bg-emerald-950/15' : 'border-pink-500/20 bg-pink-950/15'}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
+                            <Icon className="w-4 h-4 text-indigo-300" />
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-white transition" />
+                        </div>
+                        <div className="mt-4 text-xs font-black text-white">{title}</div>
+                        <p className="mt-1.5 text-[10px] leading-relaxed text-slate-400">{copy}</p>
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                    Scroll horizontally to explore
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
