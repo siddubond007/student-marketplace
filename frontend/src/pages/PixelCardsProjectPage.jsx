@@ -115,206 +115,384 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
   delay: (index % 12) * 22
 }));
 
+function ProfileRing({ templateIndex, initials, theme }) {
+  const darkCenter = templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5;
+
+  return (
+    <div className="relative flex h-24 w-24 items-center justify-center">
+      <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${theme.ring} p-[2px] shadow-[0_0_34px_rgba(99,102,241,0.28)]`}>
+        <div className={`h-full w-full rounded-full ${darkCenter ? 'bg-[#070B16]' : 'bg-white'}`} />
+      </div>
+      <div className={`relative flex h-[70px] w-[70px] items-center justify-center overflow-hidden rounded-full border-2 ${theme.avatarBorder} ${darkCenter ? 'bg-slate-900' : 'bg-slate-100'}`}>
+        <div className={`absolute -top-7 h-12 w-12 rounded-full blur-lg ${theme.avatarGlow}`} />
+        <div className={`relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${theme.avatarGradient} text-[11px] font-black text-white shadow-lg`}>
+          {initials}
+        </div>
+        <span className={`absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border-2 ${darkCenter ? 'border-slate-900' : 'border-white'} bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]`} />
+      </div>
+      <div className={`absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full ${theme.node}`} />
+    </div>
+  );
+}
+
+function FieldLine({ field, icon: Icon, data, isActive, theme, size = 'normal' }) {
+  return (
+    <div className={`flex min-w-0 items-center gap-2 ${isActive ? 'text-white' : ''}`}>
+      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${theme.iconShell}`}>
+        <Icon className={`h-2.5 w-2.5 ${theme.icon}`} />
+      </span>
+      <span className={`min-w-0 truncate font-semibold ${size === 'small' ? 'text-[9px]' : 'text-[10px]'} ${theme.body}`}>
+        {data || '\u00A0'}
+        {isActive && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-current opacity-80" />}
+      </span>
+    </div>
+  );
+}
+
 function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
-  const templates = [
+  const themes = [
     {
-      name: 'Thynk Sky',
-      shell: 'bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-900 border-sky-100',
+      shell: 'bg-gradient-to-br from-white via-sky-50 to-cyan-100 text-slate-950 border-sky-200',
+      body: 'text-slate-600',
+      muted: 'text-slate-500',
       brand: 'text-slate-950',
-      eyebrow: 'text-sky-700',
-      contact: 'text-slate-700',
-      meta: 'text-slate-500',
-      accent: 'bg-sky-600',
-      accentSoft: 'bg-sky-500/10 border-sky-200',
+      accentText: 'text-sky-700',
+      line: 'bg-sky-500',
+      icon: 'text-sky-700',
+      iconShell: 'bg-sky-500/10 border-sky-200',
+      ring: 'from-sky-400 via-cyan-400 to-indigo-500',
+      avatarGradient: 'from-sky-500 to-indigo-600',
+      avatarBorder: 'border-white/80',
+      avatarGlow: 'bg-sky-400/30',
+      node: 'bg-cyan-300',
       badge: 'bg-sky-600 text-white',
-      line: 'bg-sky-600',
-      ring: 'from-sky-400 via-cyan-300 to-indigo-500',
-      glow: 'bg-sky-300/25',
-      chip: 'bg-sky-50 text-sky-700 border-sky-100'
+      label: 'THYNK SKY'
     },
     {
-      name: 'Nova Pulse',
-      shell: 'bg-gradient-to-br from-[#070B16] via-indigo-950 to-[#351047] text-white border-indigo-400/20',
+      shell: 'bg-gradient-to-br from-[#050816] via-[#17153A] to-[#3A104B] text-white border-indigo-400/30',
+      body: 'text-slate-200',
+      muted: 'text-indigo-200/60',
       brand: 'text-white',
-      eyebrow: 'text-indigo-200',
-      contact: 'text-slate-100',
-      meta: 'text-indigo-200/70',
-      accent: 'bg-fuchsia-400',
-      accentSoft: 'bg-white/5 border-white/10',
-      badge: 'bg-fuchsia-400 text-slate-950',
+      accentText: 'text-fuchsia-300',
       line: 'bg-fuchsia-400',
-      ring: 'from-fuchsia-400 via-violet-400 to-cyan-300',
-      glow: 'bg-fuchsia-400/20',
-      chip: 'bg-white/5 text-fuchsia-200 border-white/10'
+      icon: 'text-fuchsia-200',
+      iconShell: 'bg-white/5 border-white/10',
+      ring: 'from-cyan-300 via-indigo-400 to-fuchsia-400',
+      avatarGradient: 'from-fuchsia-500 to-violet-600',
+      avatarBorder: 'border-white/15',
+      avatarGlow: 'bg-fuchsia-400/25',
+      node: 'bg-cyan-300',
+      badge: 'bg-fuchsia-400 text-slate-950',
+      label: 'NOVA PULSE'
     },
     {
-      name: 'Pixel Prism',
-      shell: 'bg-gradient-to-br from-amber-50 via-white to-violet-50 text-slate-900 border-violet-100',
+      shell: 'bg-gradient-to-br from-amber-50 via-white to-violet-100 text-slate-950 border-violet-200',
+      body: 'text-slate-600',
+      muted: 'text-slate-500',
       brand: 'text-slate-950',
-      eyebrow: 'text-violet-700',
-      contact: 'text-slate-700',
-      meta: 'text-slate-500',
-      accent: 'bg-violet-600',
-      accentSoft: 'bg-violet-500/10 border-violet-200',
-      badge: 'bg-violet-600 text-white',
+      accentText: 'text-violet-700',
       line: 'bg-violet-600',
+      icon: 'text-violet-700',
+      iconShell: 'bg-violet-500/10 border-violet-200',
       ring: 'from-violet-500 via-fuchsia-400 to-amber-300',
-      glow: 'bg-violet-300/25',
-      chip: 'bg-violet-50 text-violet-700 border-violet-100'
+      avatarGradient: 'from-violet-600 to-fuchsia-500',
+      avatarBorder: 'border-white',
+      avatarGlow: 'bg-violet-400/25',
+      node: 'bg-amber-300',
+      badge: 'bg-violet-600 text-white',
+      label: 'PIXEL PRISM'
     },
     {
-      name: 'Cyber Glass',
-      shell: 'bg-gradient-to-br from-[#06131A] via-[#0A2630] to-[#071B34] text-white border-cyan-300/20',
+      shell: 'bg-gradient-to-br from-[#04131A] via-[#082832] to-[#071A31] text-white border-cyan-300/25',
+      body: 'text-cyan-50',
+      muted: 'text-cyan-200/55',
       brand: 'text-white',
-      eyebrow: 'text-cyan-200',
-      contact: 'text-cyan-50',
-      meta: 'text-cyan-200/65',
-      accent: 'bg-cyan-300',
-      accentSoft: 'bg-cyan-300/10 border-cyan-200/20',
-      badge: 'bg-cyan-300 text-slate-950',
+      accentText: 'text-cyan-200',
       line: 'bg-cyan-300',
-      ring: 'from-cyan-300 via-emerald-300 to-blue-400',
-      glow: 'bg-cyan-300/20',
-      chip: 'bg-cyan-300/10 text-cyan-100 border-cyan-200/20'
+      icon: 'text-cyan-200',
+      iconShell: 'bg-cyan-300/10 border-cyan-200/20',
+      ring: 'from-cyan-300 via-emerald-300 to-blue-500',
+      avatarGradient: 'from-cyan-400 to-emerald-500',
+      avatarBorder: 'border-cyan-200/30',
+      avatarGlow: 'bg-cyan-300/20',
+      node: 'bg-emerald-300',
+      badge: 'bg-cyan-300 text-slate-950',
+      label: 'CYBER GLASS'
     },
     {
-      name: 'Orbit Neon',
-      shell: 'bg-gradient-to-br from-[#090A13] via-[#12152B] to-[#261040] text-white border-pink-300/20',
+      shell: 'bg-gradient-to-br from-[#160915] via-[#26112E] to-[#42112B] text-white border-pink-300/25',
+      body: 'text-pink-50',
+      muted: 'text-pink-100/55',
       brand: 'text-white',
-      eyebrow: 'text-pink-200',
-      contact: 'text-pink-50',
-      meta: 'text-pink-100/60',
-      accent: 'bg-pink-400',
-      accentSoft: 'bg-pink-400/10 border-pink-200/20',
+      accentText: 'text-pink-200',
+      line: 'bg-orange-300',
+      icon: 'text-pink-200',
+      iconShell: 'bg-pink-400/10 border-pink-200/20',
+      ring: 'from-pink-400 via-orange-300 to-violet-500',
+      avatarGradient: 'from-orange-400 to-pink-500',
+      avatarBorder: 'border-pink-200/20',
+      avatarGlow: 'bg-pink-400/20',
+      node: 'bg-orange-300',
       badge: 'bg-pink-400 text-slate-950',
-      line: 'bg-pink-400',
-      ring: 'from-pink-400 via-orange-300 to-violet-400',
-      glow: 'bg-pink-400/20',
-      chip: 'bg-pink-400/10 text-pink-100 border-pink-200/20'
+      label: 'ORBIT NEON'
     },
     {
-      name: 'Quantum Mono',
-      shell: 'bg-gradient-to-br from-[#0B0D10] via-[#15181D] to-[#242A31] text-white border-white/15',
+      shell: 'bg-gradient-to-br from-[#070A0C] via-[#11171B] to-[#1D2528] text-white border-lime-300/20',
+      body: 'text-slate-200',
+      muted: 'text-slate-400',
       brand: 'text-white',
-      eyebrow: 'text-lime-200',
-      contact: 'text-slate-100',
-      meta: 'text-slate-400',
-      accent: 'bg-lime-300',
-      accentSoft: 'bg-lime-300/10 border-lime-200/20',
-      badge: 'bg-lime-300 text-slate-950',
+      accentText: 'text-lime-200',
       line: 'bg-lime-300',
+      icon: 'text-lime-200',
+      iconShell: 'bg-lime-300/10 border-lime-200/20',
       ring: 'from-lime-300 via-white to-cyan-300',
-      glow: 'bg-lime-300/15',
-      chip: 'bg-lime-300/10 text-lime-100 border-lime-200/15'
+      avatarGradient: 'from-lime-300 to-emerald-500',
+      avatarBorder: 'border-lime-200/25',
+      avatarGlow: 'bg-lime-300/15',
+      node: 'bg-lime-300',
+      badge: 'bg-lime-300 text-slate-950',
+      label: 'QUANTUM MONO'
     }
   ];
 
-  const theme = templates[templateIndex % templates.length];
-  const fieldIsActive = field => isTyping && activeField === field;
-  const fieldClass = field => (
-    fieldIsActive(field)
-      ? 'px-0.5 py-1 transition-all duration-300'
-      : 'px-0.5 py-1'
-  );
-
-  const cursor = field => (
-    fieldIsActive(field)
-      ? <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-current opacity-80" />
-      : null
-  );
-
+  const theme = themes[templateIndex % themes.length];
+  const isActive = field => isTyping && activeField === field;
   const initials = data.name.split(' ').map(part => part[0]).slice(0, 2).join('');
-  const profileTag = templateIndex === 0 ? 'STUDIO 01' : templateIndex === 1 ? 'NODE 02' : templateIndex === 2 ? 'PRISM 03' : templateIndex === 3 ? 'GRID 04' : templateIndex === 4 ? 'ORBIT 05' : 'QNTM 06';
+  const dark = templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5;
 
-  return (
-    <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-xl ${theme.shell}`}>
-      <div className={`absolute -right-14 -top-14 h-40 w-40 rounded-full blur-2xl ${theme.glow}`} />
-      <div className={`absolute right-[18%] top-[18%] h-24 w-24 rounded-full border border-white/10 opacity-50`} />
-
-      <div className="relative flex h-full p-4 sm:p-5">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3 pr-1">
-            <div className="min-w-0">
-              <div className={`text-[8px] font-black uppercase tracking-[0.24em] ${theme.eyebrow}`}>
-                {theme.name}
+  if (templateIndex === 0) {
+    return (
+      <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-xl ${theme.shell}`}>
+        <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-cyan-300/30 blur-3xl" />
+        <div className="absolute -left-16 bottom-[-3rem] h-32 w-64 rounded-full bg-sky-400/25 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-28 w-1/2 rounded-tl-[5rem] bg-gradient-to-r from-cyan-300/25 to-sky-500/35" />
+        <div className="relative flex h-full p-5">
+          <div className="flex min-w-0 flex-1 flex-col pr-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className={`text-[8px] font-black uppercase tracking-[0.25em] ${theme.accentText}`}>{theme.label}</div>
+                <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.16em] ${theme.muted}`}>Creative identity / 01</div>
               </div>
-              <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.18em] ${theme.meta}`}>
-                Editable identity card
+              <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>SMART</span>
+            </div>
+            <div className="mt-7">
+              <div className={`h-1 w-16 rounded-full ${theme.line}`} />
+              <div className={`mt-3 min-h-[2rem] text-[clamp(1rem,3.35vw,1.7rem)] font-black leading-none tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-sky-600" />}
+              </div>
+              <div className={`mt-1 text-[clamp(0.55rem,1.7vw,0.8rem)] font-semibold ${theme.accentText}`}>
+                {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-sky-600" />}
               </div>
             </div>
-            <span className={`shrink-0 rounded-full border px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>
-              {profileTag}
-            </span>
-          </div>
-
-          <div className="mt-4 max-w-[68%]">
-            <div className={`h-1 w-14 rounded-full ${theme.line}`} />
-            <div className={fieldClass('name')}>
-              <div className={`mt-3 min-h-[2rem] text-[clamp(1rem,3.35vw,1.65rem)] font-black leading-none tracking-tight ${theme.brand}`}>
-                {data.name || '\u00A0'}{cursor('name')}
-              </div>
-            </div>
-            <div className={fieldClass('role')}>
-              <div className={`mt-1 min-h-[1rem] text-[clamp(0.55rem,1.7vw,0.8rem)] font-semibold ${theme.eyebrow}`}>
-                {data.role || '\u00A0'}{cursor('role')}
-              </div>
+            <div className="mt-auto grid gap-1.5">
+              <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} />
+              <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+              <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
             </div>
           </div>
-
-          <div className={`mt-auto w-[70%] grid gap-0.5 ${theme.contact}`}>
-            <div className={fieldClass('phone')}>
-              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.46rem,1.34vw,0.64rem)] font-semibold">
-                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
-                  <Phone className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-                </span>
-                <span className="min-w-0 truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
-              </div>
-            </div>
-
-            <div className={fieldClass('email')}>
-              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.44rem,1.28vw,0.62rem)] font-semibold">
-                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
-                  <Mail className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-                </span>
-                <span className="min-w-0 truncate">{data.email || '\u00A0'}{cursor('email')}</span>
-              </div>
-            </div>
-
-            <div className={fieldClass('address')}>
-              <div className="flex min-h-[1rem] items-center gap-2 text-[clamp(0.42rem,1.2vw,0.59rem)] font-semibold leading-tight">
-                <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border ${theme.accentSoft}`}>
-                  <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
-                </span>
-                <span className="min-w-0 truncate">{data.address || '\u00A0'}{cursor('address')}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={`mt-1 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
-            <span>Reusable • editable</span>
-            <span>PixelCards</span>
+          <div className="relative flex w-[31%] min-w-[82px] flex-col items-end justify-center">
+            <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+            <div className={`mt-1 text-center text-[6px] font-black uppercase tracking-[0.16em] ${theme.muted}`}>Verified Creator</div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="relative w-[31%] min-w-[82px]">
-          <div className="absolute right-1 top-1/2 -translate-y-1/2">
-            <div className={`relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br ${theme.ring} p-[2px] shadow-[0_0_32px_rgba(99,102,241,0.22)]`}>
-              <div className={`flex h-full w-full items-center justify-center rounded-full ${templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5 ? 'bg-[#090D18]' : 'bg-white'}`}>
-                <div className={`relative flex h-[58px] w-[58px] items-center justify-center rounded-full border ${theme.accentSoft}`}>
-                  <span className={`text-[15px] font-black tracking-tight ${theme.brand}`}>{initials}</span>
-                  <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 ${templateIndex === 1 || templateIndex === 3 || templateIndex === 4 || templateIndex === 5 ? 'border-[#090D18] bg-emerald-400' : 'border-white bg-emerald-500'} animate-pulse`} />
-                </div>
+  if (templateIndex === 1) {
+    return (
+      <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-2xl ${theme.shell}`}>
+        <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(circle_at_15%_20%,rgba(129,140,248,.22),transparent_28%),radial-gradient(circle_at_85%_25%,rgba(236,72,153,.16),transparent_28%)]" />
+        <div className="absolute -left-12 top-8 h-40 w-40 rounded-full border border-indigo-300/15" />
+        <div className="absolute left-4 top-12 h-32 w-32 rounded-full border border-fuchsia-300/10" />
+        <div className="absolute -right-8 bottom-[-2rem] h-44 w-44 rounded-full border-[18px] border-fuchsia-400/10" />
+        <div className="relative flex h-full p-5">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-[8px] font-black uppercase tracking-[0.26em] ${theme.accentText}`}>{theme.label}</div>
+                <div className={`mt-1 text-[6px] uppercase tracking-[0.18em] ${theme.muted}`}>Ideas that move</div>
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase ${theme.badge}`}>02 / 06</span>
+            </div>
+            <div className="mt-8 max-w-[68%]">
+              <div className={`text-[clamp(1.05rem,3.25vw,1.7rem)] font-black tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-fuchsia-300" />}
+              </div>
+              <div className={`mt-1 text-[clamp(0.56rem,1.7vw,0.8rem)] font-semibold ${theme.accentText}`}>
+                {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-fuchsia-300" />}
               </div>
             </div>
-
-            <div className={`mt-2 text-center text-[6px] font-black uppercase tracking-[0.16em] ${theme.meta}`}>
-              Profile / Creator
+            <div className="mt-auto grid w-[68%] gap-1.5">
+              <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} size="small" />
+              <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+              <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
             </div>
           </div>
-
-          <div className={`absolute bottom-1 right-0 rounded-full border px-2 py-1 text-[6px] font-black uppercase tracking-[0.12em] ${theme.chip}`}>
-            Verified
+          <div className="relative flex w-[31%] min-w-[82px] items-center justify-center">
+            <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+            <div className="absolute bottom-2 right-0 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] text-fuchsia-200">Neon ID</div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (templateIndex === 2) {
+    return (
+      <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-xl ${theme.shell}`}>
+        <div className="absolute right-0 top-0 h-full w-[38%] bg-gradient-to-b from-amber-200/20 via-transparent to-violet-300/30" />
+        <div className="absolute right-[-2rem] bottom-[-3rem] h-40 w-64 rotate-[-12deg] rounded-tl-[6rem] bg-gradient-to-r from-violet-500/15 to-amber-300/20" />
+        <div className="absolute right-8 top-6 h-8 w-28 rounded-full bg-gradient-to-r from-violet-500/15 to-amber-300/25 blur-xl" />
+        <div className="relative flex h-full p-5">
+          <div className="flex min-w-0 flex-1 flex-col pr-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className={`text-[8px] font-black uppercase tracking-[0.24em] ${theme.accentText}`}>{theme.label}</div>
+                <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.16em] ${theme.muted}`}>Design / brand / digital</div>
+              </div>
+              <div className="h-2 w-8 rounded-full bg-gradient-to-r from-violet-600 to-pink-500" />
+            </div>
+            <div className="mt-9">
+              <div className={`text-[clamp(1.08rem,3.35vw,1.75rem)] font-black tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-violet-600" />}
+              </div>
+              <div className={`mt-1 text-[clamp(0.56rem,1.68vw,0.8rem)] font-semibold ${theme.accentText}`}>
+                {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-violet-600" />}
+              </div>
+            </div>
+            <div className="mt-auto grid gap-1.5">
+              <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} size="small" />
+              <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+              <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
+            </div>
+          </div>
+          <div className="relative flex w-[34%] min-w-[94px] flex-col items-center justify-center">
+            <div className="absolute top-3 h-28 w-28 rounded-full border border-violet-300/30" />
+            <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+            <span className={`mt-1 rounded-full border px-2 py-1 text-[6px] font-black uppercase tracking-[0.12em] ${theme.chip || 'border-violet-200 bg-white/50 text-violet-700'}`}>Verified</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (templateIndex === 3) {
+    return (
+      <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-2xl ${theme.shell}`}>
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(103,232,249,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(103,232,249,.08)_1px,transparent_1px)] [background-size:22px_22px]" />
+        <div className="absolute right-[-3rem] top-[-3rem] h-40 w-40 rounded-full border-[16px] border-cyan-300/10" />
+        <div className="absolute right-12 top-10 h-20 w-20 rounded-full border border-cyan-300/20" />
+        <div className="absolute left-0 bottom-0 h-20 w-1/2 skew-x-[-25deg] bg-cyan-300/5" />
+        <div className="relative flex h-full p-5">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-[8px] font-black uppercase tracking-[0.3em] ${theme.accentText}`}>{theme.label}</div>
+                <div className={`mt-1 text-[6px] uppercase tracking-[0.18em] ${theme.muted}`}>Tech / AI / innovation</div>
+              </div>
+              <div className="text-[7px] font-black uppercase tracking-[0.18em] text-cyan-300/70">GRID 04</div>
+            </div>
+            <div className="mt-7">
+              <div className={`text-[clamp(1rem,3.2vw,1.65rem)] font-black tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-cyan-300" />}
+              </div>
+              <div className={`mt-1 text-[clamp(0.56rem,1.65vw,0.78rem)] font-semibold ${theme.accentText}`}>
+                {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-cyan-300" />}
+              </div>
+            </div>
+            <div className="mt-auto grid w-[74%] gap-1.5">
+              <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} size="small" />
+              <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+              <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
+            </div>
+          </div>
+          <div className="relative flex w-[29%] min-w-[86px] items-center justify-center">
+            <div className="absolute h-28 w-28 rounded-full border border-cyan-300/10" />
+            <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (templateIndex === 4) {
+    return (
+      <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-2xl ${theme.shell}`}>
+        <div className="absolute -right-10 -top-8 h-44 w-44 rounded-full bg-pink-400/15 blur-3xl" />
+        <div className="absolute left-[-2rem] bottom-[-4rem] h-32 w-72 rounded-full bg-orange-300/10 blur-2xl" />
+        <div className="absolute right-20 top-12 h-24 w-24 rounded-full border border-pink-300/15" />
+        <div className="absolute right-16 top-8 h-32 w-32 rounded-full border border-orange-300/10" />
+        <div className="relative flex h-full p-5">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className={`text-[8px] font-black uppercase tracking-[0.25em] ${theme.accentText}`}>{theme.label}</div>
+                <div className={`mt-1 text-[6px] uppercase tracking-[0.18em] ${theme.muted}`}>People / ideas / growth</div>
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>05</span>
+            </div>
+            <div className="mt-7">
+              <div className={`text-[clamp(1rem,3.25vw,1.7rem)] font-black tracking-tight ${theme.brand}`}>
+                {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-orange-300" />}
+              </div>
+              <div className={`mt-1 text-[clamp(0.56rem,1.65vw,0.78rem)] font-semibold ${theme.accentText}`}>
+                {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-orange-300" />}
+              </div>
+            </div>
+            <div className="mt-auto grid gap-1.5">
+              <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} size="small" />
+              <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+              <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
+            </div>
+          </div>
+          <div className="relative flex w-[35%] min-w-[94px] items-center justify-center">
+            <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 160 180" aria-hidden="true">
+              <ellipse cx="80" cy="90" rx="58" ry="22" fill="none" stroke="rgba(251,146,60,.45)" strokeWidth="1.5" transform="rotate(-18 80 90)" />
+              <circle cx="80" cy="90" r="68" fill="none" stroke="rgba(236,72,153,.16)" strokeWidth="1" />
+              <circle cx="30" cy="73" r="4" fill="#FDBA74" />
+              <circle cx="128" cy="106" r="4" fill="#F9A8D4" />
+            </svg>
+            <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-2xl ${theme.shell}`}>
+      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,rgba(163,230,53,.08)_1px,transparent_1px)] [background-size:20px_20px]" />
+      <div className="absolute right-[-3rem] bottom-[-3rem] h-44 w-44 rounded-full border-[16px] border-lime-300/10" />
+      <div className="absolute right-10 top-8 h-24 w-24 rounded-full border border-lime-300/15" />
+      <div className="absolute left-0 bottom-0 h-px w-full bg-lime-300/40" />
+      <div className="relative flex h-full p-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className={`text-[8px] font-black uppercase tracking-[0.28em] ${theme.accentText}`}>{theme.label}</div>
+              <div className={`mt-1 text-[6px] uppercase tracking-[0.18em] ${theme.muted}`}>Strategy / product / scale</div>
+            </div>
+            <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>QNTM</span>
+          </div>
+          <div className="mt-7">
+            <div className={`text-[clamp(1rem,3.25vw,1.7rem)] font-black tracking-tight ${theme.brand}`}>
+              {data.name || '\u00A0'}{isActive('name') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-lime-300" />}
+            </div>
+            <div className={`mt-1 text-[clamp(0.56rem,1.65vw,0.78rem)] font-semibold ${theme.accentText}`}>
+              {data.role || '\u00A0'}{isActive('role') && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-lime-300" />}
+            </div>
+          </div>
+          <div className="mt-auto grid w-[70%] gap-1.5">
+            <FieldLine field="phone" icon={Phone} data={data.phone} isActive={isActive('phone')} theme={theme} size="small" />
+            <FieldLine field="email" icon={Mail} data={data.email} isActive={isActive('email')} theme={theme} size="small" />
+            <FieldLine field="address" icon={MapPin} data={data.address} isActive={isActive('address')} theme={theme} size="small" />
+          </div>
+        </div>
+        <div className="relative flex w-[32%] min-w-[90px] items-center justify-center">
+          <div className="absolute h-28 w-28 rounded-full border border-lime-300/20" />
+          <ProfileRing templateIndex={templateIndex} initials={initials} theme={theme} />
+          <div className={`absolute bottom-3 right-0 rounded-full border border-lime-300/20 bg-lime-300/10 px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.accentText}`}>Verified Creator</div>
         </div>
       </div>
     </div>
