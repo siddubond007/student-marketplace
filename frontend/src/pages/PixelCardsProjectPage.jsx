@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   Download,
@@ -464,6 +465,12 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
   const [activeSide, setActiveSide] = useState('students');
   const [demoClock, setDemoClock] = useState(0);
 
+  const goToDemoTemplate = (direction) => {
+    const currentIndex = Math.floor(demoClock / DEMO_CYCLE_MS) % TEMPLATE_DEMO_CARDS.length;
+    const nextIndex = (currentIndex + direction + TEMPLATE_DEMO_CARDS.length) % TEMPLATE_DEMO_CARDS.length;
+    setDemoClock(nextIndex * DEMO_CYCLE_MS);
+  };
+
   useEffect(() => {
     const timer = window.setInterval(() => {
       setDemoClock(current => current + 80);
@@ -594,6 +601,14 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   </div>
 
                   <div className="relative overflow-visible pixel-demo-stage">
+                    <button
+                      type="button"
+                      aria-label="Previous template"
+                      onClick={() => goToDemoTemplate(-1)}
+                      className="absolute left-[-0.75rem] top-1/2 z-30 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-cyan-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300/40"
+                    >
+                      <ChevronLeft className="h-4.5 w-4.5" />
+                    </button>
                     <div
                       key={demoIndex}
                       className={`relative overflow-hidden rounded-2xl pixel-demo-card pixel-demo-card--${demoIndex % 9} ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}
@@ -607,6 +622,15 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
 
                       <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10" />
                     </div>
+
+                    <button
+                      type="button"
+                      aria-label="Next template"
+                      onClick={() => goToDemoTemplate(1)}
+                      className="absolute right-[-0.75rem] top-1/2 z-30 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-pink-300/20 bg-slate-950/90 text-slate-200 shadow-xl shadow-black/30 backdrop-blur transition hover:scale-105 hover:border-pink-300/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-pink-300/40"
+                    >
+                      <ChevronRight className="h-4.5 w-4.5" />
+                    </button>
 
                     {isExiting && (
                       <div className="pointer-events-none absolute inset-0 overflow-visible rounded-2xl">
@@ -672,6 +696,17 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   .pixel-demo-stage {
                     container-type: inline-size;
                     container-name: pixelPreview;
+                  }
+
+                  .pixel-demo-stage button {
+                    -webkit-tap-highlight-color: transparent;
+                  }
+
+                  @container pixelPreview (max-width: 560px) {
+                    .pixel-demo-stage button {
+                      height: 2.15rem;
+                      width: 2.15rem;
+                    }
                   }
 
                   @container pixelPreview (max-width: 760px) {
