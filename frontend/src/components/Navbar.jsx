@@ -191,6 +191,15 @@ export default function Navbar({ currentUser, onLogout, themeMode = 'light', onT
                 </div>
               )}
             </div>
+
+            {/* 4. PART-TIME PROJECTS */}
+            <Link
+              to="/part-time-projects"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-indigo-500/25 bg-indigo-950/30 text-indigo-200 hover:text-white hover:border-indigo-400/50 hover:bg-indigo-900/50 transition font-black"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Part-Time Projects</span>
+            </Link>
           </nav>
         </div>
 
