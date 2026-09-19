@@ -306,14 +306,28 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           </div>
           <div className="flex min-w-0 flex-1 flex-col pl-4">
             <div className="ml-auto rounded-full border border-cyan-300/10 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.15em] text-cyan-200/70">Build beyond limits</div>
-            <div className="mt-8">
-              <div className="text-[clamp(1.12rem,3.3vw,1.68rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-300" /></div>
-              {lightRole('text-cyan-200')}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {['AI / ML', 'Data Science', 'Web Dev', 'Open Source'].map(skill => <span key={skill} className="rounded-full border border-cyan-200/10 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.1em] text-cyan-100/70">{skill}</span>)}
+            <div className="relative mt-7 flex min-h-0 flex-1 flex-col justify-center">
+              <div className="relative z-10">
+                <div className="text-[clamp(1.08rem,3.1vw,1.6rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-300" /></div>
+                {lightRole('text-cyan-200')}
+                <div className="mt-3 flex flex-wrap gap-1.5 max-w-[82%]">
+                  {['AI / ML', 'Data Science', 'Web Dev', 'Open Source'].map(skill => <span key={skill} className="rounded-full border border-cyan-200/10 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.1em] text-cyan-100/70">{skill}</span>)}
+                </div>
+              </div>
+              <div className="pointer-events-none absolute right-[3%] top-1/2 -translate-y-1/2 h-[11rem] w-[11rem] opacity-70">
+                <div className="absolute inset-0 rounded-full border border-cyan-300/10" />
+                <div className="absolute inset-[12%] rounded-full border border-cyan-300/15" />
+                <div className="absolute inset-[24%] rounded-full border border-cyan-300/20" />
+                <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300 shadow-[0_0_22px_rgba(103,232,249,0.7)]" />
+                <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-cyan-300/30 to-transparent" />
+                <div className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent" />
+                <span className="absolute left-[9%] top-[21%] h-2 w-2 rounded-full bg-cyan-200" />
+                <span className="absolute right-[13%] top-[30%] h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                <span className="absolute bottom-[17%] right-[22%] h-2 w-2 rounded-full bg-blue-300" />
+                <span className="absolute left-[19%] bottom-[27%] h-1.5 w-1.5 rounded-full bg-teal-200" />
               </div>
             </div>
-            <div className="mt-auto">{contact('dark')}</div>
+            <div className="mt-3">{contact('dark')}</div>
           </div>
         </div>
       </div>
@@ -377,12 +391,21 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           </div>
           <div className="flex min-w-0 flex-1 flex-col pl-4">
             <div className="ml-auto text-[5px] font-black uppercase tracking-[0.18em] text-indigo-200/60">Skill profile / 07</div>
-            <div className="mt-8">
-              <div className="text-[clamp(1.05rem,3.1vw,1.6rem)]"><CardName value={data.name} active={active('name')} tone="bg-indigo-200" /></div>
-              {lightRole('text-indigo-300')}
-              <div className="mt-3 flex flex-wrap gap-1.5">{['AI / ML', 'Data Science', 'Web Development', 'Technical Writing'].map(skill => <span key={skill} className="rounded-lg border border-indigo-200/10 bg-indigo-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.08em] text-indigo-100/70">{skill}</span>)}</div>
+            <div className="relative mt-7 flex min-h-0 flex-1 flex-col justify-center">
+              <div className="relative z-10 max-w-[74%]">
+                <div className="text-[clamp(1.05rem,3.1vw,1.6rem)]"><CardName value={data.name} active={active('name')} tone="bg-indigo-200" /></div>
+                {lightRole('text-indigo-300')}
+                <div className="mt-3 flex flex-wrap gap-1.5">{['AI / ML', 'Data Science', 'Web Development', 'Technical Writing'].map(skill => <span key={skill} className="rounded-lg border border-indigo-200/10 bg-indigo-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.08em] text-indigo-100/70">{skill}</span>)}</div>
+              </div>
+              <div className="pointer-events-none absolute right-[5%] top-1/2 -translate-y-1/2 h-[9rem] w-[9rem] rounded-full border border-indigo-300/10">
+                <div className="absolute inset-[18%] rounded-full border border-indigo-300/10" />
+                <div className="absolute inset-[35%] rounded-full border border-violet-300/15" />
+                <div className="absolute inset-[49%] rounded-full bg-indigo-300/30 blur-md" />
+                <div className="absolute left-1/2 top-1/2 h-[180%] w-px -translate-x-1/2 -translate-y-1/2 rotate-45 bg-gradient-to-b from-transparent via-indigo-300/25 to-transparent" />
+                <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-300 shadow-[0_0_20px_rgba(129,140,248,0.65)]" />
+              </div>
             </div>
-            <div className="mt-auto">{contact('dark')}</div>
+            <div className="mt-3">{contact('dark')}</div>
           </div>
         </div>
       </div>
@@ -417,8 +440,17 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
         <div className="flex w-[34%] min-w-[104px] flex-col items-center justify-center border-r border-white/10 pr-3"><ProfileRing templateIndex={8} initials={initials} large /><div className="mt-1 rounded-full border border-cyan-200/10 bg-white/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-cyan-100">Verified Creator</div></div>
         <div className="flex min-w-0 flex-1 flex-col pl-4">
           <div className="flex items-start justify-between"><div><div className="text-[8px] font-black uppercase tracking-[0.25em] text-cyan-100">NEXT GEN</div><div className="mt-1 text-[5px] uppercase tracking-[0.18em] text-slate-400">Innovate • Create • Lead</div></div><div className="text-[6px] font-black uppercase tracking-[0.16em] text-cyan-200/70">Next-gen identity</div></div>
-          <div className="mt-7"><div className="text-[clamp(1.05rem,3.15vw,1.62rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-200" /></div>{lightRole('text-cyan-100')}</div>
-          <div className="mt-auto">{contact('dark')}</div>
+          <div className="relative mt-6 flex min-h-0 flex-1 items-center">
+            <div className="relative z-10 max-w-[68%]">
+              <div className="text-[clamp(1.05rem,3.15vw,1.62rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-200" /></div>{lightRole('text-cyan-100')}
+            </div>
+            <div className="pointer-events-none absolute right-[3%] top-1/2 -translate-y-1/2 h-32 w-32 rotate-12 rounded-[2rem] border border-cyan-200/15 bg-gradient-to-br from-cyan-300/10 via-white/5 to-pink-400/10 shadow-[0_0_38px_rgba(34,211,238,0.12)]">
+              <div className="absolute inset-3 rounded-[1.3rem] border border-white/10" />
+              <div className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-xl border border-cyan-200/20 bg-gradient-to-br from-cyan-200/30 to-pink-300/20" />
+              <div className="absolute left-1/2 top-[-5px] h-10 w-px -translate-x-1/2 bg-gradient-to-b from-cyan-200/60 to-transparent" />
+            </div>
+          </div>
+          <div className="mt-3">{contact('dark')}</div>
         </div>
       </div>
       <div className="absolute bottom-2 right-3 h-1 w-24 rounded-full bg-gradient-to-r from-cyan-300 via-violet-400 to-pink-400" />
@@ -561,10 +593,10 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                     <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Auto customization</span>
                   </div>
 
-                  <div className="relative overflow-visible">
+                  <div className="relative overflow-visible pixel-demo-stage">
                     <div
                       key={demoIndex}
-                      className={`relative overflow-hidden rounded-2xl ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}
+                      className={`relative overflow-hidden rounded-2xl pixel-demo-card pixel-demo-card--${demoIndex % 9} ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}
                     >
                       <BusinessCardTemplate
                         templateIndex={demoIndex % 9}
@@ -637,6 +669,44 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                 </div>
 
                 <style>{`
+                  .pixel-demo-stage {
+                    container-type: inline-size;
+                    container-name: pixelPreview;
+                  }
+
+                  @container pixelPreview (max-width: 760px) {
+                    .pixel-demo-card > div {
+                      aspect-ratio: 1.72 / 1 !important;
+                    }
+
+                    .pixel-demo-card {
+                      border-radius: 1.1rem !important;
+                    }
+
+                    .pixel-demo-card--3 .pointer-events-none.absolute.right-\[3\%\] {
+                      height: 8rem;
+                      width: 8rem;
+                      right: 1%;
+                    }
+
+                    .pixel-demo-card--6 .pointer-events-none.absolute.right-\[5\%\] {
+                      height: 7rem;
+                      width: 7rem;
+                      right: 1%;
+                    }
+
+                    .pixel-demo-card--8 .pointer-events-none.absolute.right-\[3\%\] {
+                      height: 7rem;
+                      width: 7rem;
+                    }
+                  }
+
+                  @container pixelPreview (max-width: 560px) {
+                    .pixel-demo-card > div {
+                      aspect-ratio: 1.78 / 1 !important;
+                    }
+                  }
+
                   @keyframes pixel-template-enter {
                     0% { opacity: 0; transform: translateY(18px) scale(0.965); filter: blur(7px); }
                     100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
