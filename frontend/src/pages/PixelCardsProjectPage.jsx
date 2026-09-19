@@ -65,11 +65,11 @@ const TEMPLATE_DEMO_CARDS = [
 ];
 
 const DEMO_SEGMENTS = [
-  { field: 'name', start: 600, duration: 1200 },
-  { field: 'role', start: 1800, duration: 1200 },
-  { field: 'phone', start: 3000, duration: 1100 },
-  { field: 'email', start: 4100, duration: 950 },
-  { field: 'address', start: 5050, duration: 1050 }
+  { field: 'name', start: 700, duration: 1100 },
+  { field: 'role', start: 1800, duration: 1000 },
+  { field: 'phone', start: 2800, duration: 950 },
+  { field: 'email', start: 3750, duration: 1000 },
+  { field: 'address', start: 4750, duration: 1050 }
 ];
 
 const DEMO_FIELD_LABELS = {
@@ -80,7 +80,7 @@ const DEMO_FIELD_LABELS = {
   address: 'ADDRESS'
 };
 
-const DEMO_CYCLE_MS = 7000;
+const DEMO_CYCLE_MS = 7200;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -89,13 +89,148 @@ const getTypedText = (value, elapsed, start, duration) => {
   return value.slice(0, Math.floor(progress * value.length));
 };
 
-const PARTICLES = Array.from({ length: 34 }, (_, index) => ({
-  left: ((index * 29) % 94) + 3,
-  top: ((index * 47) % 82) + 8,
-  x: ((index * 67) % 260) - 130,
-  y: ((index * 43) % 190) - 95,
-  delay: (index % 9) * 35
+const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
+  left: ((index * 37) % 92) + 4,
+  top: ((index * 53) % 84) + 8,
+  x: ((index * 61) % 300) - 150,
+  y: ((index * 47) % 220) - 110,
+  rotate: ((index * 17) % 180) - 90,
+  scale: 0.55 + ((index % 5) * 0.13),
+  delay: (index % 12) * 22
 }));
+
+function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
+  const textColor = templateIndex === 1 ? '#F8FAFC' : '#172033';
+  const mutedColor = templateIndex === 1 ? '#CBD5E1' : '#5B6B7C';
+
+  const showCursor = field => isTyping && activeField === field;
+
+  if (templateIndex === 1) {
+    return (
+      <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
+        <defs>
+          <linearGradient id="pixelCardDark" x1="70" y1="40" x2="1150" y2="710" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#101426" />
+            <stop offset="0.52" stopColor="#3730A3" />
+            <stop offset="1" stopColor="#BE185D" />
+          </linearGradient>
+          <linearGradient id="pixelGlowDark" x1="180" y1="620" x2="1010" y2="90" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#22D3EE" stopOpacity="0.1" />
+            <stop offset="1" stopColor="#C084FC" stopOpacity="0.8" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="1200" height="760" rx="28" fill="url(#pixelCardDark)" />
+        <circle cx="1020" cy="145" r="120" fill="#FFFFFF" fillOpacity="0.08" />
+        <circle cx="1020" cy="145" r="72" fill="#FFFFFF" fillOpacity="0.05" />
+        <path d="M0 618C220 538 390 720 615 644C782 587 876 459 1200 500V760H0V618Z" fill="url(#pixelGlowDark)" />
+        <path d="M0 676C260 606 426 762 694 671C886 606 985 526 1200 570V760H0V676Z" fill="#020617" fillOpacity="0.42" />
+        <rect x="72" y="72" width="158" height="6" rx="3" fill="#A5B4FC" />
+        <text x="72" y="126" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="27" fontWeight="800" letterSpacing="2.4">NOVA STUDIO</text>
+        <text x="72" y="174" fill="#C7D2FE" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="700" letterSpacing="2.8">CREATIVE BUSINESS CARD</text>
+
+        <text x="72" y="337" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
+        {showCursor('name') && <rect x={72 + Math.max(15, data.name.length * 29)} y="288" width="3" height="58" rx="1.5" fill="#C4B5FD" />}
+        <text x="72" y="382" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="24" fontWeight="600">{data.role}</text>
+        {showCursor('role') && <rect x={72 + Math.max(15, data.role.length * 12.5)} y="354" width="3" height="34" rx="1.5" fill="#C4B5FD" />}
+
+        <line x1="72" y1="422" x2="380" y2="422" stroke="#C4B5FD" strokeOpacity="0.5" strokeWidth="3" />
+        <circle cx="90" cy="485" r="15" fill="#C4B5FD" fillOpacity="0.18" />
+        <circle cx="90" cy="545" r="15" fill="#C4B5FD" fillOpacity="0.18" />
+        <circle cx="90" cy="605" r="15" fill="#C4B5FD" fillOpacity="0.18" />
+        <text x="122" y="492" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
+        {showCursor('phone') && <rect x={122 + Math.max(10, data.phone.length * 9)} y="469" width="2" height="24" rx="1" fill="#C4B5FD" />}
+        <text x="122" y="552" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
+        {showCursor('email') && <rect x={122 + Math.max(10, data.email.length * 8.4)} y="529" width="2" height="24" rx="1" fill="#C4B5FD" />}
+        <text x="122" y="612" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
+        {showCursor('address') && <rect x={122 + Math.max(10, data.address.length * 7.9)} y="590" width="2" height="23" rx="1" fill="#C4B5FD" />}
+        <text x="900" y="692" fill="#E0E7FF" fillOpacity="0.7" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="700" letterSpacing="2">EDITABLE • REUSABLE • PRINT-READY</text>
+      </svg>
+    );
+  }
+
+  if (templateIndex === 2) {
+    return (
+      <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
+        <defs>
+          <linearGradient id="pixelCardViolet" x1="0" y1="0" x2="1200" y2="760" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFF7ED" />
+            <stop offset="0.5" stopColor="#F5F3FF" />
+            <stop offset="1" stopColor="#EDE9FE" />
+          </linearGradient>
+          <linearGradient id="pixelRibbon" x1="620" y1="610" x2="1180" y2="500" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#7C3AED" />
+            <stop offset="1" stopColor="#DB2777" />
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="760" rx="28" fill="url(#pixelCardViolet)" />
+        <circle cx="1042" cy="116" r="88" fill="#7C3AED" fillOpacity="0.08" />
+        <circle cx="1042" cy="116" r="54" fill="#DB2777" fillOpacity="0.12" />
+        <path d="M630 760C716 648 844 620 986 632C1070 639 1131 620 1200 570V760H630Z" fill="url(#pixelRibbon)" opacity="0.95" />
+        <path d="M764 760C850 694 940 680 1045 689C1114 695 1158 676 1200 642V760H764Z" fill="#312E81" opacity="0.88" />
+        <text x="76" y="110" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="850" letterSpacing="2.2">PIXEL HOUSE</text>
+        <text x="76" y="145" fill="#7C3AED" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="800" letterSpacing="2.5">DESIGN • BRAND • DIGITAL</text>
+        <rect x="76" y="192" width="118" height="8" rx="4" fill="#7C3AED" />
+        <rect x="76" y="208" width="68" height="5" rx="2.5" fill="#DB2777" />
+        <text x="76" y="350" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
+        {showCursor('name') && <rect x={76 + Math.max(15, data.name.length * 29)} y="301" width="3" height="58" rx="1.5" fill="#7C3AED" />}
+        <text x="76" y="394" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="650">{data.role}</text>
+        {showCursor('role') && <rect x={76 + Math.max(15, data.role.length * 12)} y="367" width="3" height="34" rx="1.5" fill="#7C3AED" />}
+
+        <g fill="#7C3AED" fillOpacity="0.88">
+          <circle cx="92" cy="492" r="6" />
+          <circle cx="92" cy="548" r="6" />
+          <circle cx="92" cy="604" r="6" />
+        </g>
+        <text x="116" y="499" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
+        {showCursor('phone') && <rect x={116 + Math.max(10, data.phone.length * 9)} y="476" width="2" height="24" rx="1" fill="#7C3AED" />}
+        <text x="116" y="555" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
+        {showCursor('email') && <rect x={116 + Math.max(10, data.email.length * 8.4)} y="532" width="2" height="24" rx="1" fill="#7C3AED" />}
+        <text x="116" y="611" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
+        {showCursor('address') && <rect x={116 + Math.max(10, data.address.length * 7.8)} y="589" width="2" height="23" rx="1" fill="#7C3AED" />}
+        <text x="812" y="88" fill="#312E81" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="800" letterSpacing="2.2">CREATIVE PROFILE</text>
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
+      <defs>
+        <linearGradient id="pixelCardLight" x1="0" y1="0" x2="1200" y2="760" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#F8FBFF" />
+          <stop offset="0.58" stopColor="#F3F8FC" />
+          <stop offset="1" stopColor="#E8F4FA" />
+        </linearGradient>
+        <linearGradient id="pixelWave" x1="780" y1="640" x2="1140" y2="560" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#8FD3F4" />
+          <stop offset="1" stopColor="#0B84C5" />
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="760" rx="28" fill="url(#pixelCardLight)" />
+      <circle cx="1044" cy="116" r="92" fill="#0B84C5" fillOpacity="0.08" />
+      <circle cx="1044" cy="116" r="58" fill="#0B84C5" fillOpacity="0.08" />
+      <path d="M700 760C776 652 882 610 1008 624C1088 634 1146 612 1200 574V760H700Z" fill="url(#pixelWave)" />
+      <path d="M840 760C916 694 1000 672 1076 682C1120 688 1158 670 1200 644V760H840Z" fill="#143857" opacity="0.9" />
+      <text x="76" y="110" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="24" fontWeight="850" letterSpacing="2.4">THYNK UNLIMITED</text>
+      <text x="76" y="144" fill="#6B7C8C" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="800" letterSpacing="2.4">PROFESSIONAL BUSINESS CARD</text>
+      <rect x="76" y="191" width="148" height="7" rx="3.5" fill="#0B84C5" />
+      <text x="76" y="349" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
+      {showCursor('name') && <rect x={76 + Math.max(15, data.name.length * 29)} y="300" width="3" height="58" rx="1.5" fill="#0B84C5" />}
+      <text x="76" y="392" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="650">{data.role}</text>
+      {showCursor('role') && <rect x={76 + Math.max(15, data.role.length * 12)} y="365" width="3" height="34" rx="1.5" fill="#0B84C5" />}
+
+      <circle cx="93" cy="490" r="15" fill="#0B84C5" fillOpacity="0.1" />
+      <circle cx="93" cy="547" r="15" fill="#0B84C5" fillOpacity="0.1" />
+      <circle cx="93" cy="604" r="15" fill="#0B84C5" fillOpacity="0.1" />
+      <text x="118" y="497" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
+      {showCursor('phone') && <rect x={118 + Math.max(10, data.phone.length * 9)} y="474" width="2" height="24" rx="1" fill="#0B84C5" />}
+      <text x="118" y="554" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
+      {showCursor('email') && <rect x={118 + Math.max(10, data.email.length * 8.4)} y="531" width="2" height="24" rx="1" fill="#0B84C5" />}
+      <text x="118" y="611" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
+      {showCursor('address') && <rect x={118 + Math.max(10, data.address.length * 7.8)} y="588" width="2" height="23" rx="1" fill="#0B84C5" />}
+      <text x="874" y="90" fill="#0B84C5" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="800" letterSpacing="2.2">SMART TEMPLATE</text>
+    </svg>
+  );
+}
 
 
 export default function PixelCardsProjectPage({ themeMode = 'light' }) {
@@ -114,20 +249,19 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
   const cycleElapsed = demoClock % DEMO_CYCLE_MS;
   const demoIndex = Math.floor(demoClock / DEMO_CYCLE_MS) % TEMPLATE_DEMO_CARDS.length;
   const demoCard = TEMPLATE_DEMO_CARDS[demoIndex];
-  const isEntering = cycleElapsed < 600;
+  const isEntering = cycleElapsed < 650;
   const isExiting = cycleElapsed >= 6200;
   const activeSegment = [...DEMO_SEGMENTS].reverse().find(segment => cycleElapsed >= segment.start) || DEMO_SEGMENTS[0];
   const activeDemoField = activeSegment.field;
+  const activeFieldLabel = DEMO_FIELD_LABELS[activeDemoField] || 'NAME';
 
-  const demoText = {
+  const typedDemoCard = {
     name: getTypedText(demoCard.name, cycleElapsed, DEMO_SEGMENTS[0].start, DEMO_SEGMENTS[0].duration),
     role: getTypedText(demoCard.role, cycleElapsed, DEMO_SEGMENTS[1].start, DEMO_SEGMENTS[1].duration),
     phone: getTypedText(demoCard.phone, cycleElapsed, DEMO_SEGMENTS[2].start, DEMO_SEGMENTS[2].duration),
     email: getTypedText(demoCard.email, cycleElapsed, DEMO_SEGMENTS[3].start, DEMO_SEGMENTS[3].duration),
     address: getTypedText(demoCard.address, cycleElapsed, DEMO_SEGMENTS[4].start, DEMO_SEGMENTS[4].duration)
   };
-
-  const activeFieldLabel = DEMO_FIELD_LABELS[activeDemoField] || 'NAME';
 
   const page = dark ? 'bg-[#020617] text-white' : 'bg-slate-50 text-slate-900';
   const muted = dark ? 'text-slate-400' : 'text-slate-600';
@@ -228,54 +362,23 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                     <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Type • replace • publish</span>
                   </div>
 
-                  <div className="relative">
-                    <div className={`relative overflow-hidden rounded-2xl ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}>
-                      <img
-                        src="/pixelcards-visiting-card-template.svg"
-                        alt="PixelCards editable visiting card template"
-                        className="block w-full h-auto rounded-2xl"
+                  <div className="relative overflow-visible">
+                    <div
+                      key={demoIndex}
+                      className={`relative overflow-hidden rounded-2xl ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}
+                    >
+                      <BusinessCardTemplate
+                        templateIndex={demoIndex % 3}
+                        data={demoCard}
+                        activeField={activeDemoField}
+                        isTyping={!isExiting && cycleElapsed >= 600 && cycleElapsed < 5800}
                       />
 
-                      <div className="absolute inset-0 pointer-events-none">
-                        <div className={`absolute left-[6.5%] top-[35%] w-[54%] text-[clamp(0.8rem,2.2vw,1.55rem)] font-black tracking-tight text-slate-900 transition-all duration-300 ${activeDemoField === 'name' ? 'drop-shadow-[0_0_10px_rgba(14,134,196,0.25)]' : ''}`}>
-                          {demoText.name || <span className="opacity-0">Name</span>}
-                          {activeDemoField === 'name' && !isExiting && (
-                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
-                          )}
-                        </div>
-
-                        <div className={`absolute left-[6.5%] top-[41%] w-[50%] text-[clamp(0.52rem,1.3vw,0.85rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'role' ? 'text-sky-700' : ''}`}>
-                          {demoText.role || <span className="opacity-0">Role</span>}
-                          {activeDemoField === 'role' && !isExiting && (
-                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
-                          )}
-                        </div>
-
-                        <div className={`absolute left-[13%] top-[57.4%] w-[42%] text-[clamp(0.44rem,1vw,0.72rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'phone' ? 'text-sky-700' : ''}`}>
-                          {demoText.phone || <span className="opacity-0">Phone</span>}
-                          {activeDemoField === 'phone' && !isExiting && (
-                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
-                          )}
-                        </div>
-
-                        <div className={`absolute left-[13%] top-[65%] w-[49%] text-[clamp(0.42rem,0.96vw,0.68rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'email' ? 'text-sky-700' : ''}`}>
-                          {demoText.email || <span className="opacity-0">Email</span>}
-                          {activeDemoField === 'email' && !isExiting && (
-                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
-                          )}
-                        </div>
-
-                        <div className={`absolute left-[13%] top-[77.2%] w-[60%] text-[clamp(0.4rem,0.92vw,0.64rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'address' ? 'text-sky-700' : ''}`}>
-                          {demoText.address || <span className="opacity-0">Address</span>}
-                          {activeDemoField === 'address' && !isExiting && (
-                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
-                          )}
-                        </div>
-                      </div>
+                      <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10" />
                     </div>
 
                     {isExiting && (
-                      <div className="absolute inset-0 pointer-events-none overflow-visible">
+                      <div className="pointer-events-none absolute inset-0 overflow-visible rounded-2xl">
                         {PARTICLES.map((particle, index) => (
                           <span
                             key={index}
@@ -285,6 +388,8 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                               top: `${particle.top}%`,
                               '--particle-x': `${particle.x}px`,
                               '--particle-y': `${particle.y}px`,
+                              '--particle-rotate': `${particle.rotate}deg`,
+                              '--particle-scale': particle.scale,
                               animationDelay: `${particle.delay}ms`
                             }}
                           />
@@ -295,16 +400,20 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
 
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/10">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 transition-all duration-100"
-                          style={{ width: `${clamp(((cycleElapsed - 600) / 5600) * 100, 0, 100)}%` }}
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-indigo-400 to-pink-400 transition-all duration-100"
+                          style={{
+                            width: `${clamp(((cycleElapsed - 600) / 5200) * 100, 0, 100)}%`
+                          }}
                         />
                       </div>
-                      <div className="mt-1 text-[8px] font-bold text-slate-500">New template loads after the card dissolves</div>
+                      <div className="mt-1 text-[8px] font-bold text-slate-500">
+                        Template fields are typed automatically • card dissolves into particles • next design loads
+                      </div>
                     </div>
                     <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.14em] text-indigo-300">
-                      Editing {activeFieldLabel}
+                      {isExiting ? 'Replacing template' : `Editing ${activeFieldLabel}`}
                     </span>
                   </div>
                 </div>
@@ -313,11 +422,12 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   {DEMO_SEGMENTS.map(segment => {
                     const label = DEMO_FIELD_LABELS[segment.field];
                     const done = cycleElapsed >= segment.start + segment.duration;
+                    const active = activeDemoField === segment.field && !isExiting;
                     return (
                       <div
                         key={segment.field}
                         className={`rounded-xl border px-2.5 py-2 transition-all duration-300 ${
-                          activeDemoField === segment.field
+                          active
                             ? 'border-indigo-400/40 bg-indigo-500/10 ring-1 ring-indigo-400/20'
                             : dark
                               ? 'border-white/10 bg-white/5'
@@ -325,10 +435,11 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                         }`}
                       >
                         <div className={`text-[7px] uppercase tracking-wider font-black ${
-                          activeDemoField === segment.field ? 'text-indigo-300' : muted
+                          active ? 'text-indigo-300' : muted
                         }`}>{label}</div>
                         <div className={`mt-1 text-[8px] font-bold ${
-                          done ? dark ? 'text-emerald-300' : 'text-emerald-600' : dark ? 'text-slate-200' : 'text-slate-700'
+                          done ? dark ? 'text-emerald-300' : 'text-emerald-600'
+                            : dark ? 'text-slate-200' : 'text-slate-700'
                         }`}>{done ? 'Updated' : 'Typing'}</div>
                       </div>
                     );
@@ -337,40 +448,48 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
 
                 <style>{`
                   @keyframes pixel-template-enter {
-                    0% { opacity: 0; transform: translateY(12px) scale(0.965); filter: blur(5px); }
+                    0% { opacity: 0; transform: translateY(18px) scale(0.965); filter: blur(7px); }
                     100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
                   }
 
                   @keyframes pixel-template-exit {
                     0% { opacity: 1; transform: scale(1); filter: blur(0); }
-                    100% { opacity: 0; transform: scale(0.96); filter: blur(3px); }
+                    35% { opacity: 0.9; transform: scale(0.985); filter: blur(1px); }
+                    100% { opacity: 0; transform: scale(0.82); filter: blur(7px); }
                   }
 
                   @keyframes pixel-template-particle {
-                    0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
-                    20% { opacity: 0.95; }
+                    0% {
+                      opacity: 0;
+                      transform: translate3d(0, 0, 0) rotate(0deg) scale(0.35);
+                    }
+                    15% {
+                      opacity: 1;
+                    }
                     100% {
                       opacity: 0;
-                      transform: translate(var(--particle-x), var(--particle-y)) scale(0);
+                      transform: translate3d(var(--particle-x), var(--particle-y), 0)
+                        rotate(var(--particle-rotate))
+                        scale(var(--particle-scale));
                     }
                   }
 
                   .pixel-template-enter {
-                    animation: pixel-template-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+                    animation: pixel-template-enter 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
                   }
 
                   .pixel-template-exit {
-                    animation: pixel-template-exit 860ms cubic-bezier(0.6, 0, 0.84, 0) both;
+                    animation: pixel-template-exit 900ms cubic-bezier(0.6, 0, 0.84, 1) both;
                   }
 
                   .pixel-template-particle {
                     position: absolute;
-                    width: 4px;
-                    height: 4px;
+                    width: 5px;
+                    height: 5px;
                     border-radius: 9999px;
-                    background: linear-gradient(135deg, #67e8f9, #8b5cf6, #ec4899);
-                    box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
-                    animation: pixel-template-particle 820ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+                    background: linear-gradient(135deg, #67E8F9 0%, #818CF8 45%, #F472B6 100%);
+                    box-shadow: 0 0 10px rgba(129, 140, 248, 0.45);
+                    animation: pixel-template-particle 900ms cubic-bezier(0.16, 0.8, 0.25, 1) both;
                   }
                 `}</style>
               </div>
