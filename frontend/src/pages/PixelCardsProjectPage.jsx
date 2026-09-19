@@ -7,8 +7,10 @@ import {
   ChevronRight,
   Clock3,
   Download,
-  Layers3,
+  Mail,
+  MapPin,
   Palette,
+  Phone,
   Sparkles,
   Users,
   WalletCards,
@@ -100,135 +102,141 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
 }));
 
 function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
-  const textColor = templateIndex === 1 ? '#F8FAFC' : '#172033';
-  const mutedColor = templateIndex === 1 ? '#CBD5E1' : '#5B6B7C';
+  const templates = [
+    {
+      shell: 'bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-900 border-sky-100',
+      brand: 'text-slate-950',
+      eyebrow: 'text-sky-700',
+      accent: 'bg-sky-600',
+      accentSoft: 'bg-sky-500/10 border-sky-200',
+      line: 'bg-sky-600',
+      meta: 'text-slate-500',
+      contact: 'text-slate-700',
+      badge: 'bg-sky-600 text-white',
+      corner: 'bg-sky-200/45',
+      shape: 'bg-sky-600/10'
+    },
+    {
+      shell: 'bg-gradient-to-br from-[#0B1020] via-indigo-950 to-[#351047] text-white border-indigo-400/20',
+      brand: 'text-white',
+      eyebrow: 'text-indigo-200',
+      accent: 'bg-fuchsia-400',
+      accentSoft: 'bg-white/5 border-white/10',
+      line: 'bg-fuchsia-400',
+      meta: 'text-indigo-200/70',
+      contact: 'text-slate-100',
+      badge: 'bg-fuchsia-400 text-slate-950',
+      corner: 'bg-fuchsia-400/20',
+      shape: 'bg-indigo-400/10'
+    },
+    {
+      shell: 'bg-gradient-to-br from-amber-50 via-white to-violet-50 text-slate-900 border-violet-100',
+      brand: 'text-slate-950',
+      eyebrow: 'text-violet-700',
+      accent: 'bg-violet-600',
+      accentSoft: 'bg-violet-500/10 border-violet-200',
+      line: 'bg-violet-600',
+      meta: 'text-slate-500',
+      contact: 'text-slate-700',
+      badge: 'bg-violet-600 text-white',
+      corner: 'bg-violet-200/45',
+      shape: 'bg-violet-500/10'
+    }
+  ];
 
-  const showCursor = field => isTyping && activeField === field;
+  const theme = templates[templateIndex % templates.length];
+  const fieldIsActive = field => isTyping && activeField === field;
+  const fieldClass = field => (
+    fieldIsActive(field)
+      ? 'rounded-xl border border-current/15 bg-black/[0.04] px-2.5 py-1.5 shadow-sm scale-[1.01]'
+      : 'px-2.5 py-1.5'
+  );
 
-  if (templateIndex === 1) {
-    return (
-      <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
-        <defs>
-          <linearGradient id="pixelCardDark" x1="70" y1="40" x2="1150" y2="710" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#101426" />
-            <stop offset="0.52" stopColor="#3730A3" />
-            <stop offset="1" stopColor="#BE185D" />
-          </linearGradient>
-          <linearGradient id="pixelGlowDark" x1="180" y1="620" x2="1010" y2="90" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#22D3EE" stopOpacity="0.1" />
-            <stop offset="1" stopColor="#C084FC" stopOpacity="0.8" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="1200" height="760" rx="28" fill="url(#pixelCardDark)" />
-        <circle cx="1020" cy="145" r="120" fill="#FFFFFF" fillOpacity="0.08" />
-        <circle cx="1020" cy="145" r="72" fill="#FFFFFF" fillOpacity="0.05" />
-        <path d="M0 618C220 538 390 720 615 644C782 587 876 459 1200 500V760H0V618Z" fill="url(#pixelGlowDark)" />
-        <path d="M0 676C260 606 426 762 694 671C886 606 985 526 1200 570V760H0V676Z" fill="#020617" fillOpacity="0.42" />
-        <rect x="72" y="72" width="158" height="6" rx="3" fill="#A5B4FC" />
-        <text x="72" y="126" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="27" fontWeight="800" letterSpacing="2.4">NOVA STUDIO</text>
-        <text x="72" y="174" fill="#C7D2FE" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="700" letterSpacing="2.8">CREATIVE BUSINESS CARD</text>
-
-        <text x="72" y="337" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
-        {showCursor('name') && <rect x={72 + Math.max(15, data.name.length * 29)} y="288" width="3" height="58" rx="1.5" fill="#C4B5FD" />}
-        <text x="72" y="382" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="24" fontWeight="600">{data.role}</text>
-        {showCursor('role') && <rect x={72 + Math.max(15, data.role.length * 12.5)} y="354" width="3" height="34" rx="1.5" fill="#C4B5FD" />}
-
-        <line x1="72" y1="422" x2="380" y2="422" stroke="#C4B5FD" strokeOpacity="0.5" strokeWidth="3" />
-        <circle cx="90" cy="485" r="15" fill="#C4B5FD" fillOpacity="0.18" />
-        <circle cx="90" cy="545" r="15" fill="#C4B5FD" fillOpacity="0.18" />
-        <circle cx="90" cy="605" r="15" fill="#C4B5FD" fillOpacity="0.18" />
-        <text x="122" y="492" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
-        {showCursor('phone') && <rect x={122 + Math.max(10, data.phone.length * 9)} y="469" width="2" height="24" rx="1" fill="#C4B5FD" />}
-        <text x="122" y="552" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
-        {showCursor('email') && <rect x={122 + Math.max(10, data.email.length * 8.4)} y="529" width="2" height="24" rx="1" fill="#C4B5FD" />}
-        <text x="122" y="612" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
-        {showCursor('address') && <rect x={122 + Math.max(10, data.address.length * 7.9)} y="590" width="2" height="23" rx="1" fill="#C4B5FD" />}
-        <text x="900" y="692" fill="#E0E7FF" fillOpacity="0.7" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="700" letterSpacing="2">EDITABLE • REUSABLE • PRINT-READY</text>
-      </svg>
-    );
-  }
-
-  if (templateIndex === 2) {
-    return (
-      <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
-        <defs>
-          <linearGradient id="pixelCardViolet" x1="0" y1="0" x2="1200" y2="760" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFF7ED" />
-            <stop offset="0.5" stopColor="#F5F3FF" />
-            <stop offset="1" stopColor="#EDE9FE" />
-          </linearGradient>
-          <linearGradient id="pixelRibbon" x1="620" y1="610" x2="1180" y2="500" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#7C3AED" />
-            <stop offset="1" stopColor="#DB2777" />
-          </linearGradient>
-        </defs>
-        <rect width="1200" height="760" rx="28" fill="url(#pixelCardViolet)" />
-        <circle cx="1042" cy="116" r="88" fill="#7C3AED" fillOpacity="0.08" />
-        <circle cx="1042" cy="116" r="54" fill="#DB2777" fillOpacity="0.12" />
-        <path d="M630 760C716 648 844 620 986 632C1070 639 1131 620 1200 570V760H630Z" fill="url(#pixelRibbon)" opacity="0.95" />
-        <path d="M764 760C850 694 940 680 1045 689C1114 695 1158 676 1200 642V760H764Z" fill="#312E81" opacity="0.88" />
-        <text x="76" y="110" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="850" letterSpacing="2.2">PIXEL HOUSE</text>
-        <text x="76" y="145" fill="#7C3AED" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="800" letterSpacing="2.5">DESIGN • BRAND • DIGITAL</text>
-        <rect x="76" y="192" width="118" height="8" rx="4" fill="#7C3AED" />
-        <rect x="76" y="208" width="68" height="5" rx="2.5" fill="#DB2777" />
-        <text x="76" y="350" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
-        {showCursor('name') && <rect x={76 + Math.max(15, data.name.length * 29)} y="301" width="3" height="58" rx="1.5" fill="#7C3AED" />}
-        <text x="76" y="394" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="650">{data.role}</text>
-        {showCursor('role') && <rect x={76 + Math.max(15, data.role.length * 12)} y="367" width="3" height="34" rx="1.5" fill="#7C3AED" />}
-
-        <g fill="#7C3AED" fillOpacity="0.88">
-          <circle cx="92" cy="492" r="6" />
-          <circle cx="92" cy="548" r="6" />
-          <circle cx="92" cy="604" r="6" />
-        </g>
-        <text x="116" y="499" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
-        {showCursor('phone') && <rect x={116 + Math.max(10, data.phone.length * 9)} y="476" width="2" height="24" rx="1" fill="#7C3AED" />}
-        <text x="116" y="555" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
-        {showCursor('email') && <rect x={116 + Math.max(10, data.email.length * 8.4)} y="532" width="2" height="24" rx="1" fill="#7C3AED" />}
-        <text x="116" y="611" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
-        {showCursor('address') && <rect x={116 + Math.max(10, data.address.length * 7.8)} y="589" width="2" height="23" rx="1" fill="#7C3AED" />}
-        <text x="812" y="88" fill="#312E81" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="800" letterSpacing="2.2">CREATIVE PROFILE</text>
-      </svg>
-    );
-  }
+  const cursor = field => (
+    fieldIsActive(field)
+      ? <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-current opacity-80" />
+      : null
+  );
 
   return (
-    <svg viewBox="0 0 1200 760" className="block h-auto w-full" role="img" aria-label="Animated visiting card template">
-      <defs>
-        <linearGradient id="pixelCardLight" x1="0" y1="0" x2="1200" y2="760" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#F8FBFF" />
-          <stop offset="0.58" stopColor="#F3F8FC" />
-          <stop offset="1" stopColor="#E8F4FA" />
-        </linearGradient>
-        <linearGradient id="pixelWave" x1="780" y1="640" x2="1140" y2="560" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#8FD3F4" />
-          <stop offset="1" stopColor="#0B84C5" />
-        </linearGradient>
-      </defs>
-      <rect width="1200" height="760" rx="28" fill="url(#pixelCardLight)" />
-      <circle cx="1044" cy="116" r="92" fill="#0B84C5" fillOpacity="0.08" />
-      <circle cx="1044" cy="116" r="58" fill="#0B84C5" fillOpacity="0.08" />
-      <path d="M700 760C776 652 882 610 1008 624C1088 634 1146 612 1200 574V760H700Z" fill="url(#pixelWave)" />
-      <path d="M840 760C916 694 1000 672 1076 682C1120 688 1158 670 1200 644V760H840Z" fill="#143857" opacity="0.9" />
-      <text x="76" y="110" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="24" fontWeight="850" letterSpacing="2.4">THYNK UNLIMITED</text>
-      <text x="76" y="144" fill="#6B7C8C" fontFamily="Inter, Arial, sans-serif" fontSize="13" fontWeight="800" letterSpacing="2.4">PROFESSIONAL BUSINESS CARD</text>
-      <rect x="76" y="191" width="148" height="7" rx="3.5" fill="#0B84C5" />
-      <text x="76" y="349" fill={textColor} fontFamily="Inter, Arial, sans-serif" fontSize="56" fontWeight="850">{data.name}</text>
-      {showCursor('name') && <rect x={76 + Math.max(15, data.name.length * 29)} y="300" width="3" height="58" rx="1.5" fill="#0B84C5" />}
-      <text x="76" y="392" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="23" fontWeight="650">{data.role}</text>
-      {showCursor('role') && <rect x={76 + Math.max(15, data.role.length * 12)} y="365" width="3" height="34" rx="1.5" fill="#0B84C5" />}
+    <div className={`relative aspect-[1.58/1] overflow-hidden rounded-2xl border shadow-xl ${theme.shell}`}>
+      <div className={`absolute -right-16 -top-16 h-40 w-40 rounded-full blur-2xl ${theme.corner}`} />
+      <div className={`absolute -left-12 bottom-6 h-28 w-28 rounded-full blur-2xl ${theme.shape}`} />
+      {templateIndex === 1 && (
+        <div className="absolute right-8 bottom-8 h-28 w-28 rounded-full border border-fuchsia-300/20" />
+      )}
+      {templateIndex === 2 && (
+        <div className="absolute right-0 bottom-0 h-32 w-48 rounded-tl-[70px] bg-violet-500/10" />
+      )}
 
-      <circle cx="93" cy="490" r="15" fill="#0B84C5" fillOpacity="0.1" />
-      <circle cx="93" cy="547" r="15" fill="#0B84C5" fillOpacity="0.1" />
-      <circle cx="93" cy="604" r="15" fill="#0B84C5" fillOpacity="0.1" />
-      <text x="118" y="497" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.phone}</text>
-      {showCursor('phone') && <rect x={118 + Math.max(10, data.phone.length * 9)} y="474" width="2" height="24" rx="1" fill="#0B84C5" />}
-      <text x="118" y="554" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="18" fontWeight="600">{data.email}</text>
-      {showCursor('email') && <rect x={118 + Math.max(10, data.email.length * 8.4)} y="531" width="2" height="24" rx="1" fill="#0B84C5" />}
-      <text x="118" y="611" fill={mutedColor} fontFamily="Inter, Arial, sans-serif" fontSize="17" fontWeight="600">{data.address}</text>
-      {showCursor('address') && <rect x={118 + Math.max(10, data.address.length * 7.8)} y="588" width="2" height="23" rx="1" fill="#0B84C5" />}
-      <text x="874" y="90" fill="#0B84C5" fontFamily="Inter, Arial, sans-serif" fontSize="15" fontWeight="800" letterSpacing="2.2">SMART TEMPLATE</text>
-    </svg>
+      <div className="relative flex h-full flex-col p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className={`text-[8px] font-black uppercase tracking-[0.22em] ${theme.eyebrow}`}>
+              {templateIndex === 0 ? 'THYNK STUDIO' : templateIndex === 1 ? 'NOVA CREATIVE' : 'PIXEL HOUSE'}
+            </div>
+            <div className={`mt-1 text-[6px] font-bold uppercase tracking-[0.18em] ${theme.meta}`}>
+              Editable visiting card
+            </div>
+          </div>
+          <span className={`rounded-full px-2 py-1 text-[6px] font-black uppercase tracking-[0.14em] ${theme.badge}`}>
+            Live template
+          </span>
+        </div>
+
+        <div className="mt-4">
+          <div className={`h-1 w-16 rounded-full ${theme.line}`} />
+          <div className={fieldClass('name')}>
+            <div className={`mt-3 min-h-[2.2rem] text-[clamp(1rem,3.7vw,1.7rem)] font-black leading-none tracking-tight ${theme.brand}`}>
+              {data.name || '\u00A0'}
+              {cursor('name')}
+            </div>
+          </div>
+          <div className={fieldClass('role')}>
+            <div className={`mt-1 min-h-[1rem] text-[clamp(0.58rem,1.8vw,0.82rem)] font-semibold ${theme.eyebrow}`}>
+              {data.role || '\u00A0'}
+              {cursor('role')}
+            </div>
+          </div>
+        </div>
+
+        <div className={`mt-3 h-px w-full ${theme.line} opacity-15`} />
+
+        <div className="mt-auto grid gap-1">
+          <div className={fieldClass('phone')}>
+            <div className={`flex min-h-[1.1rem] items-center gap-2 text-[clamp(0.5rem,1.5vw,0.72rem)] font-semibold ${theme.contact}`}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+                <Phone className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+              </span>
+              <span className="truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
+            </div>
+          </div>
+
+          <div className={fieldClass('email')}>
+            <div className={`flex min-h-[1.1rem] items-center gap-2 text-[clamp(0.47rem,1.38vw,0.68rem)] font-semibold ${theme.contact}`}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+                <Mail className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+              </span>
+              <span className="truncate">{data.email || '\u00A0'}{cursor('email')}</span>
+            </div>
+          </div>
+
+          <div className={fieldClass('address')}>
+            <div className={`flex min-h-[1.1rem] items-start gap-2 text-[clamp(0.45rem,1.3vw,0.64rem)] font-semibold leading-snug ${theme.contact}`}>
+              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+                <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
+              </span>
+              <span className="line-clamp-2">{data.address || '\u00A0'}{cursor('address')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={`mt-2 flex items-center justify-between text-[6px] font-black uppercase tracking-[0.14em] ${theme.meta}`}>
+          <span>Reusable • editable • print-ready</span>
+          <span>PixelCards</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -240,15 +248,15 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setDemoClock(current => (current + 80) % DEMO_CYCLE_MS);
+      setDemoClock(current => current + 80);
     }, 80);
 
     return () => window.clearInterval(timer);
   }, []);
 
-  const cycleElapsed = demoClock;
-  const demoIndex = Math.floor((demoClock / DEMO_CYCLE_MS) * TEMPLATE_DEMO_CARDS.length);
-  const demoCard = TEMPLATE_DEMO_CARDS[Math.min(demoIndex, TEMPLATE_DEMO_CARDS.length - 1)];
+  const cycleElapsed = demoClock % DEMO_CYCLE_MS;
+  const demoIndex = Math.floor(demoClock / DEMO_CYCLE_MS) % TEMPLATE_DEMO_CARDS.length;
+  const demoCard = TEMPLATE_DEMO_CARDS[demoIndex];
 
   const isEntering = cycleElapsed < 650;
   const isExiting = cycleElapsed >= 6200;
