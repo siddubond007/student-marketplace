@@ -221,7 +221,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
             </div>
           </div>
 
-          <div className={fieldClass('address')}>
+          <div className={`relative -top-1 ${fieldClass('address')}`}>
             <div className={`flex min-h-[1.1rem] items-start gap-2 text-[clamp(0.45rem,1.3vw,0.64rem)] font-semibold leading-snug ${theme.contact}`}>
               <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
                 <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
