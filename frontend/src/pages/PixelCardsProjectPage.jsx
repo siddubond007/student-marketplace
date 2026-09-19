@@ -409,6 +409,10 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
     <div className="relative aspect-[1.58/1] overflow-hidden rounded-2xl border border-cyan-200/20 bg-gradient-to-br from-[#071019] via-[#11162B] to-[#27113A] text-white shadow-2xl">
       <div className="absolute inset-0 opacity-55 [background-image:radial-gradient(circle_at_22%_22%,rgba(34,211,238,.18),transparent_18%),radial-gradient(circle_at_80%_74%,rgba(217,70,239,.2),transparent_22%)]" />
       <div className="absolute inset-[2px] rounded-[0.9rem] border border-white/10" />
+      <div className="absolute right-5 top-14 h-1 w-24 rounded-full bg-gradient-to-r from-cyan-300 via-white to-pink-400 opacity-85 blur-[1px]" />
+      <div className="absolute bottom-5 right-5 flex items-end gap-[2px] opacity-70">
+        {Array.from({ length: 18 }, (_, index) => <span key={index} className={['w-[2px] rounded-full', index % 4 === 0 ? 'h-5 bg-cyan-200' : 'h-3 bg-white/30'].join(' ')} />)}
+      </div>
       <div className="relative flex h-full p-4">
         <div className="flex w-[34%] min-w-[104px] flex-col items-center justify-center border-r border-white/10 pr-3"><ProfileRing templateIndex={8} initials={initials} large /><div className="mt-1 rounded-full border border-cyan-200/10 bg-white/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-cyan-100">Verified Creator</div></div>
         <div className="flex min-w-0 flex-1 flex-col pl-4">
