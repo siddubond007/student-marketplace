@@ -27,6 +27,7 @@ const PublicJobDetailsPage = lazy(() => import('./pages/PublicJobDetailsPage'));
 const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
 const GigCustomOffersPage = lazy(() => import('./pages/GigCustomOffersPage'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
+const PartTimeProjectsPage = lazy(() => import('./pages/PartTimeProjectsPage'));
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -140,6 +141,7 @@ export default function App() {
               <Route path="/my-projects/:projectId/proposals" element={<ClientProposalsPage />} />
               <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
               <Route path="/notifications" element={<NotificationPage />} />
+              <Route path="/part-time-projects" element={<PartTimeProjectsPage themeMode={themeMode} />} />
               
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
