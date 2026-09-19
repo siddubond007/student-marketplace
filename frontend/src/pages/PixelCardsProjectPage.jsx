@@ -33,68 +33,101 @@ const WORKFLOW = [
   ['06', 'Earn', 'Future usage and revenue accounting can connect back to eligible creators.']
 ];
 
-const DEMO_CARDS = [
+const TEMPLATE_DEMO_CARDS = [
   {
-    brand: 'Studio North',
     name: 'Aarav Mehta',
-    role: 'Creative Director',
+    role: 'Marketing Manager',
     phone: '+91 90000 00000',
-    email: 'hello@example.com'
+    email: 'aarav@example.com',
+    address: '23 MG Road, Bengaluru, KA 560001'
   },
   {
-    brand: 'Nova Works',
     name: 'Ishita Rao',
     role: 'Brand Strategist',
     phone: '+91 98765 43210',
-    email: 'hello@novaworks.in'
+    email: 'ishita@novaworks.in',
+    address: '14 Lake View Road, Hyderabad, TS 500034'
   },
   {
-    brand: 'Pixel House',
     name: 'Kiran Varma',
     role: 'Founder & Designer',
     phone: '+91 91234 56789',
-    email: 'studio@pixelhouse.in'
+    email: 'kiran@pixelhouse.in',
+    address: '88 Jubilee Hills, Hyderabad, TS 500033'
   },
   {
-    brand: 'Orbit Creative',
     name: 'Ananya Reddy',
     role: 'Visual Designer',
     phone: '+91 99887 66554',
-    email: 'hi@orbitcreative.in'
+    email: 'ananya@orbitcreative.in',
+    address: '7 Residency Road, Chennai, TN 600002'
   }
 ];
 
-const DEMO_FIELDS = ['name', 'role', 'phone', 'email'];
+const DEMO_SEGMENTS = [
+  { field: 'name', start: 600, duration: 1200 },
+  { field: 'role', start: 1800, duration: 1200 },
+  { field: 'phone', start: 3000, duration: 1100 },
+  { field: 'email', start: 4100, duration: 950 },
+  { field: 'address', start: 5050, duration: 1050 }
+];
+
 const DEMO_FIELD_LABELS = {
   name: 'NAME',
   role: 'ROLE',
   phone: 'PHONE',
-  email: 'EMAIL'
+  email: 'EMAIL',
+  address: 'ADDRESS'
 };
+
+const DEMO_CYCLE_MS = 7000;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const getTypedText = (value, elapsed, start, duration) => {
+  const progress = clamp((elapsed - start) / duration, 0, 1);
+  return value.slice(0, Math.floor(progress * value.length));
+};
+
+const PARTICLES = Array.from({ length: 34 }, (_, index) => ({
+  left: ((index * 29) % 94) + 3,
+  top: ((index * 47) % 82) + 8,
+  x: ((index * 67) % 260) - 130,
+  y: ((index * 43) % 190) - 95,
+  delay: (index % 9) * 35
+}));
+
 
 export default function PixelCardsProjectPage({ themeMode = 'light' }) {
   const dark = themeMode === 'dark';
   const [activeSide, setActiveSide] = useState('students');
-  const [demoIndex, setDemoIndex] = useState(0);
-  const [demoFieldIndex, setDemoFieldIndex] = useState(0);
+  const [demoClock, setDemoClock] = useState(0);
 
   useEffect(() => {
-    const cardTimer = window.setInterval(() => {
-      setDemoIndex(current => (current + 1) % DEMO_CARDS.length);
-    }, 3200);
+    const timer = window.setInterval(() => {
+      setDemoClock(current => current + 80);
+    }, 80);
 
-    const fieldTimer = window.setInterval(() => {
-      setDemoFieldIndex(current => (current + 1) % DEMO_FIELDS.length);
-    }, 800);
-
-    return () => {
-      window.clearInterval(cardTimer);
-      window.clearInterval(fieldTimer);
-    };
+    return () => window.clearInterval(timer);
   }, []);
 
-  const demoCard = DEMO_CARDS[demoIndex];
-  const activeDemoField = DEMO_FIELDS[demoFieldIndex];
+  const cycleElapsed = demoClock % DEMO_CYCLE_MS;
+  const demoIndex = Math.floor(demoClock / DEMO_CYCLE_MS) % TEMPLATE_DEMO_CARDS.length;
+  const demoCard = TEMPLATE_DEMO_CARDS[demoIndex];
+  const isEntering = cycleElapsed < 600;
+  const isExiting = cycleElapsed >= 6200;
+  const activeSegment = [...DEMO_SEGMENTS].reverse().find(segment => cycleElapsed >= segment.start) || DEMO_SEGMENTS[0];
+  const activeDemoField = activeSegment.field;
+
+  const demoText = {
+    name: getTypedText(demoCard.name, cycleElapsed, DEMO_SEGMENTS[0].start, DEMO_SEGMENTS[0].duration),
+    role: getTypedText(demoCard.role, cycleElapsed, DEMO_SEGMENTS[1].start, DEMO_SEGMENTS[1].duration),
+    phone: getTypedText(demoCard.phone, cycleElapsed, DEMO_SEGMENTS[2].start, DEMO_SEGMENTS[2].duration),
+    email: getTypedText(demoCard.email, cycleElapsed, DEMO_SEGMENTS[3].start, DEMO_SEGMENTS[3].duration),
+    address: getTypedText(demoCard.address, cycleElapsed, DEMO_SEGMENTS[4].start, DEMO_SEGMENTS[4].duration)
+  };
+
+  const activeFieldLabel = DEMO_FIELD_LABELS[activeDemoField] || 'NAME';
 
   const page = dark ? 'bg-[#020617] text-white' : 'bg-slate-50 text-slate-900';
   const muted = dark ? 'text-slate-400' : 'text-slate-600';
@@ -192,74 +225,152 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                       <span className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">Live template demo</span>
                     </div>
-                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Auto-editing</span>
+                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-500">Type • replace • publish</span>
                   </div>
 
-                  <div className="relative aspect-[1.1/1] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-950 via-violet-900 to-pink-900 shadow-2xl">
-                    <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-pink-400/30 blur-3xl" />
-                    <div className="absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-indigo-300/20 blur-2xl" />
-                    <div className="relative h-full p-6 flex flex-col justify-between">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="text-[9px] text-indigo-100 uppercase tracking-[0.2em] font-black">{demoCard.brand}</div>
-                        <div className="rounded-full border border-white/15 bg-black/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-white/70">
-                          Editable
-                        </div>
-                      </div>
+                  <div className="relative">
+                    <div className={`relative overflow-hidden rounded-2xl ${isEntering ? 'pixel-template-enter' : ''} ${isExiting ? 'pixel-template-exit' : ''}`}>
+                      <img
+                        src="/pixelcards-visiting-card-template.svg"
+                        alt="PixelCards editable visiting card template"
+                        className="block w-full h-auto rounded-2xl"
+                      />
 
-                      <div>
-                        <div className={`transition-all duration-500 ${activeDemoField === 'name' ? 'scale-[1.02] text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.18)]' : 'text-white/90'}`}>
-                          <div className="text-3xl font-black tracking-tight">{demoCard.name}</div>
-                          {activeDemoField === 'name' && (
-                            <div className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.14em] text-white/80">
-                              Editing {DEMO_FIELD_LABELS[activeDemoField]}
-                            </div>
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className={`absolute left-[6.5%] top-[35%] w-[54%] text-[clamp(0.8rem,2.2vw,1.55rem)] font-black tracking-tight text-slate-900 transition-all duration-300 ${activeDemoField === 'name' ? 'drop-shadow-[0_0_10px_rgba(14,134,196,0.25)]' : ''}`}>
+                          {demoText.name || <span className="opacity-0">Name</span>}
+                          {activeDemoField === 'name' && !isExiting && (
+                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
                           )}
                         </div>
 
-                        <div className={`mt-2 transition-all duration-500 ${activeDemoField === 'role' ? 'translate-x-1 text-white drop-shadow-[0_0_18px_rgba(255,255,255,0.18)]' : 'text-indigo-100/80'}`}>
-                          <div className="text-xs">{demoCard.role}</div>
+                        <div className={`absolute left-[6.5%] top-[41%] w-[50%] text-[clamp(0.52rem,1.3vw,0.85rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'role' ? 'text-sky-700' : ''}`}>
+                          {demoText.role || <span className="opacity-0">Role</span>}
+                          {activeDemoField === 'role' && !isExiting && (
+                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
+                          )}
                         </div>
-                      </div>
 
-                      <div className="space-y-1.5 text-[9px] text-indigo-100/85">
-                        <div className={`transition-all duration-500 ${activeDemoField === 'phone' ? 'translate-x-1 text-white' : ''}`}>
-                          {demoCard.phone}
+                        <div className={`absolute left-[13%] top-[57.4%] w-[42%] text-[clamp(0.44rem,1vw,0.72rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'phone' ? 'text-sky-700' : ''}`}>
+                          {demoText.phone || <span className="opacity-0">Phone</span>}
+                          {activeDemoField === 'phone' && !isExiting && (
+                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
+                          )}
                         </div>
-                        <div className={`transition-all duration-500 ${activeDemoField === 'email' ? 'translate-x-1 text-white' : ''}`}>
-                          {demoCard.email}
+
+                        <div className={`absolute left-[13%] top-[65%] w-[49%] text-[clamp(0.42rem,0.96vw,0.68rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'email' ? 'text-sky-700' : ''}`}>
+                          {demoText.email || <span className="opacity-0">Email</span>}
+                          {activeDemoField === 'email' && !isExiting && (
+                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
+                          )}
+                        </div>
+
+                        <div className={`absolute left-[13%] top-[77.2%] w-[60%] text-[clamp(0.4rem,0.92vw,0.64rem)] font-semibold text-slate-600 transition-all duration-300 ${activeDemoField === 'address' ? 'text-sky-700' : ''}`}>
+                          {demoText.address || <span className="opacity-0">Address</span>}
+                          {activeDemoField === 'address' && !isExiting && (
+                            <span className="ml-1 inline-block h-[0.9em] w-px align-[-0.08em] animate-pulse bg-sky-600" />
+                          )}
                         </div>
                       </div>
                     </div>
+
+                    {isExiting && (
+                      <div className="absolute inset-0 pointer-events-none overflow-visible">
+                        {PARTICLES.map((particle, index) => (
+                          <span
+                            key={index}
+                            className="pixel-template-particle"
+                            style={{
+                              left: `${particle.left}%`,
+                              top: `${particle.top}%`,
+                              '--particle-x': `${particle.x}px`,
+                              '--particle-y': `${particle.y}px`,
+                              animationDelay: `${particle.delay}ms`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      key={demoFieldIndex}
-                      className="h-full w-1/4 rounded-full bg-gradient-to-r from-cyan-300 via-indigo-400 to-pink-400 animate-[demo-fill_800ms_linear]"
-                    />
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="text-[8px] font-bold text-slate-500">Preview updates automatically</span>
-                    <span className="text-[8px] font-black uppercase tracking-[0.14em] text-indigo-300">
-                      Editing {DEMO_FIELD_LABELS[activeDemoField]}
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 transition-all duration-100"
+                          style={{ width: `${clamp(((cycleElapsed - 600) / 5600) * 100, 0, 100)}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 text-[8px] font-bold text-slate-500">New template loads after the card dissolves</div>
+                    </div>
+                    <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.14em] text-indigo-300">
+                      Editing {activeFieldLabel}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {['Name', 'Role', 'Phone'].map(field => (
-                    <div key={field} className={`rounded-xl border px-3 py-2 transition-all duration-500 ${activeDemoField === field.toLowerCase() ? 'border-indigo-400/40 bg-indigo-500/10 ring-1 ring-indigo-400/20' : dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                      <div className={`text-[8px] uppercase tracking-wider font-black ${activeDemoField === field.toLowerCase() ? 'text-indigo-300' : muted}`}>{field}</div>
-                      <div className={`mt-1 text-[9px] font-bold ${dark ? 'text-slate-200' : 'text-slate-700'}`}>Editable</div>
-                    </div>
-                  ))}
+                <div className="mt-4 grid grid-cols-5 gap-2">
+                  {DEMO_SEGMENTS.map(segment => {
+                    const label = DEMO_FIELD_LABELS[segment.field];
+                    const done = cycleElapsed >= segment.start + segment.duration;
+                    return (
+                      <div
+                        key={segment.field}
+                        className={`rounded-xl border px-2.5 py-2 transition-all duration-300 ${
+                          activeDemoField === segment.field
+                            ? 'border-indigo-400/40 bg-indigo-500/10 ring-1 ring-indigo-400/20'
+                            : dark
+                              ? 'border-white/10 bg-white/5'
+                              : 'border-slate-200 bg-slate-50'
+                        }`}
+                      >
+                        <div className={`text-[7px] uppercase tracking-wider font-black ${
+                          activeDemoField === segment.field ? 'text-indigo-300' : muted
+                        }`}>{label}</div>
+                        <div className={`mt-1 text-[8px] font-bold ${
+                          done ? dark ? 'text-emerald-300' : 'text-emerald-600' : dark ? 'text-slate-200' : 'text-slate-700'
+                        }`}>{done ? 'Updated' : 'Typing'}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <style>{`
-                  @keyframes demo-fill {
-                    from { width: 0%; }
-                    to { width: 100%; }
+                  @keyframes pixel-template-enter {
+                    0% { opacity: 0; transform: translateY(12px) scale(0.965); filter: blur(5px); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+                  }
+
+                  @keyframes pixel-template-exit {
+                    0% { opacity: 1; transform: scale(1); filter: blur(0); }
+                    100% { opacity: 0; transform: scale(0.96); filter: blur(3px); }
+                  }
+
+                  @keyframes pixel-template-particle {
+                    0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+                    20% { opacity: 0.95; }
+                    100% {
+                      opacity: 0;
+                      transform: translate(var(--particle-x), var(--particle-y)) scale(0);
+                    }
+                  }
+
+                  .pixel-template-enter {
+                    animation: pixel-template-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+                  }
+
+                  .pixel-template-exit {
+                    animation: pixel-template-exit 860ms cubic-bezier(0.6, 0, 0.84, 0) both;
+                  }
+
+                  .pixel-template-particle {
+                    position: absolute;
+                    width: 4px;
+                    height: 4px;
+                    border-radius: 9999px;
+                    background: linear-gradient(135deg, #67e8f9, #8b5cf6, #ec4899);
+                    box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+                    animation: pixel-template-particle 820ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
                   }
                 `}</style>
               </div>
