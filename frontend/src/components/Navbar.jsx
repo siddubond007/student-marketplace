@@ -208,7 +208,7 @@ export default function Navbar({ currentUser, onLogout, themeMode = 'light', onT
               </Link>
 
               {activeMenu === 'part-time' && (
-                <div className="absolute top-16 left-0 w-[760px] max-w-[calc(100vw-2rem)] bg-slate-950/95 backdrop-blur-xl border border-indigo-500/20 shadow-2xl p-4 rounded-3xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[760px] max-w-[calc(100vw-2rem)] bg-slate-950/95 backdrop-blur-xl border border-indigo-500/20 shadow-2xl p-4 rounded-3xl z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between gap-4 px-2 pb-3">
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">Part-Time Projects</div>
