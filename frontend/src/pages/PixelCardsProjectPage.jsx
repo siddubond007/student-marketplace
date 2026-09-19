@@ -202,28 +202,28 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
 
         <div className={`mt-3 h-px w-full ${theme.line} opacity-15`} />
 
-        <div className="mt-4 grid gap-1.5">
+        <div className="absolute inset-x-4 bottom-7 grid gap-0.5">
           <div className={fieldClass('phone')}>
-            <div className={`flex min-h-[1.1rem] items-center gap-2 text-[clamp(0.5rem,1.5vw,0.72rem)] font-semibold ${theme.contact}`}>
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.48rem,1.42vw,0.68rem)] font-semibold ${theme.contact}`}>
+              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
                 <Phone className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
               </span>
-              <span className="truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
+              <span className="min-w-0 flex-1 truncate">{data.phone || '\u00A0'}{cursor('phone')}</span>
             </div>
           </div>
 
           <div className={fieldClass('email')}>
-            <div className={`flex min-h-[1.1rem] items-center gap-2 text-[clamp(0.47rem,1.38vw,0.68rem)] font-semibold ${theme.contact}`}>
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.46rem,1.34vw,0.66rem)] font-semibold ${theme.contact}`}>
+              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
                 <Mail className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
               </span>
-              <span className="truncate">{data.email || '\u00A0'}{cursor('email')}</span>
+              <span className="min-w-0 flex-1 truncate">{data.email || '\u00A0'}{cursor('email')}</span>
             </div>
           </div>
 
           <div className={fieldClass('address')}>
-            <div className={`flex min-h-[1.1rem] items-center gap-2 text-[clamp(0.44rem,1.22vw,0.62rem)] font-semibold leading-tight ${theme.contact}`}>
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
+            <div className={`flex min-h-[1rem] items-center gap-2 text-[clamp(0.43rem,1.18vw,0.6rem)] font-semibold leading-tight ${theme.contact}`}>
+              <span className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${theme.accentSoft}`}>
                 <MapPin className={`h-2.5 w-2.5 ${theme.eyebrow}`} />
               </span>
               <span className="min-w-0 flex-1 truncate">{data.address || '\u00A0'}{cursor('address')}</span>
@@ -231,7 +231,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           </div>
         </div>
 
-        <div className={`mt-auto pt-2 flex items-center justify-between text-[6px] font-black uppercase tracking-[0.14em] ${theme.meta}`}>
+        <div className={`absolute inset-x-4 bottom-1 flex items-center justify-between text-[5px] font-black uppercase tracking-[0.12em] ${theme.meta}`}>
           <span>Reusable • editable • print-ready</span>
           <span>PixelCards</span>
         </div>
