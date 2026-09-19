@@ -153,24 +153,24 @@ function ProfileRing({ templateIndex, initials, theme, size = 'normal' }) {
   const style = styles[templateIndex % styles.length];
 
   return (
-    <div className={\`relative flex \${compact ? 'h-20 w-20' : 'h-28 w-28'} items-center justify-center\`}>
-      <div className={\`absolute inset-0 rounded-full bg-gradient-to-br \${style.ring} p-[2px] \${compact ? 'shadow-[0_0_24px_rgba(99,102,241,0.26)]' : 'shadow-[0_0_38px_rgba(99,102,241,0.3)]'}\`}>
-        <div className={\`h-full w-full rounded-full \${darkCenter ? 'bg-[#070B16]' : 'bg-white'}\`} />
+    <div className={`relative flex ${compact ? 'h-20 w-20' : 'h-28 w-28'} items-center justify-center`}>
+      <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${style.ring} p-[2px] ${compact ? 'shadow-[0_0_24px_rgba(99,102,241,0.26)]' : 'shadow-[0_0_38px_rgba(99,102,241,0.3)]'}`}>
+        <div className={`h-full w-full rounded-full ${darkCenter ? 'bg-[#070B16]' : 'bg-white'}`} />
       </div>
 
-      <div className={\`absolute inset-[7px] rounded-full border \${darkCenter ? 'border-white/10' : 'border-slate-900/10'}\`} />
+      <div className={`absolute inset-[7px] rounded-full border ${darkCenter ? 'border-white/10' : 'border-slate-900/10'}`} />
 
-      <div className={\`relative \${compact ? 'h-14 w-14' : 'h-[78px] w-[78px]'} overflow-hidden rounded-full border-2 \${theme.avatarBorder || 'border-white/70'} bg-gradient-to-b \${style.bg}\`}>
-        <div className={\`absolute -top-2 left-1/2 -translate-x-1/2 \${compact ? 'h-9 w-9' : 'h-12 w-12'} rounded-full blur-xl \${style.glow}\`} />
-        <div className={\`absolute left-1/2 top-[17%] -translate-x-1/2 \${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full \${style.hair}\`} />
-        <div className={\`absolute left-1/2 top-[25%] -translate-x-1/2 \${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full \${style.face} shadow-sm\`} />
-        <div className={\`absolute left-1/2 top-[42%] -translate-x-1/2 \${compact ? 'h-8 w-7' : 'h-12 w-10'} rounded-t-[48%] rounded-b-[34%] \${style.face}\`} />
-        <div className={\`absolute bottom-0 left-1/2 -translate-x-1/2 \${compact ? 'h-5 w-12' : 'h-7 w-16'} rounded-t-[55%] \${style.shirt}\`} />
-        <div className={\`absolute left-1/2 top-[56%] -translate-x-1/2 \${compact ? 'w-7 text-[4px]' : 'w-10 text-[5px]'} truncate text-center font-black text-white/80\`}>{initials}</div>
+      <div className={`relative ${compact ? 'h-14 w-14' : 'h-[78px] w-[78px]'} overflow-hidden rounded-full border-2 ${theme.avatarBorder || 'border-white/70'} bg-gradient-to-b ${style.bg}`}>
+        <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${compact ? 'h-9 w-9' : 'h-12 w-12'} rounded-full blur-xl ${style.glow}`} />
+        <div className={`absolute left-1/2 top-[17%] -translate-x-1/2 ${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full ${style.hair}`} />
+        <div className={`absolute left-1/2 top-[25%] -translate-x-1/2 ${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full ${style.face} shadow-sm`} />
+        <div className={`absolute left-1/2 top-[42%] -translate-x-1/2 ${compact ? 'h-8 w-7' : 'h-12 w-10'} rounded-t-[48%] rounded-b-[34%] ${style.face}`} />
+        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${compact ? 'h-5 w-12' : 'h-7 w-16'} rounded-t-[55%] ${style.shirt}`} />
+        <div className={`absolute left-1/2 top-[56%] -translate-x-1/2 ${compact ? 'w-7 text-[4px]' : 'w-10 text-[5px]'} truncate text-center font-black text-white/80`}>{initials}</div>
       </div>
 
-      <span className={\`absolute bottom-2 right-2 \${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded-full border-2 \${darkCenter ? 'border-slate-900' : 'border-white'} bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)]\`} />
-      <div className={\`absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full \${theme.node}\`} />
+      <span className={`absolute bottom-2 right-2 ${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded-full border-2 ${darkCenter ? 'border-slate-900' : 'border-white'} bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)]`} />
+      <div className={`absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full ${theme.node}`} />
     </div>
   );
 }
