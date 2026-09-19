@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
 import { 
-  Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, 
+  Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, WalletCards, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
   Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell,
   Sun, Moon
