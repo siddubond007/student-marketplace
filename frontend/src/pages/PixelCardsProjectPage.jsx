@@ -240,18 +240,23 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setDemoClock(current => current + 80);
+      setDemoClock(current => (current + 80) % DEMO_CYCLE_MS);
     }, 80);
 
     return () => window.clearInterval(timer);
   }, []);
 
-  const cycleElapsed = demoClock % DEMO_CYCLE_MS;
-  const demoIndex = Math.floor(demoClock / DEMO_CYCLE_MS) % TEMPLATE_DEMO_CARDS.length;
-  const demoCard = TEMPLATE_DEMO_CARDS[demoIndex];
+  const cycleElapsed = demoClock;
+  const demoIndex = Math.floor((demoClock / DEMO_CYCLE_MS) * TEMPLATE_DEMO_CARDS.length);
+  const demoCard = TEMPLATE_DEMO_CARDS[Math.min(demoIndex, TEMPLATE_DEMO_CARDS.length - 1)];
+
   const isEntering = cycleElapsed < 650;
   const isExiting = cycleElapsed >= 6200;
-  const activeSegment = [...DEMO_SEGMENTS].reverse().find(segment => cycleElapsed >= segment.start) || DEMO_SEGMENTS[0];
+
+  const activeSegment = [...DEMO_SEGMENTS]
+    .reverse()
+    .find(segment => cycleElapsed >= segment.start) || DEMO_SEGMENTS[0];
+
   const activeDemoField = activeSegment.field;
   const activeFieldLabel = DEMO_FIELD_LABELS[activeDemoField] || 'NAME';
 
