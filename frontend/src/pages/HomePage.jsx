@@ -6,6 +6,7 @@ import LightHomeCategories from '../components/home/LightHomeCategories';
 import LightHomeFeaturedTalent from '../components/home/LightHomeFeaturedTalent';
 import LightHomeTrustEscrow from '../components/home/LightHomeTrustEscrow';
 import LightHomeFooter from '../components/home/LightHomeFooter';
+import PartTimeProjectsPromo from '../components/PartTimeProjectsPromo';
 import DarkHomePage from './DarkHomePage';
 import '../styles/home-light.css';
 
@@ -57,6 +58,9 @@ export default function HomePage({ currentUser, themeMode = 'light', onToggleThe
 
           {/* 2. Interactive Role Switcher (For Clients vs For Students) */}
           <LightHomeDualRole currentUser={currentUser} />
+
+          {/* 2B. Permanent Part-Time Projects Entry Point */}
+          <PartTimeProjectsPromo themeMode={themeMode} />
 
           {/* 3. Skill & Category Discovery Grid */}
           <LightHomeCategories />
