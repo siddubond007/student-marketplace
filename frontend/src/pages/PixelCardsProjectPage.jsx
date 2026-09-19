@@ -431,29 +431,20 @@ export default function PixelCardsProjectPage({ themeMode = 'light' }) {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-5 gap-2">
+                <div className="mt-4 flex items-center justify-between gap-1.5">
                   {DEMO_SEGMENTS.map(segment => {
-                    const label = DEMO_FIELD_LABELS[segment.field];
-                    const done = cycleElapsed >= segment.start + segment.duration;
                     const active = activeDemoField === segment.field && !isExiting;
+                    const done = cycleElapsed >= segment.start + segment.duration;
                     return (
-                      <div
-                        key={segment.field}
-                        className={`rounded-xl border px-2.5 py-2 transition-all duration-300 ${
-                          active
-                            ? 'border-indigo-400/40 bg-indigo-500/10 ring-1 ring-indigo-400/20'
-                            : dark
-                              ? 'border-white/10 bg-white/5'
-                              : 'border-slate-200 bg-slate-50'
-                        }`}
-                      >
-                        <div className={`text-[7px] uppercase tracking-wider font-black ${
-                          active ? 'text-indigo-300' : muted
-                        }`}>{label}</div>
-                        <div className={`mt-1 text-[8px] font-bold ${
-                          done ? dark ? 'text-emerald-300' : 'text-emerald-600'
-                            : dark ? 'text-slate-200' : 'text-slate-700'
-                        }`}>{done ? 'Updated' : 'Typing'}</div>
+                      <div key={segment.field} className="flex min-w-0 flex-1 items-center gap-1">
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all duration-300 ${
+                          active ? 'bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.7)]'
+                            : done ? 'bg-emerald-400'
+                            : 'bg-white/15'
+                        }`} />
+                        <span className={`truncate text-[7px] font-black uppercase tracking-[0.1em] ${
+                          active ? 'text-indigo-200' : done ? 'text-emerald-300/80' : 'text-slate-500'
+                        }`}>{DEMO_FIELD_LABELS[segment.field]}</span>
                       </div>
                     );
                   })}
