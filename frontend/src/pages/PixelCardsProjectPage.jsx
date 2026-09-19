@@ -136,42 +136,43 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
   delay: (index % 12) * 22
 }));
 
-function ProfileRing({ templateIndex, initials, dark = false, large = false }) {
-  const rings = [
-    ['from-cyan-300 via-sky-400 to-indigo-500', 'bg-sky-50', 'bg-sky-500', 'bg-amber-200', 'bg-slate-900'],
-    ['from-cyan-300 via-violet-500 to-fuchsia-500', 'bg-slate-900', 'bg-fuchsia-500', 'bg-amber-100', 'bg-slate-950'],
-    ['from-amber-200 via-orange-400 to-rose-500', 'bg-stone-900', 'bg-amber-500', 'bg-orange-200', 'bg-stone-950'],
-    ['from-cyan-200 via-teal-400 to-blue-500', 'bg-slate-900', 'bg-cyan-500', 'bg-amber-200', 'bg-slate-950'],
-    ['from-pink-300 via-fuchsia-400 to-violet-500', 'bg-rose-50', 'bg-pink-500', 'bg-rose-200', 'bg-stone-700'],
-    ['from-violet-300 via-fuchsia-400 to-cyan-400', 'bg-violet-50', 'bg-violet-500', 'bg-amber-200', 'bg-slate-800'],
-    ['from-blue-300 via-indigo-500 to-violet-500', 'bg-slate-900', 'bg-indigo-500', 'bg-amber-200', 'bg-slate-950'],
-    ['from-amber-200 via-rose-300 to-violet-400', 'bg-orange-50', 'bg-orange-400', 'bg-amber-200', 'bg-stone-700'],
-    ['from-cyan-300 via-white to-violet-500', 'bg-slate-900', 'bg-cyan-400', 'bg-amber-200', 'bg-slate-950']
+function ProfileRing({ templateIndex, initials, large = false }) {
+  const compact = !large;
+  const darkCenter = [1, 2, 3, 6, 8].includes(templateIndex);
+  const styles = [
+    ['from-cyan-300 via-sky-400 to-indigo-500', 'from-sky-100 to-cyan-200', 'bg-amber-200', 'bg-slate-900', 'bg-sky-500', 'bg-cyan-300/30'],
+    ['from-cyan-300 via-violet-500 to-fuchsia-500', 'from-slate-800 to-indigo-950', 'bg-amber-100', 'bg-slate-950', 'bg-fuchsia-500', 'bg-fuchsia-400/25'],
+    ['from-amber-200 via-orange-400 to-rose-500', 'from-stone-800 to-stone-950', 'bg-orange-200', 'bg-stone-950', 'bg-amber-500', 'bg-amber-300/25'],
+    ['from-cyan-200 via-teal-400 to-blue-500', 'from-slate-800 to-cyan-950', 'bg-amber-200', 'bg-slate-950', 'bg-cyan-500', 'bg-cyan-300/25'],
+    ['from-pink-300 via-fuchsia-400 to-violet-500', 'from-rose-50 to-amber-50', 'bg-rose-200', 'bg-stone-700', 'bg-pink-500', 'bg-pink-400/25'],
+    ['from-violet-300 via-fuchsia-400 to-cyan-400', 'from-violet-50 to-cyan-50', 'bg-amber-200', 'bg-slate-800', 'bg-violet-500', 'bg-violet-400/25'],
+    ['from-indigo-300 via-blue-400 to-violet-500', 'from-slate-800 to-indigo-950', 'bg-amber-200', 'bg-slate-950', 'bg-indigo-500', 'bg-indigo-400/25'],
+    ['from-amber-200 via-rose-300 to-violet-400', 'from-orange-50 to-rose-50', 'bg-amber-200', 'bg-stone-700', 'bg-orange-400', 'bg-amber-300/25'],
+    ['from-cyan-300 via-white to-violet-500', 'from-slate-800 to-violet-950', 'bg-amber-200', 'bg-slate-950', 'bg-cyan-400', 'bg-cyan-300/25']
   ];
-  const ring = rings[templateIndex % rings.length];
-  const shellSize = large ? 'h-28 w-28' : 'h-24 w-24';
-  const photoSize = large ? 'h-20 w-20' : 'h-[4.3rem] w-[4.3rem]';
-  const face = ring[3];
-  const hair = ring[4];
-  const darkCore = dark ? 'bg-[#090D18]' : 'bg-white';
-
+  const style = styles[templateIndex % styles.length];
+  const shellSize = compact ? 'h-20 w-20' : 'h-28 w-28';
+  const portraitSize = compact ? 'h-14 w-14' : 'h-20 w-20';
+  const core = darkCenter ? 'bg-[#070B16]' : 'bg-white';
   return (
     <div className={['relative flex items-center justify-center', shellSize].join(' ')}>
-      <div className={['absolute inset-0 rounded-full bg-gradient-to-br p-[2px]', ring[0]].join(' ')}>
-        <div className={['h-full w-full rounded-full', darkCore].join(' ')} />
+      <div className={['absolute inset-0 rounded-full bg-gradient-to-br p-[2px] shadow-[0_0_30px_rgba(99,102,241,0.28)]', style[0]].join(' ')}>
+        <div className={['h-full w-full rounded-full', core].join(' ')} />
       </div>
-      <div className="absolute inset-[6px] rounded-full border border-white/20" />
-      <div className={['relative overflow-hidden rounded-full border-2 border-white/70 shadow-lg', photoSize, ring[1]].join(' ')}>
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black/10" />
-        <div className="absolute left-1/2 top-[17%] h-6 w-6 -translate-x-1/2 rounded-full bg-black/10 blur-sm" />
-        <div className={['absolute left-1/2 top-[22%] h-6 w-6 -translate-x-1/2 rounded-full', hair].join(' ')} />
-        <div className={['absolute left-1/2 top-[27%] h-6 w-6 -translate-x-1/2 rounded-full shadow-sm', face].join(' ')} />
-        <div className={['absolute left-1/2 top-[43%] h-11 w-9 -translate-x-1/2 rounded-t-[45%] rounded-b-[34%]', face].join(' ')} />
-        <div className={['absolute bottom-0 left-1/2 h-7 w-14 -translate-x-1/2 rounded-t-[55%]', ring[2]].join(' ')} />
-        <div className="absolute left-1/2 top-[60%] -translate-x-1/2 text-[6px] font-black text-white/85">{initials}</div>
+      <div className={['absolute inset-[5px] rounded-full border', darkCenter ? 'border-white/10' : 'border-slate-900/10'].join(' ')} />
+      <div className={['relative overflow-hidden rounded-full border-2 border-white/80 bg-gradient-to-b shadow-inner', portraitSize, style[1]].join(' ')}>
+        <div className={['absolute -top-3 left-1/2 -translate-x-1/2 rounded-full blur-xl', compact ? 'h-8 w-8' : 'h-12 w-12', style[5]].join(' ')} />
+        <div className={['absolute left-1/2 top-[16%] -translate-x-1/2 rounded-t-full', compact ? 'h-4 w-8' : 'h-6 w-11', style[3]].join(' ')} />
+        <div className={['absolute left-1/2 top-[25%] -translate-x-1/2 rounded-full shadow-sm', compact ? 'h-4 w-4' : 'h-6 w-6', style[2]].join(' ')} />
+        <div className={['absolute left-1/2 top-[42%] -translate-x-1/2 rounded-t-[45%] rounded-b-[34%]', compact ? 'h-8 w-7' : 'h-12 w-10', style[2]].join(' ')} />
+        <div className={['absolute bottom-0 left-1/2 -translate-x-1/2 rounded-t-[55%]', compact ? 'h-5 w-11' : 'h-7 w-16', style[4]].join(' ')} />
+        <div className={['absolute left-[28%] top-[53%] h-1 w-1 rounded-full', darkCenter ? 'bg-white/50' : 'bg-slate-900/35'].join(' ')} />
+        <div className={['absolute right-[28%] top-[53%] h-1 w-1 rounded-full', darkCenter ? 'bg-white/50' : 'bg-slate-900/35'].join(' ')} />
+        <div className="absolute left-1/2 top-[61%] h-px w-3 -translate-x-1/2 bg-current opacity-20" />
       </div>
-      <span className={['absolute bottom-1 right-1 h-4 w-4 rounded-full border-2', dark ? 'border-slate-900' : 'border-white', 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]'].join(' ')} />
-      <span className={['absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full', ring[2]].join(' ')} />
+      <span className={['absolute bottom-1 right-1 rounded-full border-2 bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)]', compact ? 'h-3 w-3' : 'h-4 w-4', darkCenter ? 'border-slate-900' : 'border-white'].join(' ')} />
+      <span className={['absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full', style[4]].join(' ')} />
+      <span className="sr-only">Creator profile</span>
     </div>
   );
 }
@@ -224,9 +225,11 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
             <div className="mt-1 text-[6px] font-bold uppercase tracking-[0.18em] text-slate-500">Creative identity</div>
             <div className="mt-6">
               <div className="h-1 w-14 rounded-full bg-sky-600" />
-              <CardName value={data.name} active={active('name')} tone="bg-sky-600" className="" />
-              <div className="mt-3 text-[clamp(1rem,3.25vw,1.62rem)] font-black leading-none"><CardName value={data.name} active={active('name')} tone="bg-sky-600" /></div>
+              <div className="text-[clamp(1rem,3.25vw,1.62rem)] font-black leading-none"><CardName value={data.name} active={active('name')} tone="bg-sky-600" /></div>
               {lightRole('text-sky-700')}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {['Ideas', 'Design', 'Impact'].map(item => <span key={item} className="rounded-full border border-sky-200 bg-white/65 px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-sky-700">{item}</span>)}
+              </div>
             </div>
             <div className="mt-auto max-w-[92%]">{contact('light')}</div>
           </div>
