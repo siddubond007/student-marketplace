@@ -184,7 +184,7 @@ function ContactRow({ icon: Icon, data, isActive, tone = 'light' }) {
       <span className={['flex h-5 w-5 shrink-0 items-center justify-center rounded-full border', dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/70'].join(' ')}>
         <Icon className={['h-2.5 w-2.5', dark ? 'text-white/80' : 'text-slate-600'].join(' ')} />
       </span>
-      <span className={['min-w-0 truncate text-[9px] font-semibold', dark ? 'text-slate-100' : 'text-slate-700'].join(' ')}>
+      <span className={['min-w-0 truncate text-[10px] font-semibold', dark ? 'text-slate-100' : 'text-slate-700'].join(' ')}>
         {data || '\u00A0'}
         {isActive && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-current" />}
       </span>
@@ -272,7 +272,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           <div className="flex w-[60%] min-w-0 flex-col">
             <div className="text-[8px] font-black uppercase tracking-[0.24em] text-amber-100">PIXEL HOUSE</div>
             <div className="mt-1 text-[5px] uppercase tracking-[0.2em] text-stone-400">Digital products • premium identity</div>
-            <div className="mt-8 max-w-[92%]">
+            <div className="mt-10 ml-auto max-w-[92%] text-right">
               <div className="text-[clamp(1.14rem,3.35vw,1.72rem)]"><CardName value={data.name} active={active('name')} tone="bg-amber-200" /></div>
               {lightRole('text-amber-200')}
               <div className="mt-3 h-px w-16 bg-amber-200/60" />
@@ -305,7 +305,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
             <div className="rounded-full border border-cyan-300/15 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-cyan-200">Available for projects</div>
           </div>
           <div className="flex min-w-0 flex-1 flex-col pl-4">
-            <div className="ml-auto rounded-full border border-cyan-300/10 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.15em] text-cyan-200/70">System profile 04</div>
+            <div className="ml-auto rounded-full border border-cyan-300/10 bg-cyan-300/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.15em] text-cyan-200/70">Build beyond limits</div>
             <div className="mt-8">
               <div className="text-[clamp(1.12rem,3.3vw,1.68rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-300" /></div>
               {lightRole('text-cyan-200')}
@@ -329,7 +329,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
           <div className="flex min-w-0 flex-col">
             <div className="text-[7px] font-black uppercase tracking-[0.24em] text-slate-500">ORBIT STUDIO</div>
             <div className="mt-1 text-[5px] uppercase tracking-[0.16em] text-slate-400">Minimal / artistic identity</div>
-            <div className="mt-8">
+            <div className="mt-8 text-center">
               <div className="text-[clamp(1.18rem,3.3vw,1.72rem)]"><CardName value={data.name} active={active('name')} tone="bg-violet-600" serif /></div>
               {lightRole('text-slate-600')}
               <div className="mt-2 h-px w-10 bg-slate-900" />
@@ -398,7 +398,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
         <div className="absolute right-[10%] bottom-[16%] h-12 w-28 rotate-[8deg] rounded-t-[100%] bg-slate-700/20" />
         <div className="relative flex h-full flex-col p-5">
           <div className="flex items-start justify-between"><div><div className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-800">WANDER & WORK</div><div className="mt-1 text-[5px] uppercase tracking-[0.18em] text-slate-600">Remote • Freelance • Freedom</div></div><div className="text-[5px] font-black italic text-slate-700">Work from anywhere</div></div>
-          <div className="mt-6 max-w-[62%]"><div className="text-[clamp(1.05rem,3.1vw,1.58rem)]"><CardName value={data.name} active={active('name')} tone="bg-slate-800" /></div>{lightRole('text-slate-700')}</div>
+          <div className="mx-auto mt-6 max-w-[64%] text-center"><div className="text-[clamp(1.05rem,3.1vw,1.58rem)]"><CardName value={data.name} active={active('name')} tone="bg-slate-800" /></div>{lightRole('text-slate-700')}</div>
           <div className="mt-auto flex items-end justify-between gap-3"><div className="min-w-0 max-w-[68%]">{contact('light')}</div><div className="pb-1"><ProfileRing templateIndex={7} initials={initials} /></div></div>
         </div>
       </div>
@@ -416,7 +416,7 @@ function BusinessCardTemplate({ templateIndex, data, activeField, isTyping }) {
       <div className="relative flex h-full p-4">
         <div className="flex w-[34%] min-w-[104px] flex-col items-center justify-center border-r border-white/10 pr-3"><ProfileRing templateIndex={8} initials={initials} large /><div className="mt-1 rounded-full border border-cyan-200/10 bg-white/5 px-2 py-1 text-[5px] font-black uppercase tracking-[0.12em] text-cyan-100">Verified Creator</div></div>
         <div className="flex min-w-0 flex-1 flex-col pl-4">
-          <div className="flex items-start justify-between"><div><div className="text-[8px] font-black uppercase tracking-[0.25em] text-cyan-100">NEXT GEN</div><div className="mt-1 text-[5px] uppercase tracking-[0.18em] text-slate-400">Innovate • Create • Lead</div></div><div className="text-[6px] font-black uppercase tracking-[0.16em] text-cyan-200/70">SL • 09</div></div>
+          <div className="flex items-start justify-between"><div><div className="text-[8px] font-black uppercase tracking-[0.25em] text-cyan-100">NEXT GEN</div><div className="mt-1 text-[5px] uppercase tracking-[0.18em] text-slate-400">Innovate • Create • Lead</div></div><div className="text-[6px] font-black uppercase tracking-[0.16em] text-cyan-200/70">Next-gen identity</div></div>
           <div className="mt-7"><div className="text-[clamp(1.05rem,3.15vw,1.62rem)]"><CardName value={data.name} active={active('name')} tone="bg-cyan-200" /></div>{lightRole('text-cyan-100')}</div>
           <div className="mt-auto">{contact('dark')}</div>
         </div>
