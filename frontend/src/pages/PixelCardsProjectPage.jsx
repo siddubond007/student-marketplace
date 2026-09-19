@@ -137,22 +137,40 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => ({
 }));
 
 function ProfileRing({ templateIndex, initials, theme, size = 'normal' }) {
-  const darkCenter = [1, 2, 3, 4, 6, 8].includes(templateIndex);
   const compact = size === 'compact';
+  const darkCenter = [1, 2, 3, 6, 8].includes(templateIndex);
+  const styles = [
+    { ring: 'from-cyan-400 via-sky-400 to-indigo-500', bg: 'from-sky-100 to-cyan-200', face: 'bg-amber-200', hair: 'bg-slate-900', shirt: 'bg-sky-500', glow: 'bg-cyan-300/30' },
+    { ring: 'from-cyan-300 via-violet-400 to-fuchsia-500', bg: 'from-slate-800 to-indigo-950', face: 'bg-amber-100', hair: 'bg-slate-950', shirt: 'bg-fuchsia-500', glow: 'bg-fuchsia-400/25' },
+    { ring: 'from-amber-300 via-orange-400 to-violet-500', bg: 'from-stone-800 to-[#261A0D]', face: 'bg-orange-200', hair: 'bg-stone-950', shirt: 'bg-amber-500', glow: 'bg-amber-300/25' },
+    { ring: 'from-cyan-300 via-teal-300 to-blue-500', bg: 'from-slate-700 to-cyan-950', face: 'bg-amber-200', hair: 'bg-slate-950', shirt: 'bg-cyan-500', glow: 'bg-cyan-300/25' },
+    { ring: 'from-pink-300 via-fuchsia-400 to-violet-500', bg: 'from-rose-50 to-amber-50', face: 'bg-rose-200', hair: 'bg-stone-700', shirt: 'bg-pink-500', glow: 'bg-pink-400/25' },
+    { ring: 'from-sky-300 via-violet-400 to-pink-400', bg: 'from-violet-50 to-cyan-50', face: 'bg-amber-200', hair: 'bg-slate-800', shirt: 'bg-violet-500', glow: 'bg-violet-400/25' },
+    { ring: 'from-indigo-300 via-blue-400 to-violet-500', bg: 'from-slate-800 to-indigo-950', face: 'bg-amber-200', hair: 'bg-slate-950', shirt: 'bg-indigo-500', glow: 'bg-indigo-400/25' },
+    { ring: 'from-amber-300 via-pink-300 to-violet-400', bg: 'from-orange-50 to-rose-50', face: 'bg-amber-200', hair: 'bg-stone-700', shirt: 'bg-orange-400', glow: 'bg-amber-300/25' },
+    { ring: 'from-cyan-300 via-white to-violet-400', bg: 'from-slate-800 to-violet-950', face: 'bg-amber-200', hair: 'bg-slate-950', shirt: 'bg-cyan-400', glow: 'bg-cyan-300/25' }
+  ];
+  const style = styles[templateIndex % styles.length];
 
   return (
-    <div className={`relative flex ${compact ? 'h-16 w-16' : 'h-24 w-24'} items-center justify-center`}>
-      <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${theme.ring} p-[2px] ${compact ? 'shadow-[0_0_20px_rgba(99,102,241,0.24)]' : 'shadow-[0_0_34px_rgba(99,102,241,0.28)]'}`}>
-        <div className={`h-full w-full rounded-full ${darkCenter ? 'bg-[#070B16]' : 'bg-white'}`} />
+    <div className={\`relative flex \${compact ? 'h-20 w-20' : 'h-28 w-28'} items-center justify-center\`}>
+      <div className={\`absolute inset-0 rounded-full bg-gradient-to-br \${style.ring} p-[2px] \${compact ? 'shadow-[0_0_24px_rgba(99,102,241,0.26)]' : 'shadow-[0_0_38px_rgba(99,102,241,0.3)]'}\`}>
+        <div className={\`h-full w-full rounded-full \${darkCenter ? 'bg-[#070B16]' : 'bg-white'}\`} />
       </div>
-      <div className={`relative flex ${compact ? 'h-11 w-11' : 'h-[70px] w-[70px]'} items-center justify-center overflow-hidden rounded-full border-2 ${theme.avatarBorder} ${darkCenter ? 'bg-slate-900' : 'bg-slate-100'}`}>
-        <div className={`absolute -top-7 ${compact ? 'h-8 w-8' : 'h-12 w-12'} rounded-full blur-lg ${theme.avatarGlow}`} />
-        <div className={`relative flex ${compact ? 'h-6 w-6 text-[8px]' : 'h-9 w-9 text-[11px]'} items-center justify-center rounded-full bg-gradient-to-br ${theme.avatarGradient} font-black text-white shadow-lg`}>
-          {initials}
-        </div>
-        <span className={`absolute bottom-0.5 right-0.5 ${compact ? 'h-2.5 w-2.5' : 'h-3.5 w-3.5'} rounded-full border-2 ${darkCenter ? 'border-slate-900' : 'border-white'} bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.75)]`} />
+
+      <div className={\`absolute inset-[7px] rounded-full border \${darkCenter ? 'border-white/10' : 'border-slate-900/10'}\`} />
+
+      <div className={\`relative \${compact ? 'h-14 w-14' : 'h-[78px] w-[78px]'} overflow-hidden rounded-full border-2 \${theme.avatarBorder || 'border-white/70'} bg-gradient-to-b \${style.bg}\`}>
+        <div className={\`absolute -top-2 left-1/2 -translate-x-1/2 \${compact ? 'h-9 w-9' : 'h-12 w-12'} rounded-full blur-xl \${style.glow}\`} />
+        <div className={\`absolute left-1/2 top-[17%] -translate-x-1/2 \${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full \${style.hair}\`} />
+        <div className={\`absolute left-1/2 top-[25%] -translate-x-1/2 \${compact ? 'h-4 w-4' : 'h-6 w-6'} rounded-full \${style.face} shadow-sm\`} />
+        <div className={\`absolute left-1/2 top-[42%] -translate-x-1/2 \${compact ? 'h-8 w-7' : 'h-12 w-10'} rounded-t-[48%] rounded-b-[34%] \${style.face}\`} />
+        <div className={\`absolute bottom-0 left-1/2 -translate-x-1/2 \${compact ? 'h-5 w-12' : 'h-7 w-16'} rounded-t-[55%] \${style.shirt}\`} />
+        <div className={\`absolute left-1/2 top-[56%] -translate-x-1/2 \${compact ? 'w-7 text-[4px]' : 'w-10 text-[5px]'} truncate text-center font-black text-white/80\`}>{initials}</div>
       </div>
-      <div className={`absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${theme.node}`} />
+
+      <span className={\`absolute bottom-2 right-2 \${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded-full border-2 \${darkCenter ? 'border-slate-900' : 'border-white'} bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)]\`} />
+      <div className={\`absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full \${theme.node}\`} />
     </div>
   );
 }
@@ -163,7 +181,7 @@ function FieldLine({ icon: Icon, data, isActive, theme, size = 'normal' }) {
       <span className={`flex ${size === 'small' ? 'h-4 w-4' : 'h-5 w-5'} shrink-0 items-center justify-center rounded-full border ${theme.iconShell}`}>
         <Icon className={`${size === 'small' ? 'h-2 w-2' : 'h-2.5 w-2.5'} ${theme.icon}`} />
       </span>
-      <span className={`min-w-0 truncate font-semibold ${size === 'small' ? 'text-[8px]' : 'text-[9px]'} ${theme.body}`}>
+      <span className={`min-w-0 truncate font-semibold ${size === 'small' ? 'text-[8.5px]' : 'text-[9.5px]'} ${theme.body}`}>
         {data || '\u00A0'}
         {isActive && <span className="ml-1 inline-block h-[1em] w-px align-[-0.12em] animate-pulse bg-current opacity-80" />}
       </span>
