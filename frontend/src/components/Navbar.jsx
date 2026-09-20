@@ -5,7 +5,7 @@ import {
   Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, WalletCards, Layers, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
   Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell,
-  Sun, Moon, Bookmark
+  Sun, Moon, Bookmark, Settings
 } from 'lucide-react';
 
 export default function Navbar({ currentUser, onLogout, themeMode = 'light', onToggleTheme }) {
@@ -320,6 +320,15 @@ export default function Navbar({ currentUser, onLogout, themeMode = 'light', onT
                   aria-label="Saved Library"
                 >
                   <Bookmark className="w-4 h-4" />
+                </Link>
+
+                <Link
+                  to="/settings/security"
+                  className="relative p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl"
+                  title="Account Security"
+                  aria-label="Account Security"
+                >
+                  <Settings className="w-4 h-4" />
                 </Link>
 
                 <Link

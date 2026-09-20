@@ -155,3 +155,60 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   res.json({ user: req.user });
 };
+
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: 'Please provide your current password, new password, and confirmation.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'New password and confirmation do not match.' });
+    }
+
+    const passwordCriteria = {
+      hasMinLength: newPassword.length >= 8,
+      hasUpper: /[A-Z]/.test(newPassword),
+      hasLower: /[a-z]/.test(newPassword),
+      hasNumber: /[0-9]/.test(newPassword),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+    };
+
+    if (!Object.values(passwordCriteria).every(Boolean)) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { passwordHash: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Account not found.' });
+    }
+
+    const currentMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!currentMatches) {
+      return res.status(400).json({ error: 'Current password is incorrect.' });
+    }
+
+    if (await bcrypt.compare(newPassword, user.passwordHash)) {
+      return res.status(400).json({ error: 'New password must be different from your current password.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { passwordHash }
+    });
+
+    return res.json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('Change Password Error:', err);
+    return res.status(500).json({ error: 'Failed to change your password.' });
+  }
+};

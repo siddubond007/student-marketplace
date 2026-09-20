@@ -25,6 +25,7 @@ async function createAdminLoginLog(adminId, email, ipAddress, userAgent, loginSt
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', requireAuth, authController.getMe);
+router.post('/change-password', requireAuth, authController.changePassword);
 
 // Direct Master Admin Unlock with Master Key
 router.post('/admin-login', async (req, res) => {

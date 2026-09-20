@@ -28,6 +28,7 @@ const GigDetailsPage = lazy(() => import('./pages/GigDetailsPage'));
 const GigCustomOffersPage = lazy(() => import('./pages/GigCustomOffersPage'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 const SavedLibraryPage = lazy(() => import('./pages/SavedLibraryPage'));
+const AccountSecurityPage = lazy(() => import('./pages/AccountSecurityPage'));
 const PartTimeProjectsPage = lazy(() => import('./pages/PartTimeProjectsPage'));
 const PixelCardsProjectPage = lazy(() => import('./pages/PixelCardsProjectPage'));
 
@@ -144,6 +145,7 @@ export default function App() {
               <Route path="/orders/:orderId" element={<OrderWorkspacePage currentUser={currentUser} />} />
               <Route path="/notifications" element={<NotificationPage />} />
               <Route path="/saved" element={<SavedLibraryPage currentUser={currentUser} />} />
+              <Route path="/settings/security" element={<AccountSecurityPage currentUser={currentUser} />} />
               <Route path="/part-time-projects" element={<PartTimeProjectsPage themeMode={themeMode} />} />
               <Route path="/part-time-projects/pixelcards" element={<PixelCardsProjectPage themeMode={themeMode} />} />
               
