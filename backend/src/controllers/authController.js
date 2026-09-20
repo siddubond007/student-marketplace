@@ -153,7 +153,27 @@ exports.login = async (req, res) => {
 };
 
 exports.getMe = async (req, res) => {
-  res.json({ user: req.user });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        username: true,
+        role: true
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found.' });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error('Get Current User Error:', err);
+    res.status(500).json({ error: 'Failed to load your account.' });
+  }
 };
 
 
