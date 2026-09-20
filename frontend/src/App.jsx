@@ -7,6 +7,8 @@ import API from './services/api';
 const PostJobPage = lazy(() => import('./pages/PostJobPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const StudentOrdersPage = lazy(() => import('./pages/StudentOrdersPage'));
@@ -131,6 +133,8 @@ export default function App() {
               
               {/* Auth Routes */}
               <Route path="/login" element={<LoginPage onLoginSuccess={setCurrentUser} />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/register" element={<RegisterPage onLoginSuccess={setCurrentUser} />} />
               
               {/* Workspaces */}

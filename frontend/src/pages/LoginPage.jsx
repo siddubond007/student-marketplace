@@ -86,6 +86,15 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
           </div>
 
+          <div className="flex justify-end -mt-1">
+            <Link
+              to="/forgot-password"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           <button 
             type="submit" 
             disabled={loading}

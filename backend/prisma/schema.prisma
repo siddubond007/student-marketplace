@@ -107,6 +107,7 @@ model User {
   gigAnalyticsEvents       GigAnalyticsEvent[]
   gigFavorites             GigFavorite[]
   savedJobs                SavedJob[]
+  passwordResetTokens      PasswordResetToken[]
   gigRevisions             GigRevision[]
   isDeleted                Boolean               @default(false)
   deletedAt                DateTime?
@@ -385,6 +386,19 @@ model SavedJob {
   @@unique([jobId, userId])
   @@index([userId, createdAt])
   @@index([jobId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model Bid {

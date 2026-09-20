@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const authController = require('../controllers/authController');
 const { requireAuth } = require('../middlewares/authMiddleware');
@@ -22,8 +23,18 @@ async function createAdminLoginLog(adminId, email, ipAddress, userAgent, loginSt
   }
 }
 
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset attempts. Please try again later.' }
+});
+
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/forgot-password', passwordResetLimiter, authController.requestPasswordReset);
+router.post('/reset-password', passwordResetLimiter, authController.resetPassword);
 router.get('/me', requireAuth, authController.getMe);
 router.post('/change-password', requireAuth, authController.changePassword);
 
