@@ -60,14 +60,15 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
       });
     }
 
-    // 3. If file was sent via Multipart Form (e.g. Student ID Card / Govt ID / Portfolio)
+    // 3. Multipart file upload (images, videos, documents, etc.)
     if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided for upload.' });
+      return res.status(400).json({ error: 'No file provided for upload.' });
     }
 
+    const isVideoUpload = String(req.file.mimetype || '').toLowerCase().startsWith('video/');
     const uploadRes = await cloudinary.uploader.upload(req.file.path, {
       folder: userCloudinaryFolder,
-      resource_type: 'auto',
+      resource_type: isVideoUpload ? 'video' : 'auto',
       agent: cloudinaryAgent
     });
 
