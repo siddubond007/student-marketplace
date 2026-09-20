@@ -106,6 +106,7 @@ model User {
   activityEvents           OrderActivityEvent[]
   gigAnalyticsEvents       GigAnalyticsEvent[]
   gigFavorites             GigFavorite[]
+  savedJobs                SavedJob[]
   gigRevisions             GigRevision[]
   isDeleted                Boolean               @default(false)
   deletedAt                DateTime?
@@ -366,10 +367,24 @@ model Job {
   Subcategory    Subcategory? @relation(fields: [subcategoryId], references: [id])
   subcategoryId  String?
   taxonomySkills Skill[]      @relation("JobTaxonomySkills")
+  savedJobs      SavedJob[]
 
   @@index([status, isOpen])
   @@index([category])
   @@index([clientId])
+}
+
+model SavedJob {
+  id        String   @id @default(uuid())
+  jobId     String
+  userId    String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([jobId, userId])
+  @@index([userId, createdAt])
+  @@index([jobId, createdAt])
 }
 
 model Bid {

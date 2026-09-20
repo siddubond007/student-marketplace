@@ -283,8 +283,30 @@ exports.getJobs = async (req, res) => {
       prisma.job.count({ where })
     ]);
 
+    const viewerSavedIds = new Set();
+
+    if (
+      (req.user?.role === 'STUDENT_FREELANCER' || req.user?.role === 'ADMIN') &&
+      jobs.length > 0
+    ) {
+      const savedViewerJobs = await prisma.savedJob.findMany({
+        where: {
+          userId: req.user.id,
+          jobId: { in: jobs.map((job) => job.id) }
+        },
+        select: { jobId: true }
+      });
+
+      savedViewerJobs.forEach((item) => viewerSavedIds.add(item.jobId));
+    }
+
+    const jobsWithViewerState = jobs.map((job) => ({
+      ...job,
+      viewerSaved: viewerSavedIds.has(job.id)
+    }));
+
     res.json({
-      jobs,
+      jobs: jobsWithViewerState,
       pagination: {
         total: totalJobs,
         page: pageNumber,
@@ -558,6 +580,7 @@ exports.getPublicJobById = async (req, res) => {
     }
 
     let viewerBid = null;
+    let viewerSaved = false;
 
     if (req.user?.role === 'STUDENT_FREELANCER') {
       viewerBid = await prisma.bid.findUnique({
@@ -577,9 +600,22 @@ exports.getPublicJobById = async (req, res) => {
       });
     }
 
+    if (req.user?.role === 'STUDENT_FREELANCER' || req.user?.role === 'ADMIN') {
+      viewerSaved = Boolean(await prisma.savedJob.findUnique({
+        where: {
+          jobId_userId: {
+            jobId,
+            userId: req.user.id
+          }
+        },
+        select: { id: true }
+      }));
+    }
+
     return res.json({
       ...job,
-      viewerBid
+      viewerBid,
+      viewerSaved
     });
   } catch (err) {
     console.error('Error in getPublicJobById:', err);

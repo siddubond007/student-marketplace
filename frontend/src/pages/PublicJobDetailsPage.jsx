@@ -17,13 +17,17 @@ export default function PublicJobDetailsPage({ currentUser }) {
   const [portfolioLink, setPortfolioLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   
   const bidFormRef = useRef(null);
 
   useEffect(() => {
     API.get(`/jobs/public/${jobId}`)
-      .then((res) => setJob(res.data))
+      .then((res) => {
+        setJob(res.data);
+        setIsSaved(Boolean(res.data?.viewerSaved));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [jobId]);
@@ -69,6 +73,7 @@ export default function PublicJobDetailsPage({ currentUser }) {
       // Refresh the job data so the proposal count updates
       const refreshedJob = await API.get(`/jobs/public/${jobId}`);
       setJob(refreshedJob.data);
+      setIsSaved(Boolean(refreshedJob.data?.viewerSaved));
       
     } catch (error) {
       console.error('Bid Error:', error);
@@ -100,7 +105,40 @@ const postedLabel = job?.createdAt
   ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   : 'Recently';
 
-const handleShareProject = async () => {
+  const handleToggleSaved = async () => {
+    if (!currentUser) {
+      setToastMessage({ text: 'Please log in to save projects to your library.', type: 'error' });
+      return;
+    }
+
+    if (currentUser.role !== 'STUDENT_FREELANCER' && currentUser.role !== 'ADMIN') {
+      setToastMessage({ text: 'Project saving is available from a Student Freelancer account.', type: 'error' });
+      return;
+    }
+
+    setSaveBusy(true);
+
+    try {
+      if (isSaved) {
+        await API.delete(`/saved/jobs/${jobId}`);
+        setIsSaved(false);
+        setToastMessage({ text: 'Project removed from your Saved Library.', type: 'success' });
+      } else {
+        await API.post(`/saved/jobs/${jobId}`);
+        setIsSaved(true);
+        setToastMessage({ text: 'Project saved to your Saved Library.', type: 'success' });
+      }
+    } catch (error) {
+      setToastMessage({
+        text: error.response?.data?.error || 'Unable to update your saved project right now.',
+        type: 'error'
+      });
+    } finally {
+      setSaveBusy(false);
+    }
+  };
+
+  const handleShareProject = async () => {
   try {
     if (navigator.share) {
       await navigator.share({
@@ -245,18 +283,21 @@ const expectedCompletionDate = Number(deliveryDays) > 0
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsSaved(prev => !prev)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition ${
-                    isSaved
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:border-white/20'
-                  }`}
-                >
-                  <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
-                  {isSaved ? 'Saved' : 'Save'}
-                </button>
+                {(!currentUser || currentUser.role === 'STUDENT_FREELANCER' || currentUser.role === 'ADMIN') && (
+                  <button
+                    type="button"
+                    onClick={handleToggleSaved}
+                    disabled={saveBusy}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition ${
+                      isSaved
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:border-white/20'
+                    } disabled:opacity-60`}
+                  >
+                    <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+                    {saveBusy ? 'Saving...' : (isSaved ? 'Saved' : 'Save')}
+                  </button>
+                )}
 
                 <button
                   type="button"

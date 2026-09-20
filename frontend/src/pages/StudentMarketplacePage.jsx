@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../services/api';
-import { Search, Filter, DollarSign, Briefcase, ChevronLeft, ChevronRight, Globe, Languages, Sparkles } from 'lucide-react';
+import { Search, Filter, DollarSign, Briefcase, ChevronLeft, ChevronRight, Globe, Languages, Sparkles, Bookmark } from 'lucide-react';
 
-export default function StudentMarketplacePage() {
+export default function StudentMarketplacePage({ currentUser }) {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
+  const [savingJobId, setSavingJobId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [page, setPage] = useState(1);
@@ -105,6 +107,35 @@ export default function StudentMarketplacePage() {
       console.error('Failed to load jobs:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleJobSave = async (job) => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (currentUser.role !== 'STUDENT_FREELANCER' && currentUser.role !== 'ADMIN') return;
+
+    setSavingJobId(job.id);
+
+    try {
+      if (job.viewerSaved) {
+        await API.delete(`/saved/jobs/${job.id}`);
+      } else {
+        await API.post(`/saved/jobs/${job.id}`);
+      }
+
+      setJobs(prev => prev.map(item =>
+        item.id === job.id
+          ? { ...item, viewerSaved: !job.viewerSaved }
+          : item
+      ));
+    } catch (error) {
+      console.error('Failed to update saved project:', error);
+    } finally {
+      setSavingJobId(null);
     }
   };
 
@@ -344,10 +375,29 @@ export default function StudentMarketplacePage() {
                   <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
                   <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
-                    <div className="flex-1">
-                      <Link to={`/jobs/${job.id}`} className="text-2xl font-extrabold text-white group-hover:text-emerald-400 transition-colors block leading-tight mb-3">
-                        {job.title}
-                      </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <Link to={`/jobs/${job.id}`} className="text-2xl font-extrabold text-white group-hover:text-emerald-400 transition-colors block leading-tight mb-3">
+                          {job.title}
+                        </Link>
+                        {(!currentUser || currentUser.role === 'STUDENT_FREELANCER' || currentUser.role === 'ADMIN') && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleJobSave(job)}
+                            disabled={savingJobId === job.id}
+                            className={`shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition disabled:opacity-60 ${
+                              job.viewerSaved
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                                : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+                            }`}
+                            aria-pressed={Boolean(job.viewerSaved)}
+                            aria-label={job.viewerSaved ? 'Remove project from Saved Library' : 'Save project to Saved Library'}
+                          >
+                            <Bookmark size={15} fill={job.viewerSaved ? 'currentColor' : 'none'} />
+                            {savingJobId === job.id ? 'Saving...' : (job.viewerSaved ? 'Saved' : 'Save')}
+                          </button>
+                        )}
+                      </div>
                       
                       <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mb-4">
                         <span className={`px-3 py-1 rounded-full border ${job.projectType === 'HOURLY' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}>

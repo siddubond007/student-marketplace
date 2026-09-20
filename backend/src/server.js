@@ -23,6 +23,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
 const clientDashboardRoutes = require('./routes/clientDashboardRoutes');
+const savedRoutes = require('./routes/savedRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const { moderateMessage } = require('./services/moderationService');
 const { startEscrowReleaseWorker } = require('./workers/escrowReleaseWorker');
@@ -135,6 +136,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/client/dashboard', clientDashboardRoutes);
+app.use('/api/saved', savedRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Marketplace API running smoothly.' });

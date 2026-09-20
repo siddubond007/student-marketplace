@@ -5,7 +5,7 @@ import {
   Sparkles, ChevronDown, Globe, ShieldCheck, ArrowRight, WalletCards, Layers, 
   Code, Palette, Video, Smartphone, Box, PenTool, Layout, 
   Terminal, Database, FileCode, CheckCircle2, Zap, LogOut, LayoutDashboard, Bell,
-  Sun, Moon
+  Sun, Moon, Bookmark
 } from 'lucide-react';
 
 export default function Navbar({ currentUser, onLogout, themeMode = 'light', onToggleTheme }) {
@@ -313,6 +313,15 @@ export default function Navbar({ currentUser, onLogout, themeMode = 'light', onT
                   {currentUser.role === 'STUDENT_FREELANCER' ? 'Student Workspace' : 'Client Portal'}
                 </div>
               </Link>
+                <Link
+                  to="/saved"
+                  className="relative p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl"
+                  title="Saved Library"
+                  aria-label="Saved Library"
+                >
+                  <Bookmark className="w-4 h-4" />
+                </Link>
+
                 <Link
                   to="/notifications"
                   className="relative p-2.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl"
