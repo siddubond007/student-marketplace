@@ -81,6 +81,8 @@ exports.getMyProfile = async (req, res) => {
       return res.status(404).json({ error: 'Your profile was not found.' });
     }
 
+    delete user.passwordHash;
+
     return res.json(user);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -125,6 +127,10 @@ exports.getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User profile not found.' });
     }
+
+    delete user.passwordHash;
+    delete user.verification;
+    delete user.ordersAsSeller;
 
     if (user.profile) {
       const {
