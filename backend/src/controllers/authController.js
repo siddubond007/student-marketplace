@@ -32,11 +32,19 @@ exports.register = async (req, res) => {
       where: { email: { equals: cleanEmail, mode: 'insensitive' } }
     });
     if (existingEmail) {
-      return res.status(400).json({ error: 'This email is already registered. Please sign in.' });
+      return res.status(409).json({ error: 'This email is already registered. Please sign in instead.' });
     }
 
     const isOwnerAdmin = cleanEmail === 'siddusiddharth80193@gmail.com';
     const userCleanName = (username || `${firstName.toLowerCase()}${Math.floor(100 + Math.random() * 900)}`).replace(/\s+/g, '');
+
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: { equals: userCleanName, mode: 'insensitive' } }
+    });
+    if (existingUsername) {
+      return res.status(409).json({ error: 'This username is already taken. Please choose a different username.' });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const parsedAge = parseInt(age, 10) || 18;
     const isMinor = parsedAge < 18;
