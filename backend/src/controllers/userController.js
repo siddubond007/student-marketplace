@@ -87,7 +87,8 @@ exports.updateProfile = async (req, res) => {
     const { 
       tagline, bio, college, category, hourlyRate, skills, avatarUrl, coverUrl,
       experienceList, educationList, qualificationList, certificationList, socialLinks,
-      responseTimeExpectation
+      responseTimeExpectation, githubUrl, youtubeUrl, drivePortfolio,
+      onboardingCompleted, onboardingData
     } = req.body;
 
     const updatedProfile = await prisma.profile.upsert({
@@ -102,6 +103,9 @@ exports.updateProfile = async (req, res) => {
         skills: skills || ['Student Talent'],
         avatarUrl,
         coverUrl,
+        githubUrl,
+        youtubeUrl,
+        drivePortfolio,
         experienceList: experienceList || [],
         educationList: educationList || [],
         qualificationList: qualificationList || [],
@@ -109,7 +113,9 @@ exports.updateProfile = async (req, res) => {
         socialLinks: socialLinks || {},
         responseTimeExpectation: typeof responseTimeExpectation === 'string'
           ? responseTimeExpectation.trim().slice(0, 120) || null
-          : null
+          : null,
+        onboardingCompleted: onboardingCompleted !== undefined ? Boolean(onboardingCompleted) : true,
+        onboardingData: onboardingData !== undefined ? onboardingData : {}
       },
       update: {
         tagline,
@@ -120,6 +126,9 @@ exports.updateProfile = async (req, res) => {
         skills: skills ? skills : undefined,
         avatarUrl,
         coverUrl,
+        githubUrl,
+        youtubeUrl,
+        drivePortfolio,
         experienceList: experienceList !== undefined ? experienceList : undefined,
         educationList: educationList !== undefined ? educationList : undefined,
         qualificationList: qualificationList !== undefined ? qualificationList : undefined,
@@ -129,7 +138,9 @@ exports.updateProfile = async (req, res) => {
           ? (typeof responseTimeExpectation === 'string'
               ? responseTimeExpectation.trim().slice(0, 120) || null
               : null)
-          : undefined
+          : undefined,
+        onboardingCompleted: onboardingCompleted !== undefined ? Boolean(onboardingCompleted) : undefined,
+        onboardingData: onboardingData !== undefined ? onboardingData : undefined
       }
     });
 
