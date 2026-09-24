@@ -150,6 +150,24 @@ exports.updateProfile = async (req, res) => {
       onboardingCompleted, onboardingStatus, onboardingData
     } = req.body;
 
+    const allowedOnboardingStatuses = new Set([
+      'NOT_STARTED',
+      'PENDING',
+      'IN_PROGRESS',
+      'SKIPPED',
+      'COMPLETED'
+    ]);
+
+    let normalizedOnboardingStatus;
+    if (onboardingStatus !== undefined) {
+      normalizedOnboardingStatus = String(onboardingStatus).trim().toUpperCase();
+      if (!allowedOnboardingStatuses.has(normalizedOnboardingStatus)) {
+        return res.status(400).json({
+          error: 'Invalid onboarding status.'
+        });
+      }
+    }
+
     const updatedProfile = await prisma.profile.upsert({
       where: { userId: req.user.id },
       create: {
@@ -173,12 +191,13 @@ exports.updateProfile = async (req, res) => {
         responseTimeExpectation: typeof responseTimeExpectation === 'string'
           ? responseTimeExpectation.trim().slice(0, 120) || null
           : null,
-        onboardingCompleted: onboardingCompleted !== undefined
-          ? (onboardingCompleted === true || onboardingCompleted === 'true')
-          : true,
-        onboardingStatus: onboardingStatus !== undefined
-          ? String(onboardingStatus).trim().toUpperCase()
-          : 'COMPLETED',
+        onboardingCompleted: normalizedOnboardingStatus !== undefined
+          ? normalizedOnboardingStatus === 'COMPLETED'
+          : (onboardingCompleted !== undefined
+              ? (onboardingCompleted === true || onboardingCompleted === 'true')
+              : true),
+        onboardingStatus: normalizedOnboardingStatus
+          || (onboardingCompleted === false || onboardingCompleted === 'false' ? 'PENDING' : 'COMPLETED'),
         onboardingData: onboardingData !== undefined ? onboardingData : {}
       },
       update: {
@@ -203,11 +222,13 @@ exports.updateProfile = async (req, res) => {
               ? responseTimeExpectation.trim().slice(0, 120) || null
               : null)
           : undefined,
-        onboardingCompleted: onboardingCompleted !== undefined
-          ? (onboardingCompleted === true || onboardingCompleted === 'true')
-          : undefined,
-        onboardingStatus: onboardingStatus !== undefined
-          ? String(onboardingStatus).trim().toUpperCase()
+        onboardingCompleted: normalizedOnboardingStatus !== undefined
+          ? normalizedOnboardingStatus === 'COMPLETED'
+          : (onboardingCompleted !== undefined
+              ? (onboardingCompleted === true || onboardingCompleted === 'true')
+              : undefined),
+        onboardingStatus: normalizedOnboardingStatus !== undefined
+          ? normalizedOnboardingStatus
           : undefined,
         onboardingData: onboardingData !== undefined ? onboardingData : undefined
       }
