@@ -110,7 +110,12 @@ exports.register = async (req, res) => {
     });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
-    res.status(201).json({ message: 'Registration successful', token, user });
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+    res.status(201).json({
+      message: 'Registration successful',
+      token,
+      user: safeUser
+    });
   } catch (err) {
     console.error("Register Error:", err);
 
@@ -196,7 +201,12 @@ exports.login = async (req, res) => {
     }
 
     console.log(`✅ Login successful: ${user.email} -> Role: ${user.role}`);
-    res.json({ message: 'Login successful', token, user });
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+    res.json({
+      message: 'Login successful',
+      token,
+      user: safeUser
+    });
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ error: 'Database Error: ' + err.message });
