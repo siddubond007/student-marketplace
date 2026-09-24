@@ -130,6 +130,8 @@ model Profile {
   badges           String[] @default(["Verified Student"])
   canUseTieredGigs Boolean  @default(false)
   responseTimeExpectation String?
+  onboardingCompleted Boolean  @default(true)
+  onboardingData Json? @default("{}")
 
   // 5 Student Profile Sections
   portfolioItems    Json? @default("[]")
