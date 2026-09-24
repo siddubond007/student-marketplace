@@ -125,6 +125,8 @@ model Profile {
   githubUrl        String?
   youtubeUrl       String?
   drivePortfolio   String?
+  resumeUrl        String?
+  resumeFileName   String?
   sampleFiles      String[]
   skills           String[] @default(["Student Talent", "Fast Learner"])
   badges           String[] @default(["Verified Student"])
