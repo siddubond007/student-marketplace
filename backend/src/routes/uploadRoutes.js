@@ -45,7 +45,11 @@ const resumeUpload = multer({
     const extension = path.extname(file.originalname || '').toLowerCase();
     const allowedExtensions = new Set(['.pdf', '.doc', '.docx']);
 
-    if (allowedMimeTypes.has(file.mimetype) && allowedExtensions.has(extension)) {
+    const mimeAllowed =
+      allowedMimeTypes.has(file.mimetype) ||
+      file.mimetype === 'application/octet-stream';
+
+    if (mimeAllowed && allowedExtensions.has(extension)) {
       return cb(null, true);
     }
 
