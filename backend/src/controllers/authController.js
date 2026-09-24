@@ -68,7 +68,9 @@ exports.register = async (req, res) => {
             college: isOwnerAdmin ? 'Mohan Babu University (MBU) - Tirupati' : '',
             category: isOwnerAdmin ? 'Platform Operations' : 'General Freelancing',
             hourlyRate: isOwnerAdmin ? 999 : 350,
-            skills: ['Student Talent', 'Fast Learner']
+            skills: ['Student Talent', 'Fast Learner'],
+            onboardingCompleted: isOwnerAdmin,
+            onboardingData: {}
           }
         },
         wallet: { create: { isParentAccount: isMinor, availableBalance: isOwnerAdmin ? 5000 : 0 } }
