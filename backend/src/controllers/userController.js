@@ -114,7 +114,9 @@ exports.updateProfile = async (req, res) => {
         responseTimeExpectation: typeof responseTimeExpectation === 'string'
           ? responseTimeExpectation.trim().slice(0, 120) || null
           : null,
-        onboardingCompleted: onboardingCompleted !== undefined ? Boolean(onboardingCompleted) : true,
+        onboardingCompleted: onboardingCompleted !== undefined
+          ? (onboardingCompleted === true || onboardingCompleted === 'true')
+          : true,
         onboardingData: onboardingData !== undefined ? onboardingData : {}
       },
       update: {
@@ -139,7 +141,9 @@ exports.updateProfile = async (req, res) => {
               ? responseTimeExpectation.trim().slice(0, 120) || null
               : null)
           : undefined,
-        onboardingCompleted: onboardingCompleted !== undefined ? Boolean(onboardingCompleted) : undefined,
+        onboardingCompleted: onboardingCompleted !== undefined
+          ? (onboardingCompleted === true || onboardingCompleted === 'true')
+          : undefined,
         onboardingData: onboardingData !== undefined ? onboardingData : undefined
       }
     });
