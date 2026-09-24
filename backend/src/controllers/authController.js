@@ -60,7 +60,15 @@ exports.register = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const parsedAge = parseInt(age, 10) || 18;
+    const hasAge = age !== undefined && age !== null && String(age).trim() !== '';
+    const parsedAge = hasAge ? Number(String(age).trim()) : 18;
+
+    if (hasAge && (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120)) {
+      return res.status(400).json({
+        error: 'Please provide a valid age between 1 and 120.'
+      });
+    }
+
     const isMinor = parsedAge < 18;
 
     // Indian Contract Act Sec 11 Safeguard
@@ -105,7 +113,25 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: 'Registration successful', token, user });
   } catch (err) {
     console.error("Register Error:", err);
-    res.status(500).json({ error: 'Database Error: ' + err.message });
+
+    if (err?.code === 'P2002') {
+      const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : '';
+      if (target.toLowerCase().includes('email')) {
+        return res.status(409).json({
+          error: 'This email is already registered. Please sign in instead.'
+        });
+      }
+      if (target.toLowerCase().includes('username')) {
+        return res.status(409).json({
+          error: 'This username is already taken. Please choose a different username.'
+        });
+      }
+      return res.status(409).json({
+        error: 'Some account details are already in use. Please choose different details.'
+      });
+    }
+
+    res.status(500).json({ error: 'Unable to create the account right now. Please try again.' });
   }
 };
 
