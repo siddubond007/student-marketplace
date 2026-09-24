@@ -92,6 +92,7 @@ exports.register = async (req, res) => {
             hourlyRate: isOwnerAdmin ? 999 : 350,
             skills: ['Student Talent', 'Fast Learner'],
             onboardingCompleted: isOwnerAdmin,
+            onboardingStatus: isOwnerAdmin ? 'COMPLETED' : 'PENDING',
             onboardingData: {}
           }
         },
