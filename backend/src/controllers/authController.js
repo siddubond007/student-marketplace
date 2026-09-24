@@ -27,6 +27,20 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Please provide first name, last name, email, and password.' });
     }
 
+    const passwordIsStrong =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /\d/.test(password) &&
+      /[^A-Za-z0-9]/.test(password) &&
+      !/\s/.test(password);
+
+    if (!passwordIsStrong) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character, with no spaces.'
+      });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const existingEmail = await prisma.user.findFirst({
       where: { email: { equals: cleanEmail, mode: 'insensitive' } }
