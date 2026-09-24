@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const cloudinary = require('../config/cloudinary');
+const prisma = require('../config/db');
 const { requireAuth } = require('../middlewares/authMiddleware');
 
 const cloudinaryAgent = new https.Agent({ family: 4 });
