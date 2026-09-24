@@ -133,6 +133,7 @@ model Profile {
   canUseTieredGigs Boolean  @default(false)
   responseTimeExpectation String?
   onboardingCompleted Boolean  @default(true)
+  onboardingStatus    String   @default("COMPLETED")
   onboardingData Json? @default("{}")
 
   // 5 Student Profile Sections
