@@ -1,5 +1,45 @@
 const prisma = require('../config/db');
 
+function sanitizePublicProfile(profile) {
+  if (!profile) return profile;
+
+  const {
+    resumeUrl: _resumeUrl,
+    resumeFileName: _resumeFileName,
+    onboardingData,
+    ...publicProfile
+  } = profile;
+
+  if (!onboardingData || typeof onboardingData !== 'object' || Array.isArray(onboardingData)) {
+    return publicProfile;
+  }
+
+  const {
+    version,
+    role,
+    primaryDomain,
+    selectedSkills,
+    academicStatus,
+    graduationYear,
+    availability,
+    companyOrProjectName
+  } = onboardingData;
+
+  return {
+    ...publicProfile,
+    onboardingData: {
+      version,
+      role,
+      primaryDomain,
+      selectedSkills,
+      academicStatus,
+      graduationYear,
+      availability,
+      companyOrProjectName
+    }
+  };
+}
+
 exports.getFreelancers = async (req, res) => {
   try {
     const { category } = req.query;
@@ -31,18 +71,10 @@ exports.getFreelancers = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    const safeFreelancers = freelancers.map((freelancer) => {
-      if (!freelancer.profile) return freelancer;
-      const {
-        resumeUrl: _resumeUrl,
-        resumeFileName: _resumeFileName,
-        ...publicProfile
-      } = freelancer.profile;
-      return {
-        ...freelancer,
-        profile: publicProfile
-      };
-    });
+    const safeFreelancers = freelancers.map((freelancer) => ({
+      ...freelancer,
+      profile: sanitizePublicProfile(freelancer.profile)
+    }));
 
     res.json(safeFreelancers);
   } catch (err) {
@@ -132,14 +164,7 @@ exports.getUserProfile = async (req, res) => {
     delete user.verification;
     delete user.ordersAsSeller;
 
-    if (user.profile) {
-      const {
-        resumeUrl: _resumeUrl,
-        resumeFileName: _resumeFileName,
-        ...publicProfile
-      } = user.profile;
-      user.profile = publicProfile;
-    }
+    user.profile = sanitizePublicProfile(user.profile);
 
     res.json(user);
   } catch (err) {
