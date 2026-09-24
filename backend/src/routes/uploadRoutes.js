@@ -32,6 +32,90 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 } // 25MB max
 });
 
+const resumeUpload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]);
+    const extension = path.extname(file.originalname || '').toLowerCase();
+    const allowedExtensions = new Set(['.pdf', '.doc', '.docx']);
+
+    if (allowedMimeTypes.has(file.mimetype) && allowedExtensions.has(extension)) {
+      return cb(null, true);
+    }
+
+    return cb(new Error('Only PDF, DOC, or DOCX resume files are supported.'));
+  }
+});
+
+// Resume Upload Endpoint
+// Stores the uploaded resume in Cloudinary and links it to the authenticated profile.
+router.post('/resume', requireAuth, (req, res, next) => {
+  resumeUpload.single('file')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({
+        error: err.message || 'Resume upload failed.'
+      });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: 'Please choose a PDF, DOC, or DOCX resume file.'
+        });
+      }
+
+      const userFolderSlug = (req.user?.username || req.user?.email?.split('@')[0] || req.user?.id || 'general_user')
+        .replace(/[^a-zA-Z0-9_-]/g, '_');
+      const userCloudinaryFolder = `skilllaunch_users/${userFolderSlug}/resume`;
+
+      const uploadRes = await cloudinary.uploader.upload(req.file.path, {
+        folder: userCloudinaryFolder,
+        resource_type: 'raw',
+        type: 'upload',
+        use_filename: true,
+        unique_filename: true,
+        agent: cloudinaryAgent
+      });
+
+      await prisma.profile.update({
+        where: { userId: req.user.id },
+        data: {
+          resumeUrl: uploadRes.secure_url,
+          resumeFileName: req.file.originalname
+        }
+      });
+
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupErr) {
+        console.warn('Resume temp cleanup warning:', cleanupErr);
+      }
+
+      return res.status(201).json({
+        message: 'Resume uploaded successfully.',
+        url: uploadRes.secure_url,
+        fileName: req.file.originalname,
+        bytes: uploadRes.bytes
+      });
+    } catch (uploadError) {
+      console.error('Resume upload error:', uploadError);
+      if (req.file && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+      }
+      return res.status(500).json({
+        error: 'Unable to upload your resume right now. Please try again.'
+      });
+    }
+  });
+});
+
 // Upload Endpoint: Automatically organizes uploads into user-specific Cloudinary folders
 router.post('/', requireAuth, upload.single('file'), async (req, res) => {
   try {
@@ -62,7 +146,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
 
     // 3. If file was sent via Multipart Form (e.g. Student ID Card / Govt ID / Portfolio)
     if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided for upload.' });
+      return res.status(400).json({ error: 'No file provided for upload.' });
     }
 
     const uploadRes = await cloudinary.uploader.upload(req.file.path, {
