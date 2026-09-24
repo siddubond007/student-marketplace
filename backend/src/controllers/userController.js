@@ -29,9 +29,22 @@ exports.getFreelancers = async (req, res) => {
         reviewsReceived: { select: { overallRating: true, comment: true } }
       },
       orderBy: { createdAt: 'desc' }
-    });
+    })
 
-    res.json(freelancers);
+    const safeFreelancers = freelancers.map((freelancer) => {
+      if (!freelancer.profile) return freelancer;
+      const {
+        resumeUrl: _resumeUrl,
+        resumeFileName: _resumeFileName,
+        ...publicProfile
+      } = freelancer.profile;
+      return {
+        ...freelancer,
+        profile: publicProfile
+      };
+    });;
+
+    res.json(safeFreelancers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
