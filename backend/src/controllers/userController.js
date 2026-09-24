@@ -37,6 +37,43 @@ exports.getFreelancers = async (req, res) => {
   }
 };
 
+exports.getMyProfile = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        profile: true,
+        gigs: { include: { packages: true } },
+        reviewsReceived: {
+          where: { isVisible: true },
+          include: {
+            reviewer: { select: { fullName: true } }
+          }
+        },
+        verification: true,
+        ordersAsSeller: {
+          select: {
+            id: true,
+            status: true,
+            totalAmount: true,
+            sellerEarnings: true,
+            createdAt: true,
+            deadline: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Your profile was not found.' });
+    }
+
+    return res.json(user);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -76,6 +113,15 @@ exports.getUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User profile not found.' });
     }
 
+    if (user.profile) {
+      const {
+        resumeUrl: _resumeUrl,
+        resumeFileName: _resumeFileName,
+        ...publicProfile
+      } = user.profile;
+      user.profile = publicProfile;
+    }
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -88,7 +134,7 @@ exports.updateProfile = async (req, res) => {
       tagline, bio, college, category, hourlyRate, skills, avatarUrl, coverUrl,
       experienceList, educationList, qualificationList, certificationList, socialLinks,
       responseTimeExpectation, githubUrl, youtubeUrl, drivePortfolio,
-      onboardingCompleted, onboardingData
+      onboardingCompleted, onboardingStatus, onboardingData
     } = req.body;
 
     const updatedProfile = await prisma.profile.upsert({
@@ -117,6 +163,9 @@ exports.updateProfile = async (req, res) => {
         onboardingCompleted: onboardingCompleted !== undefined
           ? (onboardingCompleted === true || onboardingCompleted === 'true')
           : true,
+        onboardingStatus: onboardingStatus !== undefined
+          ? String(onboardingStatus).trim().toUpperCase()
+          : 'COMPLETED',
         onboardingData: onboardingData !== undefined ? onboardingData : {}
       },
       update: {
@@ -143,6 +192,9 @@ exports.updateProfile = async (req, res) => {
           : undefined,
         onboardingCompleted: onboardingCompleted !== undefined
           ? (onboardingCompleted === true || onboardingCompleted === 'true')
+          : undefined,
+        onboardingStatus: onboardingStatus !== undefined
+          ? String(onboardingStatus).trim().toUpperCase()
           : undefined,
         onboardingData: onboardingData !== undefined ? onboardingData : undefined
       }
