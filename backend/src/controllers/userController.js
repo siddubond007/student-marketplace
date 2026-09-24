@@ -42,7 +42,7 @@ exports.getFreelancers = async (req, res) => {
         ...freelancer,
         profile: publicProfile
       };
-    });;
+    });
 
     res.json(safeFreelancers);
   } catch (err) {
