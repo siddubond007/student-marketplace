@@ -20,6 +20,41 @@ async function createAdminLoginLog(adminId, email, ipAddress, userAgent, loginSt
   }
 }
 
+const parseDateOfBirth = (value) => {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+const calculateAgeFromDob = (date, today = new Date()) => {
+  let age = today.getUTCFullYear() - date.getUTCFullYear();
+
+  if (
+    today.getUTCMonth() < date.getUTCMonth() ||
+    (today.getUTCMonth() === date.getUTCMonth() &&
+      today.getUTCDate() < date.getUTCDate())
+  ) {
+    age -= 1;
+  }
+
+  return age;
+};
+
 
 exports.register = async (req, res) => {
   try {
@@ -40,7 +75,29 @@ exports.register = async (req, res) => {
     const isOwnerAdmin = cleanEmail === 'siddusiddharth80193@gmail.com';
     const userCleanName = (username || `${firstName.toLowerCase()}${Math.floor(100 + Math.random() * 900)}`).replace(/\s+/g, '');
     const passwordHash = await bcrypt.hash(password, 10);
-    const parsedAge = parseInt(age, 10) || 18;
+
+    let parsedDob = null;
+    let parsedAge = parseInt(age, 10) || 18;
+
+    if (dob) {
+      parsedDob = parseDateOfBirth(dob);
+
+      if (!parsedDob) {
+        return res.status(400).json({ error: 'Please provide a valid date of birth in YYYY-MM-DD format.' });
+      }
+
+      const today = new Date();
+      if (parsedDob > today) {
+        return res.status(400).json({ error: 'Date of birth cannot be in the future.' });
+      }
+
+      parsedAge = calculateAgeFromDob(parsedDob, today);
+    }
+
+    if (parsedAge < 1 || parsedAge > 120) {
+      return res.status(400).json({ error: 'Date of birth must represent an age between 1 and 120.' });
+    }
+
     const isMinor = parsedAge < 18;
 
     // Indian Contract Act Sec 11 Safeguard
@@ -163,7 +220,13 @@ exports.getMe = async (req, res) => {
         email: true,
         fullName: true,
         username: true,
-        role: true
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        role: true,
+        isMinor: true,
+        age: true,
+        dob: true
       }
     });
 
