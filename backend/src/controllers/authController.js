@@ -71,8 +71,17 @@ exports.register = async (req, res) => {
 
     const isMinor = parsedAge < 18;
 
+    // Public registration may create only supported non-admin account types.
+    // Administrator accounts must not be selectable through the public signup API.
+    const normalizedRole = String(role || 'STUDENT_FREELANCER').trim().toUpperCase();
+    const allowedPublicRoles = new Set(['STUDENT_FREELANCER', 'CLIENT']);
+
+    if (!isOwnerAdmin && !allowedPublicRoles.has(normalizedRole)) {
+      return res.status(403).json({ error: 'Invalid account role. Public registration supports Student or Client accounts only.' });
+    }
+
     // Indian Contract Act Sec 11 Safeguard
-    const requestedRole = isOwnerAdmin ? 'ADMIN' : (role || 'STUDENT_FREELANCER');
+    const requestedRole = isOwnerAdmin ? 'ADMIN' : normalizedRole;
     if (isMinor && requestedRole === 'CLIENT') {
       return res.status(403).json({ error: 'Legal Capacity Error: Users under 18 cannot legally enter into employment contracts or act as a Client.' });
     }
@@ -87,7 +96,7 @@ exports.register = async (req, res) => {
         middleName: middleName || null,
         lastName,
         fullName,
-        role: isOwnerAdmin ? 'ADMIN' : (isMinor ? 'STUDENT_FREELANCER' : (role || 'STUDENT_FREELANCER')),
+        role: isOwnerAdmin ? 'ADMIN' : (isMinor ? 'STUDENT_FREELANCER' : normalizedRole),
         isMinor,
         age: parsedAge,
         dob: dob ? new Date(dob) : null,
